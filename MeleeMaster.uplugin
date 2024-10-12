@@ -20,5 +20,19 @@
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
 		}
+	],
+	"Plugins": [
+		{
+			"Name": "AdvancedLogger",
+			"Enabled": true
+		},
+		{
+			"Name": "AdvancedAsset",
+			"Enabled": true
+		},
+		{
+			"Name": "ReplicatedObject",
+			"Enabled": true
+		}
 	]
 }
