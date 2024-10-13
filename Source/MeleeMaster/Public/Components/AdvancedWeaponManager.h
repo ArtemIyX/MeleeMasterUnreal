@@ -116,6 +116,7 @@ protected:
 
 
 public:
+	// Should be called from begin play of weapon visual
 	void AttachBack(AWeaponVisual* InWeaponVisual);
 	
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
@@ -132,6 +133,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
 	virtual UAbstractWeapon* Weapon(int32 InIndex);
+
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
+	virtual  UAbstractWeapon* WeaponByGuid(FString InGuid);
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
 	virtual int32 WeaponNum() const;

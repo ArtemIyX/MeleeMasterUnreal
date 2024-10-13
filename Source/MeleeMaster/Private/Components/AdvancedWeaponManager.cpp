@@ -144,11 +144,12 @@ int32 UAdvancedWeaponManager::AddNewWeapon(UWeaponDataAsset* InWeaponAsset)
 	UAbstractWeapon* weaponInstance = NewObject<UAbstractWeapon>(GetOwner(), InWeaponAsset->WeaponClass, NAME_None,
 	                                                             RF_Transient);
 	weaponInstance->SetData(InWeaponAsset);
+	weaponInstance->SetGuidString(weaponInstance->MakeRandomGuidString());
 
 	int32 index = WeaponList.Add(weaponInstance);
 	CreateVisuals(weaponInstance);
 	MARK_PROPERTY_DIRTY_FROM_NAME(UAdvancedWeaponManager, WeaponList, this);
-	
+
 	return index;
 }
 
@@ -160,15 +161,16 @@ void UAdvancedWeaponManager::CreateVisuals(UAbstractWeapon* InAbstractWeapon)
 	if (!InAbstractWeapon->IsValidData())
 		return;
 
-	auto data = InAbstractWeapon->GetData();
+	const UWeaponDataAsset* data = InAbstractWeapon->GetData();
 	if (data->Visuals.Num() <= 0)
 	{
 		return;
 	}
 	TArray<AWeaponVisual*> actors;
 	AActor* owner = GetOwner();
-	FVector ownerLoc = owner->GetActorLocation();
+	const FVector ownerLoc = owner->GetActorLocation();
 	actors.Reserve(data->Visuals.Num());
+	const FString weaponGuid = InAbstractWeapon->GetGUIDString();
 	for (TSubclassOf<AWeaponVisual> visualClass : data->Visuals)
 	{
 		FVector loc = ownerLoc;
@@ -181,6 +183,7 @@ void UAdvancedWeaponManager::CreateVisuals(UAbstractWeapon* InAbstractWeapon)
 		AWeaponVisual* visualActor = GetWorld()->SpawnActor<AWeaponVisual>(visualClass, loc, rot, spawnParameters);
 		if (IsValid(visualActor))
 		{
+			visualActor->SetGuidString(weaponGuid);
 			actors.Add(visualActor);
 		}
 	}
@@ -240,6 +243,18 @@ UAbstractWeapon* UAdvancedWeaponManager::Weapon(int32 InIndex)
 		return nullptr;
 	}
 	return WeaponList[InIndex];
+}
+
+UAbstractWeapon* UAdvancedWeaponManager::WeaponByGuid(FString InGuid)
+{
+	for (auto el : WeaponList)
+	{
+		if (IsValid(el) && el->GetGUIDString().Equals(InGuid))
+		{
+			return el;
+		}
+	}
+	return nullptr;
 }
 
 int32 UAdvancedWeaponManager::WeaponNum() const

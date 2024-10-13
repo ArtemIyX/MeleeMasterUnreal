@@ -22,7 +22,10 @@ void UAbstractWeapon::OnRep_Data()
 
 void UAbstractWeapon::OnRep_Visuals()
 {
-	
+}
+
+void UAbstractWeapon::OnRep_Guid()
+{
 }
 
 void UAbstractWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -32,11 +35,23 @@ void UAbstractWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	Params.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UAbstractWeapon, Data, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UAbstractWeapon, Visuals, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UAbstractWeapon, Guid, Params);
 }
 
 bool UAbstractWeapon::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
 {
 	return Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+}
+
+void UAbstractWeapon::SetGuidString(FString InGuid)
+{
+	this->Guid = InGuid;
+	MARK_PROPERTY_DIRTY_FROM_NAME(UAbstractWeapon, Guid, this);
+}
+
+FString UAbstractWeapon::MakeRandomGuidString()
+{
+	return FGuid::NewGuid().ToString();
 }
 
 bool UAbstractWeapon::IsValidData() const

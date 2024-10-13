@@ -45,6 +45,12 @@ protected:
 	UPROPERTY(Transient, ReplicatedUsing=OnRep_Visuals, BlueprintReadOnly, Category="AbstractWeapon|Variables")
 	TArray<AWeaponVisual*> Visuals;
 
+	/**
+	 * @brief Unique id for multiplayer replication
+	 */
+	UPROPERTY(Transient, ReplicatedUsing=OnRep_Guid, BlueprintReadOnly, Category="AbstractWeapon|Variables")
+	FString Guid;
+
 protected:
 	/**
 	 * @brief Called when weapon data is replicated.
@@ -58,12 +64,26 @@ protected:
 	UFUNCTION()
 	virtual void OnRep_Visuals();
 
+	/**
+	* @brief Called when Guid variable is replicated.
+	*/
+	UFUNCTION()
+	virtual void OnRep_Guid();
+
 public:
 	virtual bool IsSupportedForNetworking() const override { return true; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 
 public:
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AbstractWeapon")
+	FORCEINLINE FString GetGUIDString() const { return Guid; }
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AbstractWeapon")
+	void SetGuidString(FString InGuid);
+
+	UFUNCTION(BlueprintCallable, Category="AbstractWeapon")
+	FString MakeRandomGuidString();
 	/**
 	 * @brief Retrieves the weapon data asset.
 	 * @return The weapon data asset.
