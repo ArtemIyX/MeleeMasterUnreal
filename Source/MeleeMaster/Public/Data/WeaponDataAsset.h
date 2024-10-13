@@ -6,6 +6,7 @@
 #include "Data/AdvancedDataAsset.h"
 #include "WeaponDataAsset.generated.h"
 
+class UWeaponAnimationDataAsset;
 class AWeaponVisual;
 class UAbstractWeapon;
 /**
@@ -26,6 +27,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Visual")
 	TArray<TSubclassOf<AWeaponVisual>> Visuals;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Visual")
+	TSoftObjectPtr<UWeaponAnimationDataAsset> Animations;
 public:
 	bool IsValidToCreate() const;
 };
