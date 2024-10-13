@@ -107,6 +107,31 @@ public:
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+protected:
+
+	virtual void CreateWeaponVisualsForWeapon(UAbstractWeapon* InAbstractWeapon);
+
+protected:
+	UFUNCTION(NetMulticast, Reliable)
+	void Multi_CreateVisual(int32 InWeaponIndex);
+public:
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
+	virtual bool CanStartEquippingWeapon(int32 InWeaponIndex) const;
+
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
+	virtual int32 GetCurrentWeaponIndex() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Weapon")
+	virtual int32 AddNewWeapon(UWeaponDataAsset* InWeaponAsset);
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Weapon")
+	virtual bool RemoveWeapon(int32 InIndex);
+
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
+	virtual UAbstractWeapon* Weapon(int32 InIndex);
+
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
+	virtual int32 WeaponNum() const;
 public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Getters")
 	FORCEINLINE UAbstractWeapon* GetCurrentWeapon() const { return CurrentWeapon; }

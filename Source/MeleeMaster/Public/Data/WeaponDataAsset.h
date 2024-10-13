@@ -6,6 +6,8 @@
 #include "Data/AdvancedDataAsset.h"
 #include "WeaponDataAsset.generated.h"
 
+class AWeaponVisual;
+class UAbstractWeapon;
 /**
  * 
  */
@@ -16,6 +18,14 @@ class MELEEMASTER_API UWeaponDataAsset : public UAdvancedDataAsset
 
 public:
 	UWeaponDataAsset();
+
 public:
-	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Main")
+	TSubclassOf<UAbstractWeapon> WeaponClass;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Visual")
+	TMap<FName, TSubclassOf<AWeaponVisual>> Visuals;
+
+public:
+	bool IsValidToCreate() const;
 };

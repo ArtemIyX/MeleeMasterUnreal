@@ -58,6 +58,7 @@ public:
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 
 public:
+	
 	/**
 	 * @brief Retrieves the weapon data asset.
 	 * @return The weapon data asset.
@@ -65,6 +66,13 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AbstractWeapon")
 	FORCEINLINE UWeaponDataAsset* GetData() const { return Data; }
 
+	/**
+	 * @brief Retrieves and checks the weapon data asset.
+	 * @return True is GetData() is valid
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AbstractWeapon")
+	virtual bool IsValidData() const;
+	
 	/**
 	 * @brief Sets the weapon data asset.
 	 * @param InData The new data asset to be assigned.
@@ -79,6 +87,12 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="AbstractWeapon")
 	virtual void SetVisual(const TMap<FName, AWeaponVisual*>& InVisuals);
+
+	/**
+	 * @brief Clears visual array
+	 */
+	UFUNCTION(BlueprintCallable, Category="AbstractWeapon")
+	virtual void ClearVisual();
 
 	/**
 	 * @brief Sets a visual actor for the weapon at the specified index.

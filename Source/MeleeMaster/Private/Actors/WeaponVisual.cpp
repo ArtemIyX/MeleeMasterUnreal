@@ -8,14 +8,19 @@
 AWeaponVisual::AWeaponVisual()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
+	Base = CreateDefaultSubobject<USceneComponent>(TEXT("Base"));
+	Base->SetComponentTickEnabled(false);
+	SetRootComponent(Base);
+	SkeletalMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMesh"));
+	SkeletalMeshComponent->SetupAttachment(Base);
+	SkeletalMeshComponent->SetComponentTickEnabled(false);
 }
 
 // Called when the game starts or when spawned
 void AWeaponVisual::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame
@@ -23,4 +28,3 @@ void AWeaponVisual::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
-

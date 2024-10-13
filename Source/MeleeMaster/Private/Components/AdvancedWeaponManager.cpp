@@ -3,10 +3,13 @@
 
 #include "Components/AdvancedWeaponManager.h"
 
+#include "MeleeMaster.h"
+#include "Data/WeaponDataAsset.h"
 #include "Engine/ActorChannel.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Objects/AbstractWeapon.h"
+#include "Subsystems/LoggerLib.h"
 
 
 // Sets default values for this component's properties
@@ -115,4 +118,82 @@ void UAdvancedWeaponManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, ManagingStatus, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, FightingStatus, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, CurrentWeapon, Params);
+}
+
+
+bool UAdvancedWeaponManager::CanStartEquippingWeapon(int32 InWeaponIndex) const
+{
+	return false;
+}
+
+int32 UAdvancedWeaponManager::GetCurrentWeaponIndex() const
+{
+	return INDEX_NONE;
+}
+
+int32 UAdvancedWeaponManager::AddNewWeapon(UWeaponDataAsset* InWeaponAsset)
+{
+	if (!IsValid(InWeaponAsset))
+		return INDEX_NONE;
+
+	if (!InWeaponAsset->IsValidToCreate())
+		return INDEX_NONE;
+
+	UAbstractWeapon* weaponInstance = NewObject<UAbstractWeapon>(GetOwner(), InWeaponAsset->WeaponClass,
+	                                                             MakeUniqueObjectName(
+		                                                             GetOwner(), InWeaponAsset->WeaponClass,
+		                                                             FName(TEXT("WeaponIntance"))));
+	weaponInstance->SetData(InWeaponAsset);
+
+
+	int32 index = WeaponList.Add(weaponInstance);
+	MARK_PROPERTY_DIRTY_FROM_NAME(UAdvancedWeaponManager, WeaponList, this);
+
+	Multi_CreateVisual(index);
+	return index;
+}
+
+void UAdvancedWeaponManager::CreateWeaponVisualsForWeapon(UAbstractWeapon* InAbstractWeapon)
+{
+	if (!IsValid(InAbstractWeapon))
+		return;
+
+	if (!InAbstractWeapon->IsValidData())
+		return;
+}
+
+void UAdvancedWeaponManager::Multi_CreateVisual_Implementation(int32 InWeaponIndex)
+{
+	if (WeaponList.IsValidIndex(InWeaponIndex) && IsValid(WeaponList[InWeaponIndex]))
+	{
+		TRACE(LogWeapon, "Weapon visual created %d: %s", InWeaponIndex,
+		      *WeaponList[InWeaponIndex]->GetFName().ToString());
+	}
+	else
+	{
+		TRACE(LogWeapon, "Weapon visual not created %d: null", InWeaponIndex)
+	}
+}
+
+bool UAdvancedWeaponManager::RemoveWeapon(int32 InIndex)
+{
+	if (!WeaponList.IsValidIndex(InIndex))
+	{
+		return false;
+	}
+	return true;
+}
+
+UAbstractWeapon* UAdvancedWeaponManager::Weapon(int32 InIndex)
+{
+	if (!WeaponList.IsValidIndex(InIndex))
+	{
+		return nullptr;
+	}
+	return WeaponList[InIndex];
+}
+
+int32 UAdvancedWeaponManager::WeaponNum() const
+{
+	return WeaponList.Num();
 }

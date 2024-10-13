@@ -4,6 +4,7 @@
 #include "Objects/AbstractWeapon.h"
 
 #include "Actors/WeaponVisual.h"
+#include "Data/WeaponDataAsset.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 
@@ -32,6 +33,11 @@ bool UAbstractWeapon::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bun
 	return Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
 }
 
+bool UAbstractWeapon::IsValidData() const
+{
+	return IsValid(GetData());
+}
+
 void UAbstractWeapon::SetData(UWeaponDataAsset* InData)
 {
 	this->Data = InData;
@@ -41,6 +47,11 @@ void UAbstractWeapon::SetData(UWeaponDataAsset* InData)
 void UAbstractWeapon::SetVisual(const TMap<FName, AWeaponVisual*>& InVisuals)
 {
 	Visuals = InVisuals;
+}
+
+void UAbstractWeapon::ClearVisual()
+{
+	Visuals.Empty();
 }
 
 void UAbstractWeapon::SetVisualActor(FName Index, AWeaponVisual* InVisual)
