@@ -2,7 +2,10 @@
 
 #include "MeleeMaster.h"
 
+DEFINE_LOG_CATEGORY(LogWeapon);
+
 #define LOCTEXT_NAMESPACE "FMeleeMasterModule"
+
 
 void FMeleeMasterModule::StartupModule()
 {

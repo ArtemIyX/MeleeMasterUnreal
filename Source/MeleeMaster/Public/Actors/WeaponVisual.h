@@ -33,5 +33,5 @@ public:
 public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	FORCEINLINE USkeletalMeshComponent* GetSkeletalMesjComponent() const { return SkeletalMeshComponent; }
+	FORCEINLINE USkeletalMeshComponent* GetSkeletalMeshComponent() const { return SkeletalMeshComponent; }
 };
