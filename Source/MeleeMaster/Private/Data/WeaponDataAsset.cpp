@@ -14,9 +14,9 @@ UWeaponDataAsset::UWeaponDataAsset()
 bool UWeaponDataAsset::IsValidToCreate() const
 {
 	// Valid classes
-	for (TTuple<FName, TSubclassOf<AWeaponVisual>> el : Visuals)
+	for (TSubclassOf<AWeaponVisual> el : Visuals)
 	{
-		bool bVisual = (bool)el.Value;
+		bool bVisual = (bool)el;
 		if (!bVisual)
 			return false;
 	}

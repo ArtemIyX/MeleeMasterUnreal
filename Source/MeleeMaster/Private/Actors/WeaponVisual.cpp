@@ -2,7 +2,7 @@
 
 
 #include "Actors/WeaponVisual.h"
-
+#include "Components/AdvancedWeaponManager.h"
 
 // Sets default values
 AWeaponVisual::AWeaponVisual()
@@ -15,12 +15,25 @@ AWeaponVisual::AWeaponVisual()
 	SkeletalMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMesh"));
 	SkeletalMeshComponent->SetupAttachment(Base);
 	SkeletalMeshComponent->SetComponentTickEnabled(false);
+
+	bReplicates = true;
+
+	HandSocket = FName(TEXT("None"));
+	BackSocket = FName(TEXT("None"));
 }
 
 // Called when the game starts or when spawned
 void AWeaponVisual::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (AActor* owner = GetOwner())
+	{
+		if (UAdvancedWeaponManager* manager = owner->FindComponentByClass<UAdvancedWeaponManager>())
+		{
+			manager->AttachBack(this);
+		}
+	}
 }
 
 // Called every frame

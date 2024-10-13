@@ -7,6 +7,7 @@
 #include "AdvancedWeaponManager.generated.h"
 
 
+class AWeaponVisual;
 class UAbstractWeapon;
 class UWeaponDataAsset;
 
@@ -109,22 +110,24 @@ public:
 
 protected:
 
-	virtual void CreateWeaponVisualsForWeapon(UAbstractWeapon* InAbstractWeapon);
+	virtual void CreateVisuals(UAbstractWeapon* InAbstractWeapon);
 
 protected:
-	UFUNCTION(NetMulticast, Reliable)
-	void Multi_CreateVisual(int32 InWeaponIndex);
+
+
 public:
+	void AttachBack(AWeaponVisual* InWeaponVisual);
+	
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
 	virtual bool CanStartEquippingWeapon(int32 InWeaponIndex) const;
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
 	virtual int32 GetCurrentWeaponIndex() const;
 
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Weapon")
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
 	virtual int32 AddNewWeapon(UWeaponDataAsset* InWeaponAsset);
 
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Weapon")
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
 	virtual bool RemoveWeapon(int32 InIndex);
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")

@@ -20,12 +20,18 @@ void UAbstractWeapon::OnRep_Data()
 {
 }
 
+void UAbstractWeapon::OnRep_Visuals()
+{
+	
+}
+
 void UAbstractWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UAbstractWeapon, Data, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UAbstractWeapon, Visuals, Params);
 }
 
 bool UAbstractWeapon::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
@@ -44,53 +50,52 @@ void UAbstractWeapon::SetData(UWeaponDataAsset* InData)
 	MARK_PROPERTY_DIRTY_FROM_NAME(UAbstractWeapon, Data, this);
 }
 
-void UAbstractWeapon::SetVisual(const TMap<FName, AWeaponVisual*>& InVisuals)
+void UAbstractWeapon::SetVisual(const TArray<AWeaponVisual*>& InVisuals)
 {
 	Visuals = InVisuals;
+	MARK_PROPERTY_DIRTY_FROM_NAME(UAbstractWeapon, Visuals, this);
 }
 
 void UAbstractWeapon::ClearVisual()
 {
 	Visuals.Empty();
+	MARK_PROPERTY_DIRTY_FROM_NAME(UAbstractWeapon, Visuals, this);
 }
 
-void UAbstractWeapon::SetVisualActor(FName Index, AWeaponVisual* InVisual)
+void UAbstractWeapon::SetVisualActor(int32 InIndex, AWeaponVisual* InVisual)
 {
-	if (Visuals.Contains(Index))
+	if (Visuals.IsValidIndex(InIndex))
 	{
-		Visuals[Index] = InVisual;
+		Visuals[InIndex] = InVisual;
 	}
 	else
 	{
-		Visuals.Add(Index, InVisual);
+		Visuals.Add(InVisual);
 	}
+	MARK_PROPERTY_DIRTY_FROM_NAME(UAbstractWeapon, Visuals, this);
 }
 
-AWeaponVisual* UAbstractWeapon::RemoveVisualActor(FName Index)
+AWeaponVisual* UAbstractWeapon::RemoveVisualActor(int32 Index)
 {
-	if (Visuals.Contains(Index))
+	if (Visuals.IsValidIndex(Index))
 	{
 		AWeaponVisual* res = Visuals[Index];
-		Visuals.Remove(Index);
+		Visuals.RemoveAt(Index);
+		MARK_PROPERTY_DIRTY_FROM_NAME(UAbstractWeapon, Visuals, this);
 		return res;
 	}
 	return nullptr;
 }
 
-void UAbstractWeapon::GetVisuals(TMap<FName, AWeaponVisual*>& OutVisual)
+void UAbstractWeapon::GetVisual(TArray<AWeaponVisual*>& OutVisual)
 {
 	OutVisual = this->Visuals;
 }
 
-void UAbstractWeapon::GetVisual(TArray<AWeaponVisual*>& OutVisual)
-{
-	this->Visuals.GenerateValueArray(OutVisual);
-}
-
-bool UAbstractWeapon::GetVisualActor(FName Index, AWeaponVisual*& OutVisual)
+bool UAbstractWeapon::GetVisualActor(int32 Index, AWeaponVisual*& OutVisual)
 {
 	OutVisual = nullptr;
-	if (Visuals.Contains(Index))
+	if (Visuals.IsValidIndex(Index))
 	{
 		OutVisual = Visuals[Index];
 		return IsValid(OutVisual);

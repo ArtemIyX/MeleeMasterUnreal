@@ -24,7 +24,7 @@ public:
 	TSubclassOf<UAbstractWeapon> WeaponClass;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Visual")
-	TMap<FName, TSubclassOf<AWeaponVisual>> Visuals;
+	TArray<TSubclassOf<AWeaponVisual>> Visuals;
 
 public:
 	bool IsValidToCreate() const;

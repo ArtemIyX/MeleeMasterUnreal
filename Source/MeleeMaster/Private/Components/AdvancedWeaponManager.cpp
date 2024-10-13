@@ -4,7 +4,9 @@
 #include "Components/AdvancedWeaponManager.h"
 
 #include "MeleeMaster.h"
+#include "Actors/WeaponVisual.h"
 #include "Data/WeaponDataAsset.h"
+#include "Data/Interfaces/WeaponManagerOwner.h"
 #include "Engine/ActorChannel.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
@@ -139,39 +141,86 @@ int32 UAdvancedWeaponManager::AddNewWeapon(UWeaponDataAsset* InWeaponAsset)
 	if (!InWeaponAsset->IsValidToCreate())
 		return INDEX_NONE;
 
-	UAbstractWeapon* weaponInstance = NewObject<UAbstractWeapon>(GetOwner(), InWeaponAsset->WeaponClass,
-	                                                             MakeUniqueObjectName(
-		                                                             GetOwner(), InWeaponAsset->WeaponClass,
-		                                                             FName(TEXT("WeaponIntance"))));
+	UAbstractWeapon* weaponInstance = NewObject<UAbstractWeapon>(GetOwner(), InWeaponAsset->WeaponClass, NAME_None,
+	                                                             RF_Transient);
 	weaponInstance->SetData(InWeaponAsset);
 
-
 	int32 index = WeaponList.Add(weaponInstance);
+	CreateVisuals(weaponInstance);
 	MARK_PROPERTY_DIRTY_FROM_NAME(UAdvancedWeaponManager, WeaponList, this);
-
-	Multi_CreateVisual(index);
+	
 	return index;
 }
 
-void UAdvancedWeaponManager::CreateWeaponVisualsForWeapon(UAbstractWeapon* InAbstractWeapon)
+void UAdvancedWeaponManager::CreateVisuals(UAbstractWeapon* InAbstractWeapon)
 {
 	if (!IsValid(InAbstractWeapon))
 		return;
 
 	if (!InAbstractWeapon->IsValidData())
 		return;
+
+	auto data = InAbstractWeapon->GetData();
+	if (data->Visuals.Num() <= 0)
+	{
+		return;
+	}
+	TArray<AWeaponVisual*> actors;
+	AActor* owner = GetOwner();
+	FVector ownerLoc = owner->GetActorLocation();
+	actors.Reserve(data->Visuals.Num());
+	for (TSubclassOf<AWeaponVisual> visualClass : data->Visuals)
+	{
+		FVector loc = ownerLoc;
+		FRotator rot = FRotator::ZeroRotator;
+		FActorSpawnParameters spawnParameters;
+		spawnParameters.Owner = owner;
+		spawnParameters.Instigator = Cast<APawn>(owner);
+		spawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		spawnParameters.ObjectFlags = RF_Transient;
+		AWeaponVisual* visualActor = GetWorld()->SpawnActor<AWeaponVisual>(visualClass, loc, rot, spawnParameters);
+		if (IsValid(visualActor))
+		{
+			actors.Add(visualActor);
+		}
+	}
+	InAbstractWeapon->SetVisual(actors);
 }
 
-void UAdvancedWeaponManager::Multi_CreateVisual_Implementation(int32 InWeaponIndex)
+void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InWeaponVisual)
 {
-	if (WeaponList.IsValidIndex(InWeaponIndex) && IsValid(WeaponList[InWeaponIndex]))
+	AActor* owner = GetOwner();
+	USkeletalMeshComponent* attachComponent;
+	if (owner->Implements<UWeaponManagerOwner>())
 	{
-		TRACE(LogWeapon, "Weapon visual created %d: %s", InWeaponIndex,
-		      *WeaponList[InWeaponIndex]->GetFName().ToString());
+		attachComponent = IWeaponManagerOwner::Execute_GetAttachComponent(owner);
 	}
 	else
 	{
-		TRACE(LogWeapon, "Weapon visual not created %d: null", InWeaponIndex)
+		TRACEERROR(LogWeapon, "%s of %s doesn't implement UWeaponManagerOwner interface!",
+		           *owner->GetFName().ToString(), *owner->GetClass()->GetFName().ToString());
+		// Do not call this
+		attachComponent = owner->FindComponentByClass<USkeletalMeshComponent>();
+	}
+
+	ENetRole role = owner->GetLocalRole();
+	bool bIsLocallyControlled = (role == ROLE_AutonomousProxy);
+	TRACE(LogWeapon, "Role: %s", *UEnum::GetValueAsName(role).ToString());
+
+
+	FName backSocket = InWeaponVisual->GetBackSocket();
+	InWeaponVisual->AttachToComponent(attachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+	                                  backSocket);
+	if (bIsLocallyControlled)
+	{
+		if (USkeletalMeshComponent* visualSkeletalMesh = InWeaponVisual->GetSkeletalMeshComponent())
+		{
+			visualSkeletalMesh->CastShadow = false;
+			visualSkeletalMesh->bCastHiddenShadow = false;
+			visualSkeletalMesh->SetVisibility(false);
+			visualSkeletalMesh->SetHiddenInGame(true);
+			InWeaponVisual->SetHidden(true);
+		}
 	}
 }
 

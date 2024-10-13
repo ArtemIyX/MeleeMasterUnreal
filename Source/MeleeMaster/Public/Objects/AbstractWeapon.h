@@ -40,10 +40,10 @@ protected:
 	UWeaponDataAsset* Data;
 
 	/**
-	 * @brief Map of weapon visuals.
+	 * @brief Array of weapon visuals.
 	 */
-	UPROPERTY(Transient, BlueprintReadOnly, Category="AbstractWeapon|Variables")
-	TMap<FName, AWeaponVisual*> Visuals;
+	UPROPERTY(Transient, ReplicatedUsing=OnRep_Visuals, BlueprintReadOnly, Category="AbstractWeapon|Variables")
+	TArray<AWeaponVisual*> Visuals;
 
 protected:
 	/**
@@ -52,13 +52,18 @@ protected:
 	UFUNCTION()
 	virtual void OnRep_Data();
 
+	/**
+	* @brief Called when weapon visuals is replicated.
+	*/
+	UFUNCTION()
+	virtual void OnRep_Visuals();
+
 public:
 	virtual bool IsSupportedForNetworking() const override { return true; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 
 public:
-	
 	/**
 	 * @brief Retrieves the weapon data asset.
 	 * @return The weapon data asset.
@@ -72,7 +77,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AbstractWeapon")
 	virtual bool IsValidData() const;
-	
+
 	/**
 	 * @brief Sets the weapon data asset.
 	 * @param InData The new data asset to be assigned.
@@ -85,36 +90,30 @@ public:
 	 * @brief Sets the visual components of the weapon.
 	 * @param InVisuals Array of weapon visual components.
 	 */
-	UFUNCTION(BlueprintCallable, Category="AbstractWeapon")
-	virtual void SetVisual(const TMap<FName, AWeaponVisual*>& InVisuals);
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AbstractWeapon")
+	virtual void SetVisual(const TArray<AWeaponVisual*>& InVisuals);
 
 	/**
 	 * @brief Clears visual array
 	 */
-	UFUNCTION(BlueprintCallable, Category="AbstractWeapon")
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AbstractWeapon")
 	virtual void ClearVisual();
 
 	/**
 	 * @brief Sets a visual actor for the weapon at the specified index.
-	 * @param Index The index of the visual component to set.
+	 * @param InIndex The index of the visual component to set.
 	 * @param InVisual The new visual component.
 	 */
-	UFUNCTION(BlueprintCallable, Category="AbstractWeapon")
-	virtual void SetVisualActor(FName Index, AWeaponVisual* InVisual);
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AbstractWeapon")
+	virtual void SetVisualActor(int32 InIndex, AWeaponVisual* InVisual);
 
 	/**
 	 * @brief Removes a visual actor from the weapon at the specified index.
 	 * @param Index The name identifier of the visual component to remove.
 	 * @return Visual Weapon actor pointer 
 	 */
-	virtual AWeaponVisual* RemoveVisualActor(FName Index);
-
-	/**
-	 * @brief Retrieves the visual components of the weapon.
-	 * @param OutVisual Map that will store the retrieved visual components and its keys.
-	 */
-	UFUNCTION(BlueprintCallable, Category="AbstractWeapon")
-	virtual void GetVisuals(TMap<FName, AWeaponVisual*>& OutVisual);
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AbstractWeapon")
+	virtual AWeaponVisual* RemoveVisualActor(int32 Index);
 
 	/**
 	 * @brief Retrieves the visual components of the weapon.
@@ -130,5 +129,12 @@ public:
 	 * @return True if the visual component was successfully retrieved.
 	 */
 	UFUNCTION(BlueprintCallable, Category="AbstractWeapon")
-	virtual bool GetVisualActor(FName Index, AWeaponVisual*& OutVisual);
+	virtual bool GetVisualActor(int32 Index, AWeaponVisual*& OutVisual);
+
+	/**
+	 * @brief Retrieves a number of visuals for this weapon
+	 * @return Visuals.Num()
+	 */
+	UFUNCTION(BlueprintCallable, Category="AbstractWeapon")
+	virtual int32 VisualNum() const { return Visuals.Num(); };
 };
