@@ -4,6 +4,7 @@
 #include "Data/AnimNotifies/AttachCurrentWeaponToHand.h"
 
 #include "Components/AdvancedWeaponManager.h"
+#include "Objects/AbstractWeapon.h"
 
 void UAttachCurrentWeaponToHand::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
                                         const FAnimNotifyEventReference& EventReference)
@@ -14,7 +15,14 @@ void UAttachCurrentWeaponToHand::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 	{
 		if (UAdvancedWeaponManager* weaponManager = owner->FindComponentByClass<UAdvancedWeaponManager>())
 		{
-			weaponManager->AttachHand(weaponManager->SavedGuid, VisualIndex);
+			AWeaponVisual* weaponVisual;
+			weaponManager->GetCurrentWeapon()->GetVisualActor(VisualIndex, weaponVisual);
+			weaponManager->AttachHand(weaponVisual);
 		}
 	}
+}
+
+FString UAttachCurrentWeaponToHand::GetNotifyName_Implementation() const
+{
+	return TEXT("Attach current weapon to hand");
 }

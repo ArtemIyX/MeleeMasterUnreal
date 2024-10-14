@@ -61,9 +61,12 @@ class MELEEMASTER_API UAdvancedWeaponManager : public UActorComponent
 public:
 	// Sets default values for this component's properties
 	UAdvancedWeaponManager();
+
 public:
 	UPROPERTY(BlueprintReadWrite)
 	FString SavedGuid;
+	
+
 protected:
 	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_CurrentWeapon)
 	UAbstractWeapon* CurrentWeapon;
@@ -94,11 +97,12 @@ protected:
 	virtual void SetManagingStatus(EWeaponManagingStatus InStatus);
 	virtual void SetFightingStatus(EWeaponFightingStatus InStatus);
 	virtual void SetDirection(EWeaponDirection InDirection);
-
+	virtual void SetSavedGuid(FString Value);
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
-virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 protected:
 	UFUNCTION()
 	virtual void OnRep_CurrentWeapon();
@@ -115,13 +119,14 @@ protected:
 	UFUNCTION()
 	virtual void OnRep_CurrentDirection();
 
+	UFUNCTION()
+	virtual void OnRep_SavedGuid();
 public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	
 
 protected:
 	virtual void CreateVisuals(UAbstractWeapon* InAbstractWeapon);
@@ -130,22 +135,26 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void Server_Equip(int32 InIndex);
 
+	UFUNCTION(Server, Reliable)
+	void Server_DeEquip(int32 InIndex);
+
 	UFUNCTION(NetMulticast, Unreliable)
-	void Multi_PlayEquipAnim(UAbstractWeapon* InWeapon, const FAnimMontageFullData& Equip, float EquipTime);
+	void Multi_PlayAnim(UAbstractWeapon* InWeapon, const FAnimMontageFullData& Equip, float EquipTime);
 
 	// Should be called after Equipped finished
 	UFUNCTION(NetMulticast, Reliable)
 	void Multi_AttachHand();
-public:
 
+	// Should be called after DeEquipped finished
+	UFUNCTION(NetMulticast, Reliable)
+	void Multi_AttachBack(const FString& InWeaponGuid);
+
+public:
 	void AttachBack(AWeaponVisual* InVisual);
 	void AttachHand(AWeaponVisual* InVisual);
-	
+
 	void AttachBack(const FString& WeaponGuid, int32 VisualIndex);
 	void AttachHand(const FString& WeaponGuid, int32 VisualIndex);
-
-	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
-	virtual bool CanStartEquippingWeapon(int32 InWeaponIndex) const;
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
 	virtual int32 GetCurrentWeaponIndex() const;
@@ -171,11 +180,18 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Manage")
 	virtual bool CanEquip(int32 InIndex) const;
 
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Manage")
+	virtual bool CanDeEquip(int32 InIndex) const;
+
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
 	virtual void TryEquipProxy(int32 InIndex);
 
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
+	virtual void TryDeEquipProxy(int32 InIndex);
+
 public:
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Getters")	FORCEINLINE UAbstractWeapon* GetCurrentWeapon() const { return CurrentWeapon; }
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Getters")
+	FORCEINLINE UAbstractWeapon* GetCurrentWeapon() const { return CurrentWeapon; }
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Getters")
 	TArray<UAbstractWeapon*> GetWeaponList() const { return WeaponList; }

@@ -4,23 +4,19 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
-#include "AttachCurrentWeaponToHand.generated.h"
+#include "AttachSavedWeaponToBody.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class MELEEMASTER_API UAttachCurrentWeaponToHand : public UAnimNotify
+class MELEEMASTER_API UAttachSavedWeaponToBody : public UAnimNotify
 {
 	GENERATED_BODY()
-
 public:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta=(ExposeOnSpawn, ClampMin=0), Category="HandAttach")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta=(ExposeOnSpawn, ClampMin=0), Category="BodyAttach")
 	int32 VisualIndex{0};
-
 public:
-	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
-	                    const FAnimNotifyEventReference& EventReference) override;
-
+	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
 	virtual FString GetNotifyName_Implementation() const override;
 };
