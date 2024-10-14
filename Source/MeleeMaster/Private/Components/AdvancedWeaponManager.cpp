@@ -235,6 +235,7 @@ void UAdvancedWeaponManager::Multi_PlayEquipAnim_Implementation(
 	const FAnimMontageFullData& Equip,
 	float EquipTime)
 {
+	SavedGuid = InWeapon->GetGUIDString();
 	if (GetOwnerRole() == ROLE_AutonomousProxy)
 	{
 		OnFpAnim.Broadcast(InWeapon, Equip, EquipTime);
@@ -245,15 +246,26 @@ void UAdvancedWeaponManager::Multi_PlayEquipAnim_Implementation(
 	}
 }
 
-void UAdvancedWeaponManager::AttachHand(int32 InVisualIndex)
+void UAdvancedWeaponManager::Multi_AttachHand_Implementation()
 {
-	AActor* owner = GetOwner();
 	UAbstractWeapon* current = GetCurrentWeapon();
 	if (!IsValid(current))
 		return;
 	if (!current->IsValidData())
 		return;
 
+	int32 n = current->VisualNum();
+	for (int32 i = 0; i < n; ++i)
+	{
+		AttachHand(current->GetGUIDString(), n);
+	}
+}
+
+void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InVisual)
+{
+	if (!IsValid(InVisual))
+		return;
+	AActor* owner = GetOwner();
 	USkeletalMeshComponent* attachComponent;
 	if (owner->Implements<UWeaponManagerOwner>())
 	{
@@ -270,12 +282,47 @@ void UAdvancedWeaponManager::AttachHand(int32 InVisualIndex)
 	ENetRole role = owner->GetLocalRole();
 	bool bIsLocallyControlled = (role == ROLE_AutonomousProxy);
 
-	AWeaponVisual* weaponVisual;
-	if (!current->GetVisualActor(InVisualIndex, weaponVisual))
+	FName backSocket = InVisual->GetBackSocket();
+	InVisual->AttachToComponent(attachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+	                            backSocket);
+
+	if (bIsLocallyControlled)
+	{
+		if (USkeletalMeshComponent* visualSkeletalMesh = InVisual->GetSkeletalMeshComponent())
+		{
+			visualSkeletalMesh->CastShadow = false;
+			visualSkeletalMesh->bCastHiddenShadow = false;
+			visualSkeletalMesh->SetVisibility(false);
+			visualSkeletalMesh->SetHiddenInGame(true);
+			InVisual->SetHidden(true);
+		}
+	}
+}
+
+void UAdvancedWeaponManager::AttachHand(AWeaponVisual* InVisual)
+{
+	if (!IsValid(InVisual))
 		return;
-	FName handSocket = weaponVisual->GetHandSocket();
-	weaponVisual->AttachToComponent(attachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-	                                handSocket);
+	AActor* owner = GetOwner();
+	USkeletalMeshComponent* attachComponent;
+	if (owner->Implements<UWeaponManagerOwner>())
+	{
+		attachComponent = IWeaponManagerOwner::Execute_GetAttachComponent(owner);
+	}
+	else
+	{
+		TRACEERROR(LogWeapon, "%s of %s doesn't implement UWeaponManagerOwner interface!",
+		           *owner->GetFName().ToString(), *owner->GetClass()->GetFName().ToString());
+		// Do not call this
+		attachComponent = owner->FindComponentByClass<USkeletalMeshComponent>();
+	}
+
+	ENetRole role = owner->GetLocalRole();
+	bool bIsLocallyControlled = (role == ROLE_AutonomousProxy);
+
+	FName handSocket = InVisual->GetHandSocket();
+	InVisual->AttachToComponent(attachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+	                            handSocket);
 
 	//TODO: Show on locally controlled client
 	// if (bIsLocallyControlled)
@@ -291,56 +338,34 @@ void UAdvancedWeaponManager::AttachHand(int32 InVisualIndex)
 	// }
 }
 
-void UAdvancedWeaponManager::Multi_AttachHand_Implementation()
+void UAdvancedWeaponManager::AttachBack(const FString& WeaponGuid, int32 VisualIndex)
 {
-	UAbstractWeapon* current = GetCurrentWeapon();
-	if (!IsValid(current))
+	UAbstractWeapon* weapon = WeaponByGuid(WeaponGuid);
+	if (!IsValid(weapon))
 		return;
-	if (!current->IsValidData())
+	if (!weapon->IsValidData())
 		return;
-
-	int32 n = current->VisualNum();
-	for (int32 i = 0; i < n; ++i)
+	AWeaponVisual* visual;
+	if (weapon->GetVisualActor(VisualIndex, visual))
 	{
-		AttachHand(n);
+		AttachBack(visual);
 	}
 }
 
-void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InWeaponVisual)
+
+void UAdvancedWeaponManager::AttachHand(const FString& WeaponGuid, int32 InVisualIndex)
 {
-	AActor* owner = GetOwner();
-	USkeletalMeshComponent* attachComponent;
-	if (owner->Implements<UWeaponManagerOwner>())
+	UAbstractWeapon* weapon = WeaponByGuid(WeaponGuid);
+	if (!IsValid(weapon))
+		return;
+	if (!weapon->IsValidData())
+		return;
+	AWeaponVisual* visual;
+	if (weapon->GetVisualActor(InVisualIndex, visual))
 	{
-		attachComponent = IWeaponManagerOwner::Execute_GetAttachComponent(owner);
-	}
-	else
-	{
-		TRACEERROR(LogWeapon, "%s of %s doesn't implement UWeaponManagerOwner interface!",
-		           *owner->GetFName().ToString(), *owner->GetClass()->GetFName().ToString());
-		// Do not call this
-		attachComponent = owner->FindComponentByClass<USkeletalMeshComponent>();
-	}
-
-	ENetRole role = owner->GetLocalRole();
-	bool bIsLocallyControlled = (role == ROLE_AutonomousProxy);
-
-	FName backSocket = InWeaponVisual->GetBackSocket();
-	InWeaponVisual->AttachToComponent(attachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-	                                  backSocket);
-	if (bIsLocallyControlled)
-	{
-		if (USkeletalMeshComponent* visualSkeletalMesh = InWeaponVisual->GetSkeletalMeshComponent())
-		{
-			visualSkeletalMesh->CastShadow = false;
-			visualSkeletalMesh->bCastHiddenShadow = false;
-			visualSkeletalMesh->SetVisibility(false);
-			visualSkeletalMesh->SetHiddenInGame(true);
-			InWeaponVisual->SetHidden(true);
-		}
+		AttachHand(visual);
 	}
 }
-
 
 bool UAdvancedWeaponManager::RemoveWeapon(int32 InIndex)
 {

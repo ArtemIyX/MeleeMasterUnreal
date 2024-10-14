@@ -76,6 +76,9 @@ public:
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 
 public:
+
+	
+	
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AbstractWeapon")
 	FORCEINLINE FString GetGUIDString() const { return Guid; }
 
@@ -151,6 +154,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category="AbstractWeapon")
 	virtual bool GetVisualActor(int32 Index, AWeaponVisual*& OutVisual);
 
+	UFUNCTION(BlueprintCallable, Category="AbstractWeapon")
+	virtual int32 GetVisualIndex(const AWeaponVisual* InVisual);
 	/**
 	 * @brief Retrieves a number of visuals for this weapon
 	 * @return Visuals.Num()

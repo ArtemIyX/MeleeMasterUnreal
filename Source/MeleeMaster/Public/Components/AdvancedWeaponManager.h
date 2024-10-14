@@ -61,7 +61,9 @@ class MELEEMASTER_API UAdvancedWeaponManager : public UActorComponent
 public:
 	// Sets default values for this component's properties
 	UAdvancedWeaponManager();
-
+public:
+	UPROPERTY(BlueprintReadWrite)
+	FString SavedGuid;
 protected:
 	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_CurrentWeapon)
 	UAbstractWeapon* CurrentWeapon;
@@ -135,11 +137,12 @@ protected:
 	UFUNCTION(NetMulticast, Reliable)
 	void Multi_AttachHand();
 public:
-	// Should be called from begin play of weapon visual
-	void AttachBack(AWeaponVisual* InWeaponVisual);
 
-	// Should be called from anim notify to attach current weapon to hand socket
-	void AttachHand(int32 VisualIndex);
+	void AttachBack(AWeaponVisual* InVisual);
+	void AttachHand(AWeaponVisual* InVisual);
+	
+	void AttachBack(const FString& WeaponGuid, int32 VisualIndex);
+	void AttachHand(const FString& WeaponGuid, int32 VisualIndex);
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
 	virtual bool CanStartEquippingWeapon(int32 InWeaponIndex) const;

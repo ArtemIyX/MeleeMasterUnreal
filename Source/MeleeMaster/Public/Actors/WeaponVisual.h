@@ -37,6 +37,7 @@ protected:
 protected:
 	UFUNCTION()
 	virtual void OnRep_Guid();
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -44,15 +45,19 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 public:
 
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="WeaponVisual")
+	int32 GetVisualIndex() const;
+	
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="WeaponVisual")
 	FORCEINLINE FString GetGUIDString() const { return WeaponGuid; }
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="WeaponVisual")
 	void SetGuidString(FString InGuid);
-	
+
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="WeaponVisual")
 	FORCEINLINE USkeletalMeshComponent* GetSkeletalMeshComponent() const { return SkeletalMeshComponent; }
 

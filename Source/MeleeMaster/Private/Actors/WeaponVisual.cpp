@@ -5,6 +5,7 @@
 #include "Components/AdvancedWeaponManager.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
+#include "Objects/AbstractWeapon.h"
 
 // Sets default values
 AWeaponVisual::AWeaponVisual()
@@ -54,6 +55,21 @@ void AWeaponVisual::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(AWeaponVisual, WeaponGuid, Params);
+}
+
+int32 AWeaponVisual::GetVisualIndex() const
+{
+	if (AActor* owner = GetOwner())
+	{
+		if (UAdvancedWeaponManager* manager = owner->FindComponentByClass<UAdvancedWeaponManager>())
+		{
+			if (UAbstractWeapon* weapon = manager->WeaponByGuid(this->WeaponGuid))
+			{
+				return weapon->GetVisualIndex(this);
+			}
+		}
+	}
+	return INDEX_NONE;
 }
 
 void AWeaponVisual::SetGuidString(FString InGuid)

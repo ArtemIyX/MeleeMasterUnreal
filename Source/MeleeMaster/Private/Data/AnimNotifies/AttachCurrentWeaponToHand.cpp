@@ -14,7 +14,7 @@ void UAttachCurrentWeaponToHand::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 	{
 		if (UAdvancedWeaponManager* weaponManager = owner->FindComponentByClass<UAdvancedWeaponManager>())
 		{
-			weaponManager->AttachHand(VisualIndex);
+			weaponManager->AttachHand(weaponManager->SavedGuid, VisualIndex);
 		}
 	}
 }

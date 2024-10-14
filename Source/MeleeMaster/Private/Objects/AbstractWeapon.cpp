@@ -67,13 +67,13 @@ void UAbstractWeapon::SetData(UWeaponDataAsset* InData)
 
 void UAbstractWeapon::SetVisual(const TArray<AWeaponVisual*>& InVisuals)
 {
-	Visuals = InVisuals;
+	this->Visuals = InVisuals;
 	MARK_PROPERTY_DIRTY_FROM_NAME(UAbstractWeapon, Visuals, this);
 }
 
 void UAbstractWeapon::ClearVisual()
 {
-	Visuals.Empty();
+	this->Visuals.Empty();
 	MARK_PROPERTY_DIRTY_FROM_NAME(UAbstractWeapon, Visuals, this);
 }
 
@@ -116,4 +116,16 @@ bool UAbstractWeapon::GetVisualActor(int32 Index, AWeaponVisual*& OutVisual)
 		return IsValid(OutVisual);
 	}
 	return false;
+}
+
+int32 UAbstractWeapon::GetVisualIndex(const AWeaponVisual* InVisual)
+{
+	for(int32 i = 0; i < Visuals.Num(); ++i)
+	{
+		if(Visuals[i] == InVisual)
+		{
+			return i;
+		}
+	}
+	return INDEX_NONE;
 }
