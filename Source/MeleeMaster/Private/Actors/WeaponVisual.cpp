@@ -38,7 +38,16 @@ void AWeaponVisual::BeginPlay()
 	{
 		if (UAdvancedWeaponManager* manager = owner->FindComponentByClass<UAdvancedWeaponManager>())
 		{
-			manager->AttachBack(this);
+			UAbstractWeapon* currentWeapon = manager->GetCurrentWeapon();
+
+			if (IsValid(currentWeapon) && currentWeapon->GetGUIDString() == WeaponGuid)
+			{
+				manager->AttachHand(this);
+			}
+			else
+			{
+				manager->AttachBack(this);
+			}
 		}
 	}
 }
