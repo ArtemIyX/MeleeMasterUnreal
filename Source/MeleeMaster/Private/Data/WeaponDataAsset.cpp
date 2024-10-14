@@ -6,7 +6,7 @@
 #include "Actors/WeaponVisual.h"
 #include "Objects/AbstractWeapon.h"
 
-UWeaponDataAsset::UWeaponDataAsset()
+UWeaponDataAsset::UWeaponDataAsset(): EquipTime(2), DeEquipTime(2)
 {
 	AssetType = "WeaponData";
 }

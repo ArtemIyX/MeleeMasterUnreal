@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Data/WeaponAnimationDataAsset.h"
 #include "AdvancedWeaponManager.generated.h"
 
 
@@ -44,6 +45,14 @@ enum class EWeaponDirection : uint8
 	Left
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FAdvancedWeaponManagerDelegate);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FAdvancedWeaponManagerAnimationDelegate,
+                                               UAbstractWeapon*, InWeapon,
+                                               const FAnimMontageFullData&, AnimSet,
+                                               float, Time);
+
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class MELEEMASTER_API UAdvancedWeaponManager : public UActorComponent
 {
@@ -72,6 +81,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_CurrentDirection)
 	EWeaponDirection CurrentDirection;
 
+protected:
+	FTimerHandle EquippingTimerHandle;
+
 public:
 
 
@@ -84,7 +96,7 @@ protected:
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
-
+virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 protected:
 	UFUNCTION()
 	virtual void OnRep_CurrentWeapon();
@@ -115,6 +127,9 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void Server_Equip(int32 InIndex);
 
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multi_PlayEquipAnim(UAbstractWeapon* InWeapon, const FAnimMontageFullData& Equip, float EquipTime);
+
 public:
 	// Should be called from begin play of weapon visual
 	void AttachBack(AWeaponVisual* InWeaponVisual);
@@ -142,12 +157,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
 	virtual bool IsValidWeaponIndex(int32 Index) const;
-	
+
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Manage")
 	virtual bool CanEquip(int32 InIndex) const;
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
-	virtual void TryEquipProxy(int32 InIndex) const;
+	virtual void TryEquipProxy(int32 InIndex);
 
 public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Getters")
@@ -164,4 +179,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Getters")
 	FORCEINLINE EWeaponDirection GetCurrentDirection() const { return CurrentDirection; }
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FAdvancedWeaponManagerAnimationDelegate OnFpAnim;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FAdvancedWeaponManagerAnimationDelegate OnTpAnim;
 };

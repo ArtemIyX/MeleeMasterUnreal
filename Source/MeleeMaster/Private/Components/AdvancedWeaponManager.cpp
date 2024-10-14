@@ -5,6 +5,7 @@
 
 #include "MeleeMaster.h"
 #include "Actors/WeaponVisual.h"
+#include "Data/WeaponAnimationDataAsset.h"
 #include "Data/WeaponDataAsset.h"
 #include "Data/Interfaces/WeaponManagerOwner.h"
 #include "Engine/ActorChannel.h"
@@ -58,6 +59,12 @@ void UAdvancedWeaponManager::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
+}
+
+void UAdvancedWeaponManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorld()->GetTimerManager().ClearTimer(EquippingTimerHandle);
+	Super::EndPlay(EndPlayReason);
 }
 
 void UAdvancedWeaponManager::OnRep_CurrentWeapon()
@@ -198,7 +205,43 @@ void UAdvancedWeaponManager::Server_Equip_Implementation(int32 InIndex)
 {
 	if (!CanEquip(InIndex))
 		return;
+
+	// Mark status
 	SetManagingStatus(EWeaponManagingStatus::Equipping);
+
+	// Set pointer to current weapon
+	UAbstractWeapon* weapon = WeaponList[InIndex];
+	SetCurrentWeaponPtr(weapon);
+
+	UWeaponDataAsset* data = weapon->GetData();
+	UWeaponAnimationDataAsset* anims = data->Animations;
+
+	auto delegate = FTimerDelegate::CreateLambda([this]()
+	{
+		SetManagingStatus(EWeaponManagingStatus::Idle);
+		SetFightingStatus(EWeaponFightingStatus::Idle);
+	});
+	GetWorld()->GetTimerManager().SetTimer(EquippingTimerHandle, delegate, data->EquipTime, false);
+
+	if (IsValid(anims))
+	{
+		Multi_PlayEquipAnim(weapon, anims->Equip, data->EquipTime);
+	}
+}
+
+void UAdvancedWeaponManager::Multi_PlayEquipAnim_Implementation(
+	UAbstractWeapon* InWeapon,
+	const FAnimMontageFullData& Equip,
+	float EquipTime)
+{
+	if (GetOwnerRole() == ROLE_AutonomousProxy)
+	{
+		OnFpAnim.Broadcast(InWeapon, Equip, EquipTime);
+	}
+	else
+	{
+		OnTpAnim.Broadcast(InWeapon, Equip, EquipTime);
+	}
 }
 
 void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InWeaponVisual)
@@ -308,8 +351,10 @@ bool UAdvancedWeaponManager::CanEquip(int32 InIndex) const
 	return true;
 }
 
-void UAdvancedWeaponManager::TryEquipProxy(int32 InIndex) const
+void UAdvancedWeaponManager::TryEquipProxy(int32 InIndex)
 {
 	if (!CanEquip(InIndex))
 		return;
+
+	Server_Equip(InIndex);
 }

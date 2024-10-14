@@ -18,7 +18,7 @@ public:
 
 public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	UAnimMontage* Value;
+	TSoftObjectPtr<UAnimMontage> Value;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta=(ClampMin="0.01"))
 	float Length;

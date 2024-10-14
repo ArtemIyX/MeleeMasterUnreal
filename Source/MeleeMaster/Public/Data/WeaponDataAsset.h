@@ -28,7 +28,13 @@ public:
 	TArray<TSubclassOf<AWeaponVisual>> Visuals;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Visual")
-	TSoftObjectPtr<UWeaponAnimationDataAsset> Animations;
+	UWeaponAnimationDataAsset* Animations;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Server|Timing", meta=(ClampMin="0.01"))
+	float EquipTime;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Server|Timing", meta=(ClampMin="0.01"))
+	float DeEquipTime;
 public:
 	bool IsValidToCreate() const;
 };
