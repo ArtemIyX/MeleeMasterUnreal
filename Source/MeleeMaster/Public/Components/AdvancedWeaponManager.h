@@ -119,6 +119,7 @@ public:
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
 
 protected:
 	virtual void CreateVisuals(UAbstractWeapon* InAbstractWeapon);
@@ -130,9 +131,15 @@ protected:
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multi_PlayEquipAnim(UAbstractWeapon* InWeapon, const FAnimMontageFullData& Equip, float EquipTime);
 
+	// Should be called after Equipped finished
+	UFUNCTION(NetMulticast, Reliable)
+	void Multi_AttachHand();
 public:
 	// Should be called from begin play of weapon visual
 	void AttachBack(AWeaponVisual* InWeaponVisual);
+
+	// Should be called from anim notify to attach current weapon to hand socket
+	void AttachHand(int32 VisualIndex);
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
 	virtual bool CanStartEquippingWeapon(int32 InWeaponIndex) const;
@@ -165,8 +172,7 @@ public:
 	virtual void TryEquipProxy(int32 InIndex);
 
 public:
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Getters")
-	FORCEINLINE UAbstractWeapon* GetCurrentWeapon() const { return CurrentWeapon; }
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Getters")	FORCEINLINE UAbstractWeapon* GetCurrentWeapon() const { return CurrentWeapon; }
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Getters")
 	TArray<UAbstractWeapon*> GetWeaponList() const { return WeaponList; }

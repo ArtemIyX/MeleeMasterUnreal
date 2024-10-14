@@ -29,7 +29,7 @@ public class MeleeMaster : ModuleRules
 			new string[]
 			{
 				"Core",
-				"AdvancedAsset", "AdvancedLogger", "ReplicatedObject"
+				"AdvancedAsset", "AdvancedLogger", "ReplicatedObject", "Engine"
 				// ... add other public dependencies that you statically link with here ...
 			}
 		);

@@ -3,8 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Animation/AimOffsetBlendSpace.h"
 #include "Data/AdvancedDataAsset.h"
 #include "WeaponAnimationDataAsset.generated.h"
+
+class UAimOffsetBlendSpace1D;
 
 USTRUCT(Blueprintable, BlueprintType)
 struct FAnimMontageSingleData
@@ -61,4 +64,10 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Manage")
 	FAnimMontageFullData DeEquip;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Misc")
+	UAnimSequence* Idle;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Misc")
+	UAimOffsetBlendSpace1D* AimOffset;
 };
