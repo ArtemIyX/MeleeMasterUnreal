@@ -214,6 +214,12 @@ void UAdvancedWeaponManager::CreateVisuals(UAbstractWeapon* InAbstractWeapon)
 		}
 	}
 	InAbstractWeapon->SetVisual(actors);
+
+	// Attach to owner (on server)
+	for (int32 i = 0; i < actors.Num(); ++i)
+	{
+		actors[i]->AttachToActor(GetOwner(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	}
 }
 
 void UAdvancedWeaponManager::Server_DeEquip_Implementation(int32 InIndex)
@@ -295,6 +301,10 @@ void UAdvancedWeaponManager::Multi_PlayAnim_Implementation(
 
 void UAdvancedWeaponManager::Multi_AttachHand_Implementation()
 {
+	// Skip servers, it is already attached to actor
+	if (GetOwner()->HasAuthority())
+		return;
+
 	UAbstractWeapon* current = GetCurrentWeapon();
 	if (!IsValid(current))
 		return;
@@ -310,6 +320,10 @@ void UAdvancedWeaponManager::Multi_AttachHand_Implementation()
 
 void UAdvancedWeaponManager::Multi_AttachBack_Implementation(const FString& InWeaponGuid)
 {
+	// Skip servers, it is already attached to actor
+	if (GetOwner()->HasAuthority())
+		return;
+
 	UAbstractWeapon* wpn = WeaponByGuid(SavedGuid);
 	if (!IsValid(wpn))
 		return;
@@ -325,6 +339,11 @@ void UAdvancedWeaponManager::Multi_AttachBack_Implementation(const FString& InWe
 
 void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InVisual)
 {
+	// Skip servers, it is already attached to actor
+	if (GetOwner()->HasAuthority())
+		return;
+
+
 	if (!IsValid(InVisual))
 		return;
 	AActor* owner = GetOwner();
@@ -363,6 +382,10 @@ void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InVisual)
 
 void UAdvancedWeaponManager::AttachHand(AWeaponVisual* InVisual)
 {
+	// Skip servers, it is already attached to actor
+	if (GetOwner()->HasAuthority())
+		return;
+	
 	if (!IsValid(InVisual))
 		return;
 	AActor* owner = GetOwner();
@@ -386,18 +409,17 @@ void UAdvancedWeaponManager::AttachHand(AWeaponVisual* InVisual)
 	InVisual->AttachToComponent(attachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale,
 	                            handSocket);
 
-	//TODO: Show on locally controlled client
-	// if (bIsLocallyControlled)
-	// {
-	// 	if (USkeletalMeshComponent* visualSkeletalMesh = InWeaponVisual->GetSkeletalMeshComponent())
-	// 	{
-	// 		visualSkeletalMesh->CastShadow = false;
-	// 		visualSkeletalMesh->bCastHiddenShadow = false;
-	// 		visualSkeletalMesh->SetVisibility(false);
-	// 		visualSkeletalMesh->SetHiddenInGame(true);
-	// 		InWeaponVisual->SetHidden(true);
-	// 	}
-	// }
+	if (bIsLocallyControlled)
+	{
+		if (USkeletalMeshComponent* visualSkeletalMesh = InVisual->GetSkeletalMeshComponent())
+		{
+			visualSkeletalMesh->CastShadow = false;
+			visualSkeletalMesh->bCastHiddenShadow = false;
+			visualSkeletalMesh->SetVisibility(true);
+			visualSkeletalMesh->SetHiddenInGame(false);
+			InVisual->SetHidden(false);
+		}
+	}
 }
 
 void UAdvancedWeaponManager::AttachBack(const FString& WeaponGuid, int32 VisualIndex)

@@ -10,7 +10,7 @@
 class UAimOffsetBlendSpace1D;
 
 USTRUCT(Blueprintable, BlueprintType)
-struct FAnimMontageSingleData
+struct MELEEMASTER_API FAnimMontageSingleData
 {
 	GENERATED_BODY()
 
@@ -28,7 +28,7 @@ public:
 };
 
 USTRUCT(Blueprintable, BlueprintType)
-struct FAnimMontageFullData
+struct MELEEMASTER_API FAnimMontageFullData
 {
 	GENERATED_BODY()
 
@@ -44,6 +44,19 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FAnimMontageSingleData ThirdPerson;
+};
+
+USTRUCT(Blueprintable, BlueprintType)
+struct MELEEMASTER_API FSequenceData
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UAnimSequence* FirstPerson;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UAnimSequence* ThirdPerson;
 };
 
 
@@ -66,7 +79,7 @@ public:
 	FAnimMontageFullData DeEquip;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Misc")
-	UAnimSequence* Idle;
+	FSequenceData Idle;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Misc")
 	UAimOffsetBlendSpace1D* AimOffset;
