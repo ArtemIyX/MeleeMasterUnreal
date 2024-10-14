@@ -109,16 +109,16 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
-
 	virtual void CreateVisuals(UAbstractWeapon* InAbstractWeapon);
 
 protected:
-
+	UFUNCTION(Server, Reliable)
+	void Server_Equip(int32 InIndex);
 
 public:
 	// Should be called from begin play of weapon visual
 	void AttachBack(AWeaponVisual* InWeaponVisual);
-	
+
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
 	virtual bool CanStartEquippingWeapon(int32 InWeaponIndex) const;
 
@@ -132,13 +132,23 @@ public:
 	virtual bool RemoveWeapon(int32 InIndex);
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
-	virtual UAbstractWeapon* Weapon(int32 InIndex);
+	virtual UAbstractWeapon* Weapon(int32 InIndex) const;
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
-	virtual  UAbstractWeapon* WeaponByGuid(FString InGuid);
+	virtual UAbstractWeapon* WeaponByGuid(FString InGuid);
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
 	virtual int32 WeaponNum() const;
+
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
+	virtual bool IsValidWeaponIndex(int32 Index) const;
+	
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Manage")
+	virtual bool CanEquip(int32 InIndex) const;
+
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
+	virtual void TryEquipProxy(int32 InIndex) const;
+
 public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Getters")
 	FORCEINLINE UAbstractWeapon* GetCurrentWeapon() const { return CurrentWeapon; }

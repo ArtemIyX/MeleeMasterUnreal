@@ -21,6 +21,9 @@ UAdvancedWeaponManager::UAdvancedWeaponManager()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 	SetIsReplicatedByDefault(true);
+	ManagingStatus = EWeaponManagingStatus::NoWeapon;
+	FightingStatus = EWeaponFightingStatus::Idle;
+	CurrentDirection = EWeaponDirection::Forward;
 	// ...
 }
 
@@ -190,6 +193,14 @@ void UAdvancedWeaponManager::CreateVisuals(UAbstractWeapon* InAbstractWeapon)
 	InAbstractWeapon->SetVisual(actors);
 }
 
+
+void UAdvancedWeaponManager::Server_Equip_Implementation(int32 InIndex)
+{
+	if (!CanEquip(InIndex))
+		return;
+	SetManagingStatus(EWeaponManagingStatus::Equipping);
+}
+
 void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InWeaponVisual)
 {
 	AActor* owner = GetOwner();
@@ -236,7 +247,7 @@ bool UAdvancedWeaponManager::RemoveWeapon(int32 InIndex)
 	return true;
 }
 
-UAbstractWeapon* UAdvancedWeaponManager::Weapon(int32 InIndex)
+UAbstractWeapon* UAdvancedWeaponManager::Weapon(int32 InIndex) const
 {
 	if (!WeaponList.IsValidIndex(InIndex))
 	{
@@ -247,7 +258,7 @@ UAbstractWeapon* UAdvancedWeaponManager::Weapon(int32 InIndex)
 
 UAbstractWeapon* UAdvancedWeaponManager::WeaponByGuid(FString InGuid)
 {
-	for (auto el : WeaponList)
+	for (UAbstractWeapon* el : WeaponList)
 	{
 		if (IsValid(el) && el->GetGUIDString().Equals(InGuid))
 		{
@@ -260,4 +271,45 @@ UAbstractWeapon* UAdvancedWeaponManager::WeaponByGuid(FString InGuid)
 int32 UAdvancedWeaponManager::WeaponNum() const
 {
 	return WeaponList.Num();
+}
+
+bool UAdvancedWeaponManager::IsValidWeaponIndex(int32 Index) const
+{
+	return WeaponList.IsValidIndex(Index);
+}
+
+bool UAdvancedWeaponManager::CanEquip(int32 InIndex) const
+{
+	if (!IsValidWeaponIndex(InIndex))
+		return false;
+
+	bool bIdle = ManagingStatus == EWeaponManagingStatus::Idle;
+	bool bNoWeapon = ManagingStatus == EWeaponManagingStatus::NoWeapon;
+	// Idle or NoWeapon
+	if (!(bIdle || bNoWeapon))
+	{
+		return false;
+	}
+
+	// Equip is allowed if current weapon is null
+	UAbstractWeapon* currentWeapon = GetCurrentWeapon();
+	if (!IsValid(currentWeapon))
+	{
+		return true;
+	}
+
+	// Already equipped
+	UAbstractWeapon* wpn = Weapon(InIndex);
+	if (wpn == currentWeapon)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+void UAdvancedWeaponManager::TryEquipProxy(int32 InIndex) const
+{
+	if (!CanEquip(InIndex))
+		return;
 }
