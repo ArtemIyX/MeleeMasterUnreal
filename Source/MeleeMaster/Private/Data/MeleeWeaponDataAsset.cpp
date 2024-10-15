@@ -4,7 +4,24 @@
 #include "Data/MeleeWeaponDataAsset.h"
 #include "Components/AdvancedWeaponManager.h"
 
-const FWeaponCurveData& FMeleeWeaponCurveData::Get(EWeaponDirection InDir)
+const FMeleeAttackCurveData& FMeleeAttackData::Get(EWeaponDirection InDir)
+{
+	switch (InDir)
+	{
+	case EWeaponDirection::Forward:
+		return Forward;
+	case EWeaponDirection::Backward:
+		return Backward;
+	case EWeaponDirection::Right:
+		return Right;
+	case EWeaponDirection::Left:
+		return Left;
+	default: return Forward;
+	}
+	return Forward;
+}
+
+const FMeleeBlockCurveData& FMeleeBlockData::Get(EWeaponDirection InDir)
 {
 	switch (InDir)
 	{

@@ -7,6 +7,7 @@
 #include "MeleeWeaponDataAsset.generated.h"
 
 
+enum class EWeaponFightingStatus : uint8;
 enum class EWeaponDirection : uint8;
 
 USTRUCT(Blueprintable, BlueprintType)
@@ -19,28 +20,81 @@ public:
 	TSoftObjectPtr<UCurveFloat> Curve;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float MaxTime;
+	float CurveTime;
 };
 
 USTRUCT(Blueprintable, BlueprintType)
-struct MELEEMASTER_API FMeleeWeaponCurveData
+struct MELEEMASTER_API FMeleeAttackCurveData : public FWeaponCurveData
+{
+	GENERATED_BODY()
+
+public:
+	// Time required to start the swing
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float PreAttackLen{0.2f};
+
+	// The time of the attack itself. After completion the status will be set to post-attack
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float HittingTime{0.2f};
+
+	// Attack cooldown time
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float PostAttackLen{0.5f};
+
+	//TODO: Hit attack path asset
+};
+
+USTRUCT(Blueprintable, BlueprintType)
+struct MELEEMASTER_API FMeleeBlockCurveData : public FWeaponCurveData
+{
+	GENERATED_BODY()
+
+public:
+	// Time of the sun after successful blocking
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float PostBlockLen{0.2f};
+};
+
+USTRUCT(Blueprintable, BlueprintType)
+struct MELEEMASTER_API FMeleeAttackData
 {
 	GENERATED_BODY()
 
 public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FWeaponCurveData Forward;
+	FMeleeAttackCurveData Forward;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FWeaponCurveData Backward;
+	FMeleeAttackCurveData Backward;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FWeaponCurveData Right;
+	FMeleeAttackCurveData Right;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FWeaponCurveData Left;
+	FMeleeAttackCurveData Left;
 
-	const FWeaponCurveData& Get(EWeaponDirection InDir);
+	const FMeleeAttackCurveData& Get(EWeaponDirection InDir);
+};
+
+USTRUCT(Blueprintable, BlueprintType)
+struct MELEEMASTER_API FMeleeBlockData
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FMeleeBlockCurveData Forward;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FMeleeBlockCurveData Backward;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FMeleeBlockCurveData Right;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FMeleeBlockCurveData Left;
+
+	const FMeleeBlockCurveData& Get(EWeaponDirection InDir);
 };
 
 /**
@@ -56,8 +110,8 @@ public:
 
 public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Melee")
-	FMeleeWeaponCurveData Attack;
+	FMeleeAttackData Attack;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Melee")
-	FMeleeWeaponCurveData Block;
+	FMeleeBlockData Block;
 };
