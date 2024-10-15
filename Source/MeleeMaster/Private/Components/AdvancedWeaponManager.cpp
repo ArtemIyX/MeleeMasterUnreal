@@ -5,6 +5,8 @@
 
 #include "MeleeMaster.h"
 #include "Actors/WeaponVisual.h"
+#include "Data/MeleeWeaponAnimDataAsset.h"
+#include "Data/MeleeWeaponDataAsset.h"
 #include "Data/WeaponAnimationDataAsset.h"
 #include "Data/WeaponDataAsset.h"
 #include "Data/Interfaces/WeaponManagerOwner.h"
@@ -12,8 +14,33 @@
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Objects/AbstractWeapon.h"
+#include "Objects/MeleeWeapon.h"
 #include "Subsystems/LoggerLib.h"
 
+
+FAnimPlayData::FAnimPlayData(): bUseSection(false)
+{
+}
+
+FAnimPlayData::FAnimPlayData(UAbstractWeapon* InWeapon,
+                             const FAnimMontageFullData& InAnimSet,
+                             const float InTime)
+{
+	this->Weapon = InWeapon;
+	this->AnimSet = InAnimSet;
+	this->Time = InTime;
+	this->bUseSection = false;
+}
+
+FAnimPlayData::FAnimPlayData(UAbstractWeapon* InWeapon,
+                             const FAnimMontageFullData& InAnimSet,
+                             const float InTime,
+                             const FName& InSectionName) : FAnimPlayData(InWeapon, InAnimSet, InTime)
+
+{
+	this->bUseSection = true;
+	this->SectionName = InSectionName;
+}
 
 // Sets default values for this component's properties
 UAdvancedWeaponManager::UAdvancedWeaponManager()
@@ -283,19 +310,85 @@ void UAdvancedWeaponManager::Server_Equip_Implementation(int32 InIndex)
 	}
 }
 
-void UAdvancedWeaponManager::Multi_PlayAnim_Implementation(
-	UAbstractWeapon* InWeapon,
-	const FAnimMontageFullData& AnimSet,
-	float Time)
+void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection InDirection)
 {
-	SetSavedGuid(InWeapon->GetGUIDString());
-	if (GetOwnerRole() == ROLE_AutonomousProxy)
+	if (!CanStartAttack())
+		return;
+
+	// Save direction
+	SetDirection(InDirection);
+
+	SetManagingStatus(EWeaponManagingStatus::Busy);
+	SetFightingStatus(EWeaponFightingStatus::PreAttack);
+
+	UAbstractWeapon* weapon = GetCurrentWeapon();
+	UWeaponDataAsset* data = weapon->GetData();
+	UWeaponAnimationDataAsset* anims = data->Animations;
+
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
 	{
-		OnFpAnim.Broadcast(InWeapon, AnimSet, Time);
+		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start melee attack ",
+			           *data->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(anims);
+
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to start melee attack ",
+			           *anims->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		const FMeleeAttackCurveData& attackData = meleeWeaponData->Attack.Get(InDirection);
+
+		auto initialDelegate = FTimerDelegate::CreateLambda([this]()
+		{
+			SetFightingStatus(EWeaponFightingStatus::AttackCharging);
+		});
+		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, initialDelegate, attackData.PreAttackLen, false);
+
+		FMeleeAttackAnimMontageData attackAnim = meleeAnims->Attack.Get(InDirection);
+		FAnimMontageFullData montageData = attackAnim;
+		Multi_PlayAnim(weapon, montageData, attackData.PreAttackLen);
 	}
 	else
 	{
-		OnTpAnim.Broadcast(InWeapon, AnimSet, Time);
+		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to start attack ",
+		           *meleeWeapon->GetClass()->GetFName().ToString());
+		return;
+	}
+}
+
+
+void UAdvancedWeaponManager::Multi_PlayAnim_Implementation(
+	UAbstractWeapon* InWeapon,
+	const FAnimMontageFullData& AnimSet,
+	float Time,
+	bool bUseSection,
+	const FName& Section)
+{
+	SetSavedGuid(InWeapon->GetGUIDString());
+	FAnimPlayData data;
+	if (bUseSection)
+	{
+		data = FAnimPlayData(InWeapon, AnimSet, Time, Section);
+	}
+	else
+	{
+		data = FAnimPlayData(InWeapon, AnimSet, Time);
+	}
+	if (GetOwnerRole() == ROLE_AutonomousProxy)
+	{
+		OnFpAnim.Broadcast(data);
+	}
+	else
+	{
+		OnTpAnim.Broadcast(data);
 	}
 }
 
@@ -385,7 +478,7 @@ void UAdvancedWeaponManager::AttachHand(AWeaponVisual* InVisual)
 	// Skip servers, it is already attached to actor
 	if (GetOwner()->HasAuthority())
 		return;
-	
+
 	if (!IsValid(InVisual))
 		return;
 	AActor* owner = GetOwner();
@@ -549,6 +642,23 @@ bool UAdvancedWeaponManager::CanDeEquip(int32 InIndex) const
 	return true;
 }
 
+bool UAdvancedWeaponManager::CanStartAttack() const
+{
+	UAbstractWeapon* cur = GetCurrentWeapon();
+	if (!IsValid(cur))
+		return false;
+	if (!cur->IsValidData())
+		return false;
+
+	if (GetManagingStatus() != EWeaponManagingStatus::Idle)
+		return false;
+
+	if (GetFightingStatus() != EWeaponFightingStatus::Idle)
+		return false;
+
+	return true;
+}
+
 void UAdvancedWeaponManager::TryEquipProxy(int32 InIndex)
 {
 	if (!CanEquip(InIndex))
@@ -563,4 +673,11 @@ void UAdvancedWeaponManager::TryDeEquipProxy(int32 InIndex)
 		return;
 
 	Server_DeEquip(InIndex);
+}
+
+void UAdvancedWeaponManager::RequestAttackProxy(EWeaponDirection InDirection)
+{
+	if (!CanStartAttack())
+		return;
+	Server_StartAttack(InDirection);
 }

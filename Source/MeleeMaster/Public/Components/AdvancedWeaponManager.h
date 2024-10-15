@@ -47,12 +47,37 @@ enum class EWeaponDirection : uint8
 	Left
 };
 
+USTRUCT(Blueprintable, BlueprintType)
+struct MELEEMASTER_API FAnimPlayData
+{
+	GENERATED_BODY()
+
+public:
+	FAnimPlayData();
+	FAnimPlayData(UAbstractWeapon* InWeapon, const FAnimMontageFullData& InAnimSet, const float InTime);
+	FAnimPlayData(UAbstractWeapon* InWeapon, const FAnimMontageFullData& InAnimSet, const float InTime,
+		const FName& InSectionName);
+public:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UAbstractWeapon* Weapon{nullptr};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FAnimMontageFullData AnimSet{};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float Time{1.0f};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	uint8 bUseSection : 1;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FName SectionName{"None"};
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FAdvancedWeaponManagerDelegate);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FAdvancedWeaponManagerAnimationDelegate,
-                                               UAbstractWeapon*, InWeapon,
-                                               const FAnimMontageFullData&, AnimSet,
-                                               float, Time);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAdvancedWeaponManagerAnimationDelegate,
+                                            const FAnimPlayData&, Anim);
 
 /**
  * @class UAdvancedWeaponManager
@@ -111,7 +136,7 @@ protected:
 	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_CurrentDirection)
 	EWeaponDirection CurrentDirection;
 #pragma endregion
-	
+
 #pragma region TimerHandles
 
 protected:
@@ -119,8 +144,10 @@ protected:
 	 * @brief Timer handle for equipping actions.
 	 */
 	FTimerHandle EquippingTimerHandle;
+
+	FTimerHandle FightTimerHandle;
 #pragma endregion
-	
+
 #pragma region PrivateSet
 
 protected:
@@ -222,6 +249,27 @@ protected:
 	virtual void CreateVisuals(UAbstractWeapon* InAbstractWeapon);
 #pragma endregion
 
+#pragma region TryProxy
+
+public:
+	/**
+	 * @brief Tries to equip a weapon via a proxy method.
+	 * @param InIndex The index of the weapon to equip.
+	 */
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
+	virtual void TryEquipProxy(int32 InIndex);
+
+	/**
+	 * @brief Tries to de-equip a weapon via a proxy method.
+	 * @param InIndex The index of the weapon to de-equip.
+	 */
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
+	virtual void TryDeEquipProxy(int32 InIndex);
+
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
+	virtual void RequestAttackProxy(EWeaponDirection InDirection);
+#pragma endregion
+
 #pragma region Server
 
 protected:
@@ -238,17 +286,24 @@ protected:
 	 */
 	UFUNCTION(Server, Reliable)
 	void Server_DeEquip(int32 InIndex);
+
+	UFUNCTION(Server, Reliable)
+	void Server_StartAttack(EWeaponDirection InDirection);
 #pragma endregion
 
 #pragma region Multi
 	/**
 	 * @brief Plays an equip animation on all clients.
 	 * @param InWeapon The weapon being equipped.
-	 * @param Equip The animation montage data.
-	 * @param EquipTime The duration of the equip animation.
+	 * @param InMontageData The animation montage data.
+	 * @param MontageTime The duration of the animation (or single section).
+	 * @param bUseSection Should start anim montage from specified Section
+	 * @param Section Where should start play anim montage from
 	 */
 	UFUNCTION(NetMulticast, Unreliable)
-	void Multi_PlayAnim(UAbstractWeapon* InWeapon, const FAnimMontageFullData& Equip, float EquipTime);
+	void Multi_PlayAnim(UAbstractWeapon* InWeapon, const FAnimMontageFullData& InMontageData, float MontageTime,
+	                    bool bUseSection = false,
+	                    const FName& Section = "Section");
 
 	/**
 	 * @brief Attaches the weapon to the character's hand after equipping.
@@ -299,7 +354,6 @@ public:
 
 #pragma region Exposed
 
-
 	/**
 	 * @brief Adds a new weapon to the weapon list.
 	 * @param InWeaponAsset The asset data for the new weapon.
@@ -316,7 +370,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
 	virtual bool RemoveWeapon(int32 InIndex);
 
-
 	/**
 	 * @brief Checks if a weapon index is valid.
 	 * @param Index The index to validate.
@@ -330,7 +383,7 @@ public:
 	 * @param InIndex The index of the weapon to check.
 	 * @return Whether the weapon can be equipped.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Manage")
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
 	virtual bool CanEquip(int32 InIndex) const;
 
 	/**
@@ -338,25 +391,11 @@ public:
 	 * @param InIndex The index of the weapon to check.
 	 * @return Whether the weapon can be de-equipped.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Manage")
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
 	virtual bool CanDeEquip(int32 InIndex) const;
-#pragma endregion
 
-#pragma region TryProxy
-	/**
-	 * @brief Tries to equip a weapon via a proxy method.
-	 * @param InIndex The index of the weapon to equip.
-	 */
-	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
-	virtual void TryEquipProxy(int32 InIndex);
-
-	/**
-	 * @brief Tries to de-equip a weapon via a proxy method.
-	 * @param InIndex The index of the weapon to de-equip.
-	 */
-	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
-	virtual void TryDeEquipProxy(int32 InIndex);
-
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
+	virtual bool CanStartAttack() const;
 #pragma endregion
 
 #pragma region Getters

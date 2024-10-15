@@ -50,14 +50,6 @@ struct MELEEMASTER_API FAnimMontageFullData
 	GENERATED_BODY()
 
 public:
-	/**
-	 * @brief Default constructor initializing both first-person and third-person data.
-	 */
-	FAnimMontageFullData()
-	{
-		FirstPerson = FAnimMontageSingleData();
-		ThirdPerson = FAnimMontageSingleData();
-	}
 
 	/**
 	 * @brief Animation montage data for first-person view.

@@ -4,7 +4,7 @@
 #include "Data/MeleeWeaponAnimDataAsset.h"
 #include "Components/AdvancedWeaponManager.h"
 
-const FAnimMontageFullData& FMeleeAnimMontageFullData::Get(EWeaponDirection InDir)
+const FMeleeAttackAnimMontageData& FMeleeAttackAnimData::Get(EWeaponDirection InDir)
 {
 	switch (InDir)
 	{

@@ -9,12 +9,22 @@
 
 enum class EWeaponDirection : uint8;
 
+USTRUCT(Blueprintable, BlueprintType)
+struct MELEEMASTER_API FMeleeAttackAnimMontageData : public FAnimMontageFullData
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, DisplayName="Attack Section")
+	FName AttackSection;
+};
+
 /**
- * @struct FMeleeAnimMontageFullData
+ * @struct FMeleeAttackAnimData
  * @brief Struct for handling full animation montage data for melee attacks in all directions.
  */
 USTRUCT(Blueprintable, BlueprintType)
-struct MELEEMASTER_API FMeleeAnimMontageFullData
+struct MELEEMASTER_API FMeleeAttackAnimData
 {
 	GENERATED_BODY()
 
@@ -24,32 +34,32 @@ public:
 	 * @brief Animation montage data for forward attack/block direction.
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FAnimMontageFullData Forward;
+	FMeleeAttackAnimMontageData Forward;
 
 	/**
 	 * @brief Animation montage data for backward attack/block direction.
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FAnimMontageFullData Backward;
+	FMeleeAttackAnimMontageData Backward;
 
 	/**
 	 * @brief Animation montage data for right attack/block direction.
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FAnimMontageFullData Right;
+	FMeleeAttackAnimMontageData Right;
 
 	/**
 	 * @brief Animation montage data for left attack/block direction.
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FAnimMontageFullData Left;
+	FMeleeAttackAnimMontageData Left;
 
 	/**
 	 * @brief Returns the montage data corresponding to the given direction.
 	 * @param InDir The direction for which the montage data is requested.
 	 * @return The animation montage data for the specified direction.
 	 */
-	const FAnimMontageFullData& Get(EWeaponDirection InDir);
+	const FMeleeAttackAnimMontageData& Get(EWeaponDirection InDir);
 };
 
 /**
@@ -73,11 +83,11 @@ public:
 	 * @brief Animation montage data for melee attacks in all directions.
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Melee", meta=(ShowOnlyInnerProperties))
-	FMeleeAnimMontageFullData Attack;
+	FMeleeAttackAnimData Attack;
 
 	/**
 	 * @brief Animation montage data for melee blocks in all directions.
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Melee", meta=(ShowOnlyInnerProperties))
-	FMeleeAnimMontageFullData Block;
+	FAnimMontageFullData Block;
 };
