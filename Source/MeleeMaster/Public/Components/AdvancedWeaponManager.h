@@ -55,6 +55,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FAdvancedWeaponManagerAnimationDe
                                                float, Time);
 
 /**
+ * @class UAdvancedWeaponManager
  * @brief Manages advanced weapon systems for characters.
  * Handles weapon equipping, fighting states, and replication for multiplayer.
  */

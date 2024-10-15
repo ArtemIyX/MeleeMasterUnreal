@@ -7,6 +7,7 @@
 #include "WeaponVisual.generated.h"
 
 /**
+ * @class AWeaponVisual
  * @brief Visual representation of a weapon in the game. 
  * Manages mesh, sockets, and replication for multiplayer.
  */
