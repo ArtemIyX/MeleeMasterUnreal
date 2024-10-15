@@ -30,10 +30,10 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Visual")
 	UWeaponAnimationDataAsset* Animations;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Server|Timing", meta=(ClampMin="0.01"))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Timing", meta=(ClampMin="0.01"))
 	float EquipTime;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Server|Timing", meta=(ClampMin="0.01"))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Timing", meta=(ClampMin="0.01"))
 	float DeEquipTime;
 public:
 	bool IsValidToCreate() const;

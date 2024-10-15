@@ -19,19 +19,21 @@ enum class EWeaponManagingStatus : uint8
 	Equipping, // Equipping new weapon 
 	DeEquipping, // DeEquipping current weapon
 	Busy, // We are in fight, using special attack, stunned etc...
-	NoWeapon, // WTF ??
+	NoWeapon, // No weapon in hands
 };
 
 UENUM(Blueprintable, BlueprintType)
 enum class EWeaponFightingStatus : uint8
 {
 	Idle, // No actions, ready to fight
-	Charging, // Left click is holding
-	Blocking, // Right click is holding
+	PreAttack, // Clicked lmb
+	AttackCharging, // Left click is holding
+	BlockCharging, // Right click is holding
+	Attacking, // Hitting
 	PostBlock, // Cooldown after blocked
 	PostAttack, // Cooldown after attacked
 	HighStunned, // Faced with a maximally charged enemy attack
-	SuccessfullyPaired, // Successfully sparred and ready to counter attack
+	SuccessfullyPaired, // Successfully sparred and ready to counter-attack
 	ParryStunned, // Was sparred, causing him to be slowed and stunned
 	Busy, // Jumping, Dashing, Stunned etc..
 };
