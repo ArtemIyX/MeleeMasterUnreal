@@ -71,14 +71,16 @@ public:
 	UAdvancedWeaponManager();
 
 public:
+#pragma region Local
 	/**
 	 * @brief GUID string used to save and identify weapon instances.
 	 */
 	UPROPERTY(BlueprintReadWrite)
 	FString SavedGuid;
-	
+#pragma endregion
 
 protected:
+#pragma region Replicated
 	/**
 	 * @brief Currently equipped weapon.
 	 */
@@ -108,15 +110,18 @@ protected:
 	 */
 	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_CurrentDirection)
 	EWeaponDirection CurrentDirection;
+#pragma endregion
+	
+#pragma region TimerHandles
 
 protected:
 	/**
 	 * @brief Timer handle for equipping actions.
 	 */
 	FTimerHandle EquippingTimerHandle;
-
-public:
-
+#pragma endregion
+	
+#pragma region PrivateSet
 
 protected:
 	/**
@@ -148,10 +153,25 @@ protected:
 	 * @param Value The new GUID value.
 	 */
 	virtual void SetSavedGuid(FString Value);
+
+#pragma endregion
+
+#pragma region ComponentOverride
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+public:
+	// Called every frame
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
+	                           FActorComponentTickFunction* ThisTickFunction) override;
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+#pragma endregion
+
+#pragma region OnRep
 
 protected:
 	/**
@@ -189,12 +209,10 @@ protected:
 	 */
 	UFUNCTION()
 	virtual void OnRep_SavedGuid();
-public:
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
-	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+#pragma endregion
+
+#pragma region Utils
 
 protected:
 	/**
@@ -202,6 +220,9 @@ protected:
 	 * @param InAbstractWeapon The weapon for which to create visuals.
 	 */
 	virtual void CreateVisuals(UAbstractWeapon* InAbstractWeapon);
+#pragma endregion
+
+#pragma region Server
 
 protected:
 	/**
@@ -217,7 +238,9 @@ protected:
 	 */
 	UFUNCTION(Server, Reliable)
 	void Server_DeEquip(int32 InIndex);
+#pragma endregion
 
+#pragma region Multi
 	/**
 	 * @brief Plays an equip animation on all clients.
 	 * @param InWeapon The weapon being equipped.
@@ -241,6 +264,10 @@ protected:
 	 */
 	UFUNCTION(NetMulticast, Reliable)
 	void Multi_AttachBack(const FString& InWeaponGuid);
+
+#pragma endregion
+
+#pragma region Attach
 
 public:
 	/**
@@ -268,13 +295,10 @@ public:
 	 * @param VisualIndex The index of the weapon visual.
 	 */
 	void AttachHand(const FString& WeaponGuid, int32 VisualIndex);
+#pragma endregion
 
-	/**
-	 * @brief Retrieves the index of the currently equipped weapon.
-	 * @return The index of the current weapon.
-	 */
-	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
-	virtual int32 GetCurrentWeaponIndex() const;
+#pragma region Exposed
+
 
 	/**
 	 * @brief Adds a new weapon to the weapon list.
@@ -292,28 +316,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
 	virtual bool RemoveWeapon(int32 InIndex);
 
-	/**
-	 * @brief Retrieves a weapon by its index.
-	 * @param InIndex The index of the weapon to retrieve.
-	 * @return The weapon at the specified index.
-	 */
-	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
-	virtual UAbstractWeapon* Weapon(int32 InIndex) const;
-
-	/**
-	 * @brief Retrieves a weapon by its GUID.
-	 * @param InGuid The GUID of the weapon to retrieve.
-	 * @return The weapon with the specified GUID.
-	 */
-	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
-	virtual UAbstractWeapon* WeaponByGuid(FString InGuid);
-
-	/**
-	 * @brief Gets the number of weapons in the weapon list.
-	 * @return The number of weapons.
-	 */
-	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
-	virtual int32 WeaponNum() const;
 
 	/**
 	 * @brief Checks if a weapon index is valid.
@@ -338,7 +340,9 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Manage")
 	virtual bool CanDeEquip(int32 InIndex) const;
+#pragma endregion
 
+#pragma region TryProxy
 	/**
 	 * @brief Tries to equip a weapon via a proxy method.
 	 * @param InIndex The index of the weapon to equip.
@@ -353,7 +357,39 @@ public:
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
 	virtual void TryDeEquipProxy(int32 InIndex);
 
-public:
+#pragma endregion
+
+#pragma region Getters
+	/**
+	 * @brief Retrieves a weapon by its index.
+	 * @param InIndex The index of the weapon to retrieve.
+	 * @return The weapon at the specified index.
+	 */
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
+	virtual UAbstractWeapon* Weapon(int32 InIndex) const;
+
+	/**
+	 * @brief Retrieves a weapon by its GUID.
+	 * @param InGuid The GUID of the weapon to retrieve.
+	 * @return The weapon with the specified GUID.
+	 */
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
+	virtual UAbstractWeapon* WeaponByGuid(FString InGuid);
+
+	/**
+	 * @brief Gets the number of weapons in the weapon list.
+	 * @return The number of weapons.
+	 */
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
+	virtual int32 WeaponNum() const;
+
+	/**
+	 * @brief Retrieves the index of the currently equipped weapon.
+	 * @return The index of the current weapon.
+	 */
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
+	virtual int32 GetCurrentWeaponIndex() const;
+
 	/**
 	 * @brief Retrieves the currently equipped weapon.
 	 * @return The currently equipped weapon.
@@ -389,6 +425,9 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Getters")
 	FORCEINLINE EWeaponDirection GetCurrentDirection() const { return CurrentDirection; }
 
+#pragma endregion
+
+#pragma region Events
 	/**
 	 * @brief Event triggered for first-person animation.
 	 */
@@ -400,4 +439,6 @@ public:
 	 */
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FAdvancedWeaponManagerAnimationDelegate OnTpAnim;
+
+#pragma endregion
 };
