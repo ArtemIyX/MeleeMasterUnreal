@@ -11,6 +11,7 @@
 #include "Data/WeaponDataAsset.h"
 #include "Data/Interfaces/WeaponManagerOwner.h"
 #include "Engine/ActorChannel.h"
+#include "GameFramework/GameStateBase.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Objects/AbstractWeapon.h"
@@ -83,8 +84,26 @@ void UAdvancedWeaponManager::SetDirection(EWeaponDirection InDirection)
 void UAdvancedWeaponManager::SetSavedGuid(FString Value)
 {
 	this->SavedGuid = Value;
-	//MARK_PROPERTY_DIRTY_FROM_NAME(UAdvancedWeaponManager, SavedGuid, this);
 }
+
+void UAdvancedWeaponManager::SetChargingCurve(UCurveFloat* InCurve)
+{
+	this->CurrentCurve = InCurve;
+	MARK_PROPERTY_DIRTY_FROM_NAME(UAdvancedWeaponManager, CurrentCurve, this);
+}
+
+void UAdvancedWeaponManager::SetChargeFinished(float InFinishTime)
+{
+	this->ChargeWillBeFinished = InFinishTime;
+	MARK_PROPERTY_DIRTY_FROM_NAME(UAdvancedWeaponManager, ChargeWillBeFinished, this);
+}
+
+void UAdvancedWeaponManager::SetChargeStarted(float InStartTime)
+{
+	this->ChargeStarted = InStartTime;
+	MARK_PROPERTY_DIRTY_FROM_NAME(UAdvancedWeaponManager, ChargeStarted, this);
+}
+
 
 // Called when the game starts
 void UAdvancedWeaponManager::BeginPlay()
@@ -120,8 +139,17 @@ void UAdvancedWeaponManager::OnRep_CurrentDirection()
 {
 }
 
-void UAdvancedWeaponManager::OnRep_SavedGuid()
+void UAdvancedWeaponManager::OnRep_CurrentCurve()
 {
+}
+
+void UAdvancedWeaponManager::OnRep_Charge()
+{
+}
+
+void UAdvancedWeaponManager::OnRep_ChargeStarted()
+{
+	
 }
 
 
@@ -166,8 +194,10 @@ void UAdvancedWeaponManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, WeaponList, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, ManagingStatus, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, FightingStatus, Params);
-	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, CurrentWeapon, Params);
-	//DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, SavedGuid, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, CurrentDirection, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, CurrentCurve, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, ChargeWillBeFinished, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, ChargeStarted, Params);
 }
 
 int32 UAdvancedWeaponManager::GetCurrentWeaponIndex() const
@@ -249,6 +279,39 @@ void UAdvancedWeaponManager::CreateVisuals(UAbstractWeapon* InAbstractWeapon)
 	}
 }
 
+void UAdvancedWeaponManager::PreAttackFinished()
+{
+	SetManagingStatus(EWeaponManagingStatus::Busy);
+	SetFightingStatus(EWeaponFightingStatus::AttackCharging);
+
+	UAbstractWeapon* weapon = GetCurrentWeapon();
+	UWeaponDataAsset* data = weapon->GetData();
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
+	{
+		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start charging attack",
+			           *data->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		const FMeleeAttackCurveData& attack = meleeWeaponData->Attack.Get(CurrentDirection);
+		float currentTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
+		SetChargeStarted(currentTime);
+		SetChargeFinished(currentTime + attack.CurveTime);
+		UCurveFloat* curve = attack.Curve.LoadSynchronous();
+		SetChargingCurve(curve);
+		OnStartedCharging.Broadcast(weapon, GetChargingCurve(), GetChargingFinishTime());
+	}
+	else
+	{
+		TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start charging attack",
+		           *data->GetClass()->GetFName().ToString());
+		return;
+	}
+}
+
 void UAdvancedWeaponManager::Server_DeEquip_Implementation(int32 InIndex)
 {
 	if (!CanDeEquip(InIndex))
@@ -257,7 +320,7 @@ void UAdvancedWeaponManager::Server_DeEquip_Implementation(int32 InIndex)
 	// Mark status
 	SetManagingStatus(EWeaponManagingStatus::DeEquipping);
 
-	auto weapon = GetCurrentWeapon();
+	UAbstractWeapon* weapon = GetCurrentWeapon();
 	UWeaponDataAsset* data = weapon->GetData();
 	UWeaponAnimationDataAsset* anims = data->Animations;
 
@@ -346,10 +409,7 @@ void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection 
 
 		const FMeleeAttackCurveData& attackData = meleeWeaponData->Attack.Get(InDirection);
 
-		auto initialDelegate = FTimerDelegate::CreateLambda([this]()
-		{
-			SetFightingStatus(EWeaponFightingStatus::AttackCharging);
-		});
+		auto initialDelegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::PreAttackFinished);
 		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, initialDelegate, attackData.PreAttackLen, false);
 
 		FMeleeAttackAnimMontageData attackAnim = meleeAnims->Attack.Get(InDirection);
@@ -363,7 +423,6 @@ void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection 
 		return;
 	}
 }
-
 
 void UAdvancedWeaponManager::Multi_PlayAnim_Implementation(
 	UAbstractWeapon* InWeapon,
@@ -659,6 +718,19 @@ bool UAdvancedWeaponManager::CanStartAttack() const
 	return true;
 }
 
+bool UAdvancedWeaponManager::CanAttack() const
+{
+	UAbstractWeapon* cur = GetCurrentWeapon();
+	if (!IsValid(cur))
+		return false;
+	if (!cur->IsValidData())
+		return false;
+	if (GetFightingStatus() != EWeaponFightingStatus::PreAttack)
+		return false;
+
+	return true;
+}
+
 void UAdvancedWeaponManager::TryEquipProxy(int32 InIndex)
 {
 	if (!CanEquip(InIndex))
@@ -680,4 +752,9 @@ void UAdvancedWeaponManager::RequestAttackProxy(EWeaponDirection InDirection)
 	if (!CanStartAttack())
 		return;
 	Server_StartAttack(InDirection);
+}
+
+void UAdvancedWeaponManager::RequestAttackReleasedProxy()
+{
+	// Todo : Cancel attack if possible
 }

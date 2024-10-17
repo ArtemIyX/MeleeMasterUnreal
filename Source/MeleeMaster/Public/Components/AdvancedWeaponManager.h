@@ -56,7 +56,8 @@ public:
 	FAnimPlayData();
 	FAnimPlayData(UAbstractWeapon* InWeapon, const FAnimMontageFullData& InAnimSet, const float InTime);
 	FAnimPlayData(UAbstractWeapon* InWeapon, const FAnimMontageFullData& InAnimSet, const float InTime,
-		const FName& InSectionName);
+	              const FName& InSectionName);
+
 public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	UAbstractWeapon* Weapon{nullptr};
@@ -78,6 +79,14 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FAdvancedWeaponManagerDelegate);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAdvancedWeaponManagerAnimationDelegate,
                                             const FAnimPlayData&, Anim);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWeaponManagerDelegate,
+                                            UAbstractWeapon*, InWeaponInstance);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FWeaponManagerChargingDelegate,
+                                               UAbstractWeapon*, InWeaponInstance,
+                                               UCurveFloat*, Curve,
+                                               float, FinishTime);
 
 /**
  * @class UAdvancedWeaponManager
@@ -135,6 +144,15 @@ protected:
 	 */
 	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_CurrentDirection)
 	EWeaponDirection CurrentDirection;
+
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_CurrentCurve)
+	UCurveFloat* CurrentCurve;
+
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_ChargeStarted)
+	float ChargeStarted;
+
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_Charge)
+	float ChargeWillBeFinished;
 #pragma endregion
 
 #pragma region TimerHandles
@@ -180,6 +198,13 @@ protected:
 	 * @param Value The new GUID value.
 	 */
 	virtual void SetSavedGuid(FString Value);
+
+	virtual void SetChargingCurve(UCurveFloat* InCurve);
+
+	virtual void SetChargeFinished(float InFinishTime);
+
+	virtual void SetChargeStarted(float InStartTime);
+
 
 #pragma endregion
 
@@ -231,11 +256,14 @@ protected:
 	UFUNCTION()
 	virtual void OnRep_CurrentDirection();
 
-	/**
-	 * @brief Called when the saved GUID is replicated.
-	 */
 	UFUNCTION()
-	virtual void OnRep_SavedGuid();
+	virtual void OnRep_CurrentCurve();
+
+	UFUNCTION()
+	virtual void OnRep_Charge();
+
+	UFUNCTION()
+	virtual void OnRep_ChargeStarted();
 
 #pragma endregion
 
@@ -247,6 +275,12 @@ protected:
 	 * @param InAbstractWeapon The weapon for which to create visuals.
 	 */
 	virtual void CreateVisuals(UAbstractWeapon* InAbstractWeapon);
+#pragma endregion
+
+#pragma region Callbacks
+
+protected:
+	virtual void PreAttackFinished();
 #pragma endregion
 
 #pragma region TryProxy
@@ -268,6 +302,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual void RequestAttackProxy(EWeaponDirection InDirection);
+
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
+	virtual void RequestAttackReleasedProxy();
 #pragma endregion
 
 #pragma region Server
@@ -289,6 +326,7 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void Server_StartAttack(EWeaponDirection InDirection);
+
 #pragma endregion
 
 #pragma region Multi
@@ -394,11 +432,27 @@ public:
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
 	virtual bool CanDeEquip(int32 InIndex) const;
 
+	// Idle -> PreAttack
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual bool CanStartAttack() const;
+
+	// Charge -> Hit
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
+	virtual bool CanAttack() const;
 #pragma endregion
 
 #pragma region Getters
+
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Charge")
+	FORCEINLINE UCurveFloat* GetChargingCurve() const { return CurrentCurve; }
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Charge")
+	FORCEINLINE float GetChargingStartTime() const { return ChargeStarted; }
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Charge")
+	FORCEINLINE float GetChargingFinishTime() const { return ChargeWillBeFinished; }
+
 	/**
 	 * @brief Retrieves a weapon by its index.
 	 * @param InIndex The index of the weapon to retrieve.
@@ -479,5 +533,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FAdvancedWeaponManagerAnimationDelegate OnTpAnim;
 
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FWeaponManagerChargingDelegate OnStartedCharging;
 #pragma endregion
 };
