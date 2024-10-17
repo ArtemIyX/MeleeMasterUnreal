@@ -352,9 +352,49 @@ void UAdvancedWeaponManager::HitFinished()
 {
 	GetWorld()->GetTimerManager().ClearTimer(FightTimerHandle);
 	GetWorld()->GetTimerManager().ClearTimer(HittingTimerHandle);
+
+	SetFightingStatus(EWeaponFightingStatus::PostAttack);
+	UAbstractWeapon* weapon = GetCurrentWeapon();
+
+	if (!IsValid(weapon))
+	{
+		SetFightingStatus(EWeaponFightingStatus::Idle);
+		SetManagingStatus(EWeaponManagingStatus::Idle);
+		return;
+	}
+
+	UWeaponDataAsset* data = weapon->GetData();
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
+	{
+		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start post attack",
+			           *data->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		const FMeleeAttackCurveData& attack = meleeWeaponData->Attack.Get(CurrentDirection);
+		float postAttackTime = attack.PostAttackLen;
+		TDelegate<TDelegate<void(), FNotThreadSafeNotCheckedDelegateUserPolicy>::RetValType(),
+		          FNotThreadSafeNotCheckedDelegateUserPolicy> delegate = FTimerDelegate::CreateUObject(
+			this, &UAdvancedWeaponManager::PostAttackFinished);
+		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, delegate, postAttackTime, false);
+	}
+	else
+	{
+		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to start post attack",
+		           *weapon->GetClass()->GetFName().ToString());
+		return;
+	}
+}
+
+void UAdvancedWeaponManager::PostAttackFinished()
+{
 	SetFightingStatus(EWeaponFightingStatus::Idle);
 	SetManagingStatus(EWeaponManagingStatus::Idle);
 }
+
 
 void UAdvancedWeaponManager::MeleeHitProcedure()
 {
@@ -392,14 +432,14 @@ void UAdvancedWeaponManager::MeleeHitProcedure()
 		}
 
 		const FMeleeAttackCurveData& attackData = meleeWeaponData->Attack.Get(CurrentDirection);
-		if (attackData.HitPath.IsNull())
+		if (!attackData.HitPath)
 		{
 			TRACEERROR(LogWeapon, "%s hit path of %s is null",
 			           *UEnum::GetValueAsString(CurrentDirection),
 			           *meleeWeaponData->GetFName().ToString());
 			return;
 		}
-		UWeaponHitPathAsset* hitPath = attackData.HitPath.LoadSynchronous();
+		UWeaponHitPathAsset* hitPath = attackData.HitPath;
 		if (!hitPath->Data.Elements.IsValidIndex(HitNum))
 		{
 			TRACEWARN(LogWeapon, "Invalid %d index of %s %s",
@@ -451,7 +491,6 @@ void UAdvancedWeaponManager::MeleeHitProcedure()
 	}
 }
 
-
 void UAdvancedWeaponManager::Server_Attack_Implementation()
 {
 	if (!CanAttack())
@@ -480,14 +519,14 @@ void UAdvancedWeaponManager::Server_Attack_Implementation()
 		}
 		const FMeleeAttackCurveData& attackData = meleeWeaponData->Attack.Get(CurrentDirection);
 
-		if (attackData.HitPath.IsNull())
+		if (!attackData.HitPath)
 		{
 			TRACEERROR(LogWeapon, "%s hit path of %s if invalid",
 			           *UEnum::GetValueAsString(CurrentDirection),
 			           *meleeWeaponData->GetFName().ToString());
 			return;
 		}
-		UWeaponHitPathAsset* hitPath = attackData.HitPath.LoadSynchronous();
+		UWeaponHitPathAsset* hitPath = attackData.HitPath;
 
 		// Will be called after all elements are line-traced
 		auto hitFinishDelegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::HitFinished);

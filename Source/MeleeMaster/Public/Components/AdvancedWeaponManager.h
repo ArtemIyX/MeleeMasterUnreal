@@ -293,6 +293,7 @@ protected:
 
 	virtual void ProcessHits(UAbstractWeapon* InWeapon, const TArray<FHitResult>& InHits);
 
+
 #pragma endregion
 
 #pragma region Callbacks
@@ -306,6 +307,9 @@ protected:
 
 	UFUNCTION()
 	virtual void MeleeHitProcedure();
+
+	UFUNCTION()
+	virtual void PostAttackFinished();
 #pragma endregion
 
 #pragma region TryProxy

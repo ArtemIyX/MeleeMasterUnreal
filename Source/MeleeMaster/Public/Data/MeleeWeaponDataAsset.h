@@ -64,7 +64,7 @@ public:
 	float PostAttackLen{0.5f};
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	TSoftObjectPtr<UWeaponHitPathAsset> HitPath;
+	UWeaponHitPathAsset* HitPath;
 	
 };
 
