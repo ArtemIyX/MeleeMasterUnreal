@@ -64,7 +64,8 @@ public:
 	float PostAttackLen{0.5f};
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	TSoftObjectPtr<UWeaponHitPathAsset> HitPath; 
+	TSoftObjectPtr<UWeaponHitPathAsset> HitPath;
+	
 };
 
 /**
@@ -118,6 +119,8 @@ public:
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FMeleeAttackCurveData Left;
+
+
 
 	/**
 	 * @brief Returns the attack curve data for a given direction.

@@ -3,7 +3,7 @@
 
 #include "Data/WeaponHitPathAsset.h"
 
-UWeaponHitPathAsset::UWeaponHitPathAsset(): Period(0.1f)
+UWeaponHitPathAsset::UWeaponHitPathAsset(): Radius(10), TraceQuery()
 {
 	AssetType = "HitPath";
 }

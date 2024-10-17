@@ -9,9 +9,12 @@
 #include "Data/MeleeWeaponDataAsset.h"
 #include "Data/WeaponAnimationDataAsset.h"
 #include "Data/WeaponDataAsset.h"
+#include "Data/WeaponHitPathAsset.h"
 #include "Data/Interfaces/WeaponManagerOwner.h"
 #include "Engine/ActorChannel.h"
 #include "GameFramework/GameStateBase.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Objects/AbstractWeapon.h"
@@ -149,7 +152,6 @@ void UAdvancedWeaponManager::OnRep_Charge()
 
 void UAdvancedWeaponManager::OnRep_ChargeStarted()
 {
-	
 }
 
 
@@ -216,6 +218,36 @@ int32 UAdvancedWeaponManager::GetCurrentWeaponIndex() const
 	return INDEX_NONE;
 }
 
+float UAdvancedWeaponManager::EvaluateCurrentCurve() const
+{
+	EWeaponFightingStatus fightStatus = GetFightingStatus();
+	if (fightStatus == EWeaponFightingStatus::AttackCharging || fightStatus == EWeaponFightingStatus::BlockCharging)
+	{
+		if (!IsValid(CurrentCurve))
+			return MinimalCurveValue;
+		// Current time
+		const float currentServerTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
+		const float finishTime = GetChargingFinishTime();
+		const float startTime = GetChargingStartTime();
+		if (currentServerTime <= finishTime)
+		{
+			// Duration of full curve
+			const float duration = FMath::Abs(finishTime - startTime);
+
+			// Time to end curve
+			const float secondsLeft = finishTime - currentServerTime;
+
+			// Time from start
+			const float curveActualTime = duration - secondsLeft;
+
+			// Eval
+			return GetChargingCurve()->GetFloatValue(curveActualTime);
+		}
+		return MinimalCurveValue;
+	}
+	return 0.0f;
+}
+
 int32 UAdvancedWeaponManager::AddNewWeapon(UWeaponDataAsset* InWeaponAsset)
 {
 	if (!IsValid(InWeaponAsset))
@@ -229,7 +261,7 @@ int32 UAdvancedWeaponManager::AddNewWeapon(UWeaponDataAsset* InWeaponAsset)
 	weaponInstance->SetData(InWeaponAsset);
 	weaponInstance->SetGuidString(weaponInstance->MakeRandomGuidString());
 
-	int32 index = WeaponList.Add(weaponInstance);
+	const int32 index = WeaponList.Add(weaponInstance);
 	CreateVisuals(weaponInstance);
 	MARK_PROPERTY_DIRTY_FROM_NAME(UAdvancedWeaponManager, WeaponList, this);
 
@@ -279,6 +311,10 @@ void UAdvancedWeaponManager::CreateVisuals(UAbstractWeapon* InAbstractWeapon)
 	}
 }
 
+void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray<FHitResult>& InHits)
+{
+}
+
 void UAdvancedWeaponManager::PreAttackFinished()
 {
 	SetManagingStatus(EWeaponManagingStatus::Busy);
@@ -302,7 +338,7 @@ void UAdvancedWeaponManager::PreAttackFinished()
 		SetChargeFinished(currentTime + attack.CurveTime);
 		UCurveFloat* curve = attack.Curve.LoadSynchronous();
 		SetChargingCurve(curve);
-		OnStartedCharging.Broadcast(weapon, GetChargingCurve(), GetChargingFinishTime());
+		OnStartedCharging.Broadcast(meleeWeapon, GetChargingCurve(), GetChargingFinishTime());
 	}
 	else
 	{
@@ -311,6 +347,170 @@ void UAdvancedWeaponManager::PreAttackFinished()
 		return;
 	}
 }
+
+void UAdvancedWeaponManager::HitFinished()
+{
+	GetWorld()->GetTimerManager().ClearTimer(FightTimerHandle);
+	GetWorld()->GetTimerManager().ClearTimer(HittingTimerHandle);
+	SetFightingStatus(EWeaponFightingStatus::Idle);
+	SetManagingStatus(EWeaponManagingStatus::Idle);
+}
+
+void UAdvancedWeaponManager::MeleeHitProcedure()
+{
+	UAbstractWeapon* weapon = GetCurrentWeapon();
+	if (!IsValid(weapon))
+		return;
+
+	if (!weapon->IsValidData())
+		return;
+
+	UWeaponDataAsset* data = weapon->GetData();
+
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
+	{
+		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to melee attack",
+			           *data->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		AActor* owner = GetOwner();
+		if (!IsValid(owner))
+		{
+			TRACEERROR(LogWeapon, "Invalid owner!");
+			return;
+		}
+		APawn* pawnOwner = Cast<APawn>(owner);
+		if (!IsValid(pawnOwner))
+		{
+			TRACEERROR(LogWeapon, "Owner(%s) must be Pawn",
+			           *owner->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		const FMeleeAttackCurveData& attackData = meleeWeaponData->Attack.Get(CurrentDirection);
+		if (attackData.HitPath.IsNull())
+		{
+			TRACEERROR(LogWeapon, "%s hit path of %s is null",
+			           *UEnum::GetValueAsString(CurrentDirection),
+			           *meleeWeaponData->GetFName().ToString());
+			return;
+		}
+		UWeaponHitPathAsset* hitPath = attackData.HitPath.LoadSynchronous();
+		if (!hitPath->Data.Elements.IsValidIndex(HitNum))
+		{
+			TRACEWARN(LogWeapon, "Invalid %d index of %s %s",
+			          HitNum,
+			          *UEnum::GetValueAsString(CurrentDirection),
+			          *meleeWeaponData->GetFName().ToString());
+			return;
+		}
+		// Make ignore array
+		TArray<AActor*> actorsToIgnore;
+		actorsToIgnore.Add(GetOwner());
+		TArray<AWeaponVisual*> visual;
+		weapon->GetVisual(visual);
+		actorsToIgnore.Append(visual);
+
+		// Calculate offsets
+		FRotator controlRot = pawnOwner->GetControlRotation();
+		controlRot.Add(0.0f, -90.0f, 0.0f);
+		FVector ownerLoc = pawnOwner->GetActorLocation();
+		ownerLoc.Z += hitPath->ZOffset;
+
+		const FVector localStart = hitPath->Data.Elements[HitNum].Start;
+		const FVector startRotated = controlRot.RotateVector(localStart);
+		const FVector localEnd = hitPath->Data.Elements[HitNum].End;
+		const FVector endRotated = controlRot.RotateVector(localEnd);
+
+		const FVector start = startRotated + ownerLoc;
+		const FVector end = endRotated + ownerLoc;
+		TArray<FHitResult> hits;
+		UKismetSystemLibrary::BoxTraceMulti(GetWorld(), start, end,
+		                                    FVector(hitPath->Radius), controlRot,
+		                                    hitPath->TraceQuery,
+		                                    false, actorsToIgnore,
+		                                    bDebugMeleeHits
+			                                    ? EDrawDebugTrace::Type::ForDuration
+			                                    : EDrawDebugTrace::None,
+		                                    hits, false, FLinearColor::Red, FLinearColor::Blue,
+		                                    bDebugMeleeHits ? 10.0f : 0.0f);
+
+		ProcessHits(meleeWeapon, hits);
+		HitNum++;
+	}
+	else
+	{
+		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to execute melee attack line trace",
+		           *weapon->GetClass()->GetFName().ToString());
+		return;
+	}
+}
+
+
+void UAdvancedWeaponManager::Server_Attack_Implementation()
+{
+	if (!CanAttack())
+		return;
+
+	SetFightingStatus(EWeaponFightingStatus::Attacking);
+	UAbstractWeapon* weapon = GetCurrentWeapon();
+	UWeaponDataAsset* data = weapon->GetData();
+	UWeaponAnimationDataAsset* anims = data->Animations;
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
+	{
+		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to melee attack",
+			           *data->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(anims);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to melee attack",
+			           *anims->GetClass()->GetFName().ToString());
+			return;
+		}
+		const FMeleeAttackCurveData& attackData = meleeWeaponData->Attack.Get(CurrentDirection);
+
+		if (attackData.HitPath.IsNull())
+		{
+			TRACEERROR(LogWeapon, "%s hit path of %s if invalid",
+			           *UEnum::GetValueAsString(CurrentDirection),
+			           *meleeWeaponData->GetFName().ToString());
+			return;
+		}
+		UWeaponHitPathAsset* hitPath = attackData.HitPath.LoadSynchronous();
+
+		// Will be called after all elements are line-traced
+		auto hitFinishDelegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::HitFinished);
+		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, hitFinishDelegate, attackData.HittingTime, false);
+
+		// Looped line-trace method
+		HitNum = 0;
+		const float frequency = attackData.HittingTime / FMath::Clamp(hitPath->Data.Elements.Num(), 1,
+		                                                              TNumericLimits<int32>::Max() - 1);
+		auto hittingDelegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::MeleeHitProcedure);
+		GetWorld()->GetTimerManager().SetTimer(HittingTimerHandle, hittingDelegate, frequency, true);
+
+		const FMeleeAttackAnimMontageData& attackAnim = meleeAnims->Attack.Get(CurrentDirection);
+		Multi_PlayAnim(meleeWeapon, attackAnim, attackData.HittingTime, true,
+		               attackAnim.AttackSection);
+	}
+	else
+	{
+		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to attack",
+		           *weapon->GetClass()->GetFName().ToString());
+		return;
+	}
+}
+
 
 void UAdvancedWeaponManager::Server_DeEquip_Implementation(int32 InIndex)
 {
@@ -393,7 +593,7 @@ void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection 
 		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
 		if (!IsValid(meleeWeaponData))
 		{
-			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start melee attack ",
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start melee attack",
 			           *data->GetClass()->GetFName().ToString());
 			return;
 		}
@@ -402,7 +602,7 @@ void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection 
 
 		if (!IsValid(meleeWeaponData))
 		{
-			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to start melee attack ",
+			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to start melee attack",
 			           *anims->GetClass()->GetFName().ToString());
 			return;
 		}
@@ -418,8 +618,8 @@ void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection 
 	}
 	else
 	{
-		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to start attack ",
-		           *meleeWeapon->GetClass()->GetFName().ToString());
+		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to start attack",
+		           *weapon->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -463,7 +663,7 @@ void UAdvancedWeaponManager::Multi_AttachHand_Implementation()
 	if (!current->IsValidData())
 		return;
 
-	int32 n = current->VisualNum();
+	const int32 n = current->VisualNum();
 	for (int32 i = 0; i < n; ++i)
 	{
 		AttachHand(current->GetGUIDString(), n);
@@ -482,7 +682,7 @@ void UAdvancedWeaponManager::Multi_AttachBack_Implementation(const FString& InWe
 	if (!wpn->IsValidData())
 		return;
 
-	int32 n = wpn->VisualNum();
+	const int32 n = wpn->VisualNum();
 	for (int32 i = 0; i < n; ++i)
 	{
 		AttachBack(InWeaponGuid, n);
@@ -554,10 +754,10 @@ void UAdvancedWeaponManager::AttachHand(AWeaponVisual* InVisual)
 		attachComponent = owner->FindComponentByClass<USkeletalMeshComponent>();
 	}
 
-	ENetRole role = owner->GetLocalRole();
-	bool bIsLocallyControlled = (role == ROLE_AutonomousProxy);
+	const ENetRole role = owner->GetLocalRole();
+	const bool bIsLocallyControlled = (role == ROLE_AutonomousProxy);
 
-	FName handSocket = InVisual->GetHandSocket();
+	const FName handSocket = InVisual->GetHandSocket();
 	InVisual->AttachToComponent(attachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale,
 	                            handSocket);
 
@@ -648,8 +848,8 @@ bool UAdvancedWeaponManager::CanEquip(int32 InIndex) const
 	if (!IsValidWeaponIndex(InIndex))
 		return false;
 
-	bool bIdle = ManagingStatus == EWeaponManagingStatus::Idle;
-	bool bNoWeapon = ManagingStatus == EWeaponManagingStatus::NoWeapon;
+	const bool bIdle = ManagingStatus == EWeaponManagingStatus::Idle;
+	const bool bNoWeapon = ManagingStatus == EWeaponManagingStatus::NoWeapon;
 	// Idle or NoWeapon
 	if (!(bIdle || bNoWeapon))
 	{
@@ -678,7 +878,7 @@ bool UAdvancedWeaponManager::CanDeEquip(int32 InIndex) const
 	if (!IsValidWeaponIndex(InIndex))
 		return false;
 
-	bool bIdle = ManagingStatus == EWeaponManagingStatus::Idle;
+	const bool bIdle = ManagingStatus == EWeaponManagingStatus::Idle;
 	// Idle 
 	if (!bIdle)
 		return false;
@@ -690,7 +890,7 @@ bool UAdvancedWeaponManager::CanDeEquip(int32 InIndex) const
 
 
 	// Invalid current weapon
-	int32 currentIndex = GetCurrentWeaponIndex();
+	const int32 currentIndex = GetCurrentWeaponIndex();
 	if (currentIndex == INDEX_NONE)
 		return false;
 
@@ -725,7 +925,7 @@ bool UAdvancedWeaponManager::CanAttack() const
 		return false;
 	if (!cur->IsValidData())
 		return false;
-	if (GetFightingStatus() != EWeaponFightingStatus::PreAttack)
+	if (GetFightingStatus() != EWeaponFightingStatus::AttackCharging)
 		return false;
 
 	return true;
@@ -756,5 +956,7 @@ void UAdvancedWeaponManager::RequestAttackProxy(EWeaponDirection InDirection)
 
 void UAdvancedWeaponManager::RequestAttackReleasedProxy()
 {
-	// Todo : Cancel attack if possible
+	if (!CanAttack())
+		return;
+	Server_Attack();
 }

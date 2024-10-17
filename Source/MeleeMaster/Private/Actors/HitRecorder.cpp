@@ -69,11 +69,11 @@ void AHitRecorder::Record()
 	HitData.Elements.Empty();
 	bRecording = true;
 
-	MakeSnapshot();
+	//MakeSnapshot();
 	GetWorldTimerManager().SetTimer(PeriodTimerHandle, FTimerDelegate::CreateLambda([this]()
 	{
 		MakeSnapshot();
-	}), Period, true);
+	}), SnapshotFrequency, true);
 
 
 	StartPlayAnim();
@@ -110,10 +110,11 @@ void AHitRecorder::StartPlayAnim()
 	SkeletalMeshComponent->SetUpdateAnimationInEditor(true);
 #endif
 	SkeletalMeshComponent->PlayAnimation(Animation, false);
+	SkeletalMeshComponent->SetPlayRate(AnimPlayRate);
 	SkeletalMeshComponent->SetPosition(StartTime, false);
 
 	GetWorldTimerManager().SetTimer(AnimationTimerHandle, FTimerDelegate::CreateLambda([this]()
 	{
 		Finished();
-	}), Animation->GetPlayLength(), false);
+	}), PlayLength / AnimPlayRate, false);
 }

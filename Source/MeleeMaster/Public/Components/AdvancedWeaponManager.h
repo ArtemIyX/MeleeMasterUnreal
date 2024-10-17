@@ -111,6 +111,18 @@ public:
 	 */
 	UPROPERTY(BlueprintReadWrite)
 	FString SavedGuid;
+
+	int32 HitNum{0};
+#pragma endregion
+
+#pragma region Defaults
+
+protected:
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category="UAdvancedWeaponManager|Weapons")
+	float MinimalCurveValue{0.1f};
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category="UAdvancedWeaponManager|Weapons")
+	bool bDebugMeleeHits{true};
 #pragma endregion
 
 protected:
@@ -164,6 +176,8 @@ protected:
 	FTimerHandle EquippingTimerHandle;
 
 	FTimerHandle FightTimerHandle;
+
+	FTimerHandle HittingTimerHandle;
 #pragma endregion
 
 #pragma region PrivateSet
@@ -221,6 +235,7 @@ public:
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 #pragma endregion
 
 #pragma region OnRep
@@ -275,12 +290,22 @@ protected:
 	 * @param InAbstractWeapon The weapon for which to create visuals.
 	 */
 	virtual void CreateVisuals(UAbstractWeapon* InAbstractWeapon);
+
+	virtual void ProcessHits(UAbstractWeapon* InWeapon, const TArray<FHitResult>& InHits);
+
 #pragma endregion
 
 #pragma region Callbacks
 
 protected:
+	UFUNCTION()
 	virtual void PreAttackFinished();
+
+	UFUNCTION()
+	virtual void HitFinished();
+
+	UFUNCTION()
+	virtual void MeleeHitProcedure();
 #pragma endregion
 
 #pragma region TryProxy
@@ -326,6 +351,9 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void Server_StartAttack(EWeaponDirection InDirection);
+
+	UFUNCTION(Server, Reliable)
+	void Server_Attack();
 
 #pragma endregion
 
@@ -518,6 +546,8 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Getters")
 	FORCEINLINE EWeaponDirection GetCurrentDirection() const { return CurrentDirection; }
 
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Getters")
+	float EvaluateCurrentCurve() const;
 #pragma endregion
 
 #pragma region Events

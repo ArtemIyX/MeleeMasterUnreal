@@ -69,10 +69,16 @@ public:
 	UAnimSequence* Animation;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="HitRecorder|Setup")
+	float PlayLength{1.0f};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="HitRecorder|Setup")
 	float StartTime;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="HitRecorder|Setup")
-	float Period{0.05f};
+	float SnapshotFrequency{0.05f};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="HitRecorder|Setup")
+	float AnimPlayRate{1.0f};
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="HitRecorder|Setup")
 	FName StartSocket;

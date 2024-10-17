@@ -23,5 +23,11 @@ public:
 	FWeaponHitData Data;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Main", meta=(ClampMin="0.0001"))
-	float Period;
+	float Radius;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Main")
+	float ZOffset{-35.0f};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Main", meta=(ClampMin="0.0001"))
+	TEnumAsByte<ETraceTypeQuery> TraceQuery;
 };
