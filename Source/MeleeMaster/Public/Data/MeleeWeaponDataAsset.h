@@ -79,6 +79,8 @@ struct MELEEMASTER_API FMeleeBlockCurveData : public FWeaponCurveData
 	GENERATED_BODY()
 
 public:
+
+	
 	/**
 	 * @brief Duration of the stun time after a successful block.
 	 */

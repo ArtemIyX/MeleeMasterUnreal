@@ -334,6 +334,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual void RequestAttackReleasedProxy();
+
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
+	virtual void RequestBlockProxy(EWeaponDirection InDirection);
+	
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
+	virtual void RequestBlockReleasedProxy();
 #pragma endregion
 
 #pragma region Server
@@ -359,6 +365,12 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void Server_Attack();
 
+	UFUNCTION(Server, Reliable)
+	void Server_Block(EWeaponDirection InDirection);
+
+	UFUNCTION(Server, Reliable)
+	void Server_UnBlock();
+
 #pragma endregion
 
 #pragma region Multi
@@ -374,6 +386,9 @@ protected:
 	void Multi_PlayAnim(UAbstractWeapon* InWeapon, const FAnimMontageFullData& InMontageData, float MontageTime,
 	                    bool bUseSection = false,
 	                    const FName& Section = "Section");
+	
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multi_CancelCurrentAnim();
 
 	/**
 	 * @brief Attaches the weapon to the character's hand after equipping.
@@ -437,7 +452,7 @@ public:
 	 * @param InIndex The index of the weapon to remove.
 	 * @return Whether the weapon was successfully removed.
 	 */
-	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
+	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction), Category="AdvancedWeaponManager|Weapon")
 	virtual bool RemoveWeapon(int32 InIndex);
 
 	/**
@@ -471,6 +486,14 @@ public:
 	// Charge -> Hit
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual bool CanAttack() const;
+	
+	// Idle -> Block
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
+	virtual bool CanBlock();
+
+	// Block -> Idle
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
+	virtual bool CanUnBlock();
 #pragma endregion
 
 #pragma region Getters
@@ -569,5 +592,14 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FWeaponManagerChargingDelegate OnStartedCharging;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FWeaponManagerChargingDelegate OnStartedChargingBlock;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FAdvancedWeaponManagerDelegate OnCancelCurrentTpAnim;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FAdvancedWeaponManagerDelegate OnCancelCurrentFpAnim;
 #pragma endregion
 };

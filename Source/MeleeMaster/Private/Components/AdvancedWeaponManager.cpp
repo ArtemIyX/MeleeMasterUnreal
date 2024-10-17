@@ -551,6 +551,81 @@ void UAdvancedWeaponManager::Server_Attack_Implementation()
 	}
 }
 
+void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDirection)
+{
+	if (!CanBlock())
+		return;
+
+	GetWorld()->GetTimerManager().ClearTimer(FightTimerHandle);
+	GetWorld()->GetTimerManager().ClearTimer(HittingTimerHandle);
+	
+	SetManagingStatus(EWeaponManagingStatus::Busy);
+	SetFightingStatus(EWeaponFightingStatus::BlockCharging);
+	SetDirection(InDirection);
+
+	UAbstractWeapon* weapon = GetCurrentWeapon();
+	UWeaponDataAsset* data = weapon->GetData();
+	UWeaponAnimationDataAsset* anims = data->Animations;
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
+	{
+		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to block",
+			           *data->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(anims);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to block",
+			           *anims->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		const FMeleeBlockCurveData& blockData = meleeWeaponData->Block.Get(CurrentDirection);
+		float currentTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
+		SetChargeStarted(currentTime);
+		SetChargeFinished(currentTime + blockData.CurveTime);
+		UCurveFloat* curve = blockData.Curve.LoadSynchronous();
+		SetChargingCurve(curve);
+		OnStartedChargingBlock.Broadcast(meleeWeapon, GetChargingCurve(), GetChargingFinishTime());
+
+		const FMeleeBlockAnimMontageData& blockAnimData = meleeAnims->Block.Get(CurrentDirection);
+
+		Multi_PlayAnim(meleeWeapon, blockAnimData, blockAnimData.LiftingTime);
+	}
+	else
+	{
+		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to block",
+		           *weapon->GetClass()->GetFName().ToString());
+		return;
+	}
+}
+
+void UAdvancedWeaponManager::Server_UnBlock_Implementation()
+{
+	if (!CanUnBlock())
+		return;
+
+	SetManagingStatus(EWeaponManagingStatus::Idle);
+	SetFightingStatus(EWeaponFightingStatus::Idle);
+
+	UAbstractWeapon* weapon = GetCurrentWeapon();
+	UWeaponDataAsset* data = weapon->GetData();
+	//UWeaponAnimationDataAsset* anims = data->Animations;
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
+	{
+		Multi_CancelCurrentAnim();
+	}
+	else
+	{
+		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to unblock",
+		           *weapon->GetClass()->GetFName().ToString());
+		return;
+	}
+}
 
 void UAdvancedWeaponManager::Server_DeEquip_Implementation(int32 InIndex)
 {
@@ -729,6 +804,18 @@ void UAdvancedWeaponManager::Multi_AttachBack_Implementation(const FString& InWe
 	}
 }
 
+void UAdvancedWeaponManager::Multi_CancelCurrentAnim_Implementation()
+{
+	if (GetOwnerRole() == ROLE_AutonomousProxy)
+	{
+		OnCancelCurrentFpAnim.Broadcast();
+	}
+	else
+	{
+		OnCancelCurrentTpAnim.Broadcast();
+	}
+}
+
 void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InVisual)
 {
 	// Skip servers, it is already attached to actor
@@ -849,6 +936,7 @@ bool UAdvancedWeaponManager::RemoveWeapon(int32 InIndex)
 	{
 		return false;
 	}
+	// TODO: Remove
 	return true;
 }
 
@@ -943,6 +1031,7 @@ bool UAdvancedWeaponManager::CanDeEquip(int32 InIndex) const
 
 bool UAdvancedWeaponManager::CanStartAttack() const
 {
+	// TODO: Check if weapon can start attack
 	UAbstractWeapon* cur = GetCurrentWeapon();
 	if (!IsValid(cur))
 		return false;
@@ -960,6 +1049,7 @@ bool UAdvancedWeaponManager::CanStartAttack() const
 
 bool UAdvancedWeaponManager::CanAttack() const
 {
+	// TODO: Check if weapon can attack
 	UAbstractWeapon* cur = GetCurrentWeapon();
 	if (!IsValid(cur))
 		return false;
@@ -969,6 +1059,37 @@ bool UAdvancedWeaponManager::CanAttack() const
 		return false;
 
 	return true;
+}
+
+bool UAdvancedWeaponManager::CanBlock()
+{
+	// TODO: Check if weapon can block (melee)
+	UAbstractWeapon* cur = GetCurrentWeapon();
+	if (!IsValid(cur))
+		return false;
+	if (!cur->IsValidData())
+		return false;
+
+	const EWeaponFightingStatus status = GetFightingStatus();
+	const bool bIdle = status == EWeaponFightingStatus::Idle;
+	const bool bAttackCharge = status == EWeaponFightingStatus::AttackCharging;
+
+	return bIdle || bAttackCharge;
+}
+
+bool UAdvancedWeaponManager::CanUnBlock()
+{
+	// TODO: Check if weapon can unblock (melee)
+	UAbstractWeapon* cur = GetCurrentWeapon();
+	if (!IsValid(cur))
+		return false;
+	if (!cur->IsValidData())
+		return false;
+
+	const EWeaponFightingStatus status = GetFightingStatus();
+	const bool bBlockCharge = status == EWeaponFightingStatus::BlockCharging;
+
+	return bBlockCharge;
 }
 
 void UAdvancedWeaponManager::TryEquipProxy(int32 InIndex)
@@ -999,4 +1120,18 @@ void UAdvancedWeaponManager::RequestAttackReleasedProxy()
 	if (!CanAttack())
 		return;
 	Server_Attack();
+}
+
+void UAdvancedWeaponManager::RequestBlockProxy(EWeaponDirection InDirection)
+{
+	if (!CanBlock())
+		return;
+	Server_Block(InDirection);
+}
+
+void UAdvancedWeaponManager::RequestBlockReleasedProxy()
+{
+	if (!CanUnBlock())
+		return;
+	Server_UnBlock();
 }
