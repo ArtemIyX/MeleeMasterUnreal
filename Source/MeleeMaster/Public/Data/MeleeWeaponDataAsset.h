@@ -7,6 +7,7 @@
 #include "MeleeWeaponDataAsset.generated.h"
 
 
+class UWeaponHitPathAsset;
 enum class EWeaponFightingStatus : uint8;
 enum class EWeaponDirection : uint8;
 
@@ -62,7 +63,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float PostAttackLen{0.5f};
 
-	//TODO: Hit attack path asset
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	TSoftObjectPtr<UWeaponHitPathAsset> HitPath; 
 };
 
 /**
