@@ -417,6 +417,7 @@ void UAdvancedWeaponManager::MeleeHitProcedure()
 
 		// Calculate offsets
 		FRotator controlRot = pawnOwner->GetControlRotation();
+		controlRot.Pitch = 0.0f;
 		controlRot.Add(0.0f, -90.0f, 0.0f);
 		FVector ownerLoc = pawnOwner->GetActorLocation();
 		ownerLoc.Z += hitPath->ZOffset;
