@@ -75,6 +75,34 @@ public:
 	FName SectionName{"None"};
 };
 
+USTRUCT(Blueprintable, BlueprintType)
+struct FMeleeHitDebugData
+{
+	GENERATED_BODY()
+
+public:
+	FMeleeHitDebugData(): BaseDamage(0), Multiplier(0)
+	{
+	}
+
+public:
+	FMeleeHitDebugData(const FVector& InLocation, float InBaseDamage, float InMultiplier)
+		: Location(InLocation),
+		  BaseDamage(InBaseDamage),
+		  Multiplier(InMultiplier)
+	{
+	}
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FVector Location;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float BaseDamage;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float Multiplier;
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FAdvancedWeaponManagerDelegate);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAdvancedWeaponManagerAnimationDelegate,
@@ -112,7 +140,11 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	FString SavedGuid;
 
+	UPROPERTY(BlueprintReadOnly)
 	int32 HitNum{0};
+
+	UPROPERTY(BlueprintReadOnly)
+	float HitPower{1.0f};
 #pragma endregion
 
 #pragma region Defaults
@@ -341,7 +373,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual void RequestBlockProxy(EWeaponDirection InDirection);
-	
+
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual void RequestBlockReleasedProxy();
 #pragma endregion
@@ -378,6 +410,10 @@ protected:
 #pragma endregion
 
 #pragma region Multi
+
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multi_DebugHit(const TArray<FMeleeHitDebugData>& InData);
+
 	/**
 	 * @brief Plays an equip animation on all clients.
 	 * @param InWeapon The weapon being equipped.
@@ -390,7 +426,7 @@ protected:
 	void Multi_PlayAnim(UAbstractWeapon* InWeapon, const FAnimMontageFullData& InMontageData, float MontageTime,
 	                    bool bUseSection = false,
 	                    const FName& Section = "Section");
-	
+
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multi_CancelCurrentAnim();
 
@@ -490,7 +526,7 @@ public:
 	// Charge -> Hit
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual bool CanAttack() const;
-	
+
 	// Idle -> Block
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual bool CanBlock();

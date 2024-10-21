@@ -30,3 +30,11 @@ enum class EWeaponTier : uint8
 	Medium,
 	High
 };
+
+UENUM(Blueprintable, BlueprintType)
+enum class EDamageReturn : uint8
+{
+	Failed,
+	Alive,
+	Dead
+};

@@ -65,7 +65,12 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	UWeaponHitPathAsset* HitPath;
-	
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float BasicDamage{35.0f};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	TSubclassOf<UDamageType> DamageType;
 };
 
 /**
@@ -79,8 +84,6 @@ struct MELEEMASTER_API FMeleeBlockCurveData : public FWeaponCurveData
 	GENERATED_BODY()
 
 public:
-
-	
 	/**
 	 * @brief Duration of the stun time after a successful block.
 	 */
@@ -121,7 +124,6 @@ public:
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FMeleeAttackCurveData Left;
-
 
 
 	/**

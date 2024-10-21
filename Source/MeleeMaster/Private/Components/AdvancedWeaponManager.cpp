@@ -10,6 +10,8 @@
 #include "Data/WeaponAnimationDataAsset.h"
 #include "Data/WeaponDataAsset.h"
 #include "Data/WeaponHitPathAsset.h"
+#include "Data/Interfaces/DamageableEntity.h"
+#include "Data/Interfaces/DamageManager.h"
 #include "Data/Interfaces/WeaponManagerOwner.h"
 #include "Engine/ActorChannel.h"
 #include "GameFramework/GameStateBase.h"
@@ -313,6 +315,99 @@ void UAdvancedWeaponManager::CreateVisuals(UAbstractWeapon* InAbstractWeapon)
 
 void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray<FHitResult>& InHits)
 {
+	if (InHits.Num() <= 0)
+		return;
+	
+	AGameModeBase* gm = GetWorld()->GetAuthGameMode();
+
+	if (!IsValid(gm))
+	{
+		TRACEERROR(LogWeapon, "Failed to get gamemode from world");
+		return;
+	}
+	if (!gm->Implements<UDamageManager>())
+	{
+		TRACEERROR(LogWeapon, "Gamemode %s must implement UDamageManager!",
+		           *gm->GetClass()->GetFName().ToString());
+		return;
+	}
+	TMap<AActor*, FHitResult> hitMap;
+
+	// Make hitmap
+	for (const FHitResult& hit : InHits)
+	{
+		if (AActor* hitActor = hit.GetActor())
+		{
+			if (hitActor != GetOwner())
+			{
+				if (!hitMap.Contains(hitActor))
+				{
+					if (hitActor->Implements<UDamageableEntity>())
+					{
+						if (IDamageableEntity::Execute_IsAlive(hitActor))
+						{
+							hitMap.Add(hitActor, hit);
+						}
+					}
+				}
+			}
+		}
+	}
+
+
+	UWeaponDataAsset* data = InWeapon->GetData();
+
+	TArray<FMeleeHitDebugData> debugArr;
+	for (TTuple<AActor*, FHitResult> el : hitMap)
+	{
+		if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(InWeapon))
+		{
+			UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
+			if (!IsValid(meleeWeaponData))
+			{
+				TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to process hit",
+				           *data->GetClass()->GetFName().ToString());
+				continue;
+			}
+			const FMeleeAttackCurveData& attackData = meleeWeaponData->Attack.Get(CurrentDirection);
+
+			float dmg = attackData.BasicDamage * HitPower;
+			if (bDebugMeleeHits)
+			{
+				debugArr.Add(FMeleeHitDebugData(el.Value.Location, attackData.BasicDamage, HitPower));
+			}
+			TSubclassOf<UDamageType> dmgType = attackData.DamageType;
+			IDamageManager::Execute_RequestDamage(gm, GetOwner(), el.Key, dmg, el.Value, dmgType);
+		}
+		else
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon class (%s) to process hit",
+			           *InWeapon->GetClass()->GetFName().ToString());
+			continue;
+		}
+	}
+	if (bDebugMeleeHits && debugArr.Num() > 0)
+	{
+		Multi_DebugHit(debugArr);
+	}
+}
+
+
+void UAdvancedWeaponManager::Multi_DebugHit_Implementation(const TArray<FMeleeHitDebugData>& InData)
+{
+	if (GetOwner()->HasAuthority())
+		return;
+	if (bDebugMeleeHits)
+	{
+		for (const FMeleeHitDebugData& el : InData)
+		{
+			DrawDebugPoint(GetWorld(), el.Location, 2.0f, FColor::White, false, 4.0f, -1);
+			DrawDebugString(GetWorld(), el.Location,
+			                FString::Printf(TEXT("%1.f (%.1f x %.1f)"), el.BaseDamage * el.Multiplier, el.BaseDamage,
+			                                el.Multiplier),
+			                nullptr, FColor::White, 4.0f, true, 1);
+		}
+	}
 }
 
 void UAdvancedWeaponManager::PreAttackFinished()
@@ -342,8 +437,8 @@ void UAdvancedWeaponManager::PreAttackFinished()
 	}
 	else
 	{
-		TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start charging attack",
-		           *data->GetClass()->GetFName().ToString());
+		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to finish pre  attack",
+		           *weapon->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -485,8 +580,11 @@ void UAdvancedWeaponManager::MeleeHitProcedure()
 			                                    : EDrawDebugTrace::None,
 		                                    hits, false, FLinearColor::Red, FLinearColor::Blue,
 		                                    bDebugMeleeHits ? 10.0f : 0.0f);
-
-		ProcessHits(meleeWeapon, hits);
+		if (hits.Num() > 0)
+		{
+			ProcessHits(meleeWeapon, hits);
+		}
+			
 		HitNum++;
 	}
 	else
@@ -502,6 +600,8 @@ void UAdvancedWeaponManager::Server_Attack_Implementation()
 	if (!CanAttack())
 		return;
 
+	// Evaluate before settings attacking status
+	HitPower = EvaluateCurrentCurve();
 	SetFightingStatus(EWeaponFightingStatus::Attacking);
 	UAbstractWeapon* weapon = GetCurrentWeapon();
 	UWeaponDataAsset* data = weapon->GetData();
@@ -540,6 +640,7 @@ void UAdvancedWeaponManager::Server_Attack_Implementation()
 
 		// Looped line-trace method
 		HitNum = 0;
+
 		const float frequency = attackData.HittingTime / FMath::Clamp(hitPath->Data.Elements.Num(), 1,
 		                                                              TNumericLimits<int32>::Max() - 1);
 		auto hittingDelegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::MeleeHitProcedure);
@@ -831,6 +932,7 @@ void UAdvancedWeaponManager::Multi_CancelCurrentAnim_Implementation()
 		OnCancelCurrentTpAnim.Broadcast();
 	}
 }
+
 
 void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InVisual)
 {
