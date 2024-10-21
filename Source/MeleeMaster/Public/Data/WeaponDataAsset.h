@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "WeaponTypes.h"
 #include "Data/AdvancedDataAsset.h"
 #include "WeaponDataAsset.generated.h"
 
@@ -58,6 +59,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Timing", meta=(ClampMin="0.01"))
 	float DeEquipTime;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Damage", meta=(ClampMin="0.01"))
+	EWeaponTier WeaponTier;
 public:
 	/**
 	 * @brief Checks if the data asset is valid for weapon creation.

@@ -395,6 +395,12 @@ void UAdvancedWeaponManager::PostAttackFinished()
 	SetManagingStatus(EWeaponManagingStatus::Idle);
 }
 
+void UAdvancedWeaponManager::PostBlockFinished()
+{
+	SetFightingStatus(EWeaponFightingStatus::Idle);
+	SetManagingStatus(EWeaponManagingStatus::Idle);
+}
+
 
 void UAdvancedWeaponManager::MeleeHitProcedure()
 {
@@ -558,7 +564,7 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 
 	GetWorld()->GetTimerManager().ClearTimer(FightTimerHandle);
 	GetWorld()->GetTimerManager().ClearTimer(HittingTimerHandle);
-	
+
 	SetManagingStatus(EWeaponManagingStatus::Busy);
 	SetFightingStatus(EWeaponFightingStatus::BlockCharging);
 	SetDirection(InDirection);
@@ -609,14 +615,24 @@ void UAdvancedWeaponManager::Server_UnBlock_Implementation()
 	if (!CanUnBlock())
 		return;
 
-	SetManagingStatus(EWeaponManagingStatus::Idle);
-	SetFightingStatus(EWeaponFightingStatus::Idle);
+	SetManagingStatus(EWeaponManagingStatus::Busy);
+	SetFightingStatus(EWeaponFightingStatus::PostBlock);
 
 	UAbstractWeapon* weapon = GetCurrentWeapon();
 	UWeaponDataAsset* data = weapon->GetData();
 	//UWeaponAnimationDataAsset* anims = data->Animations;
 	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
 	{
+		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start melee attack",
+			           *data->GetClass()->GetFName().ToString());
+			return;
+		}
+		const FMeleeBlockCurveData& blockData = meleeWeaponData->Block.Get(CurrentDirection);
+		auto delegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::PostBlockFinished);
+		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, delegate, blockData.PostBlockLen, false);
 		Multi_CancelCurrentAnim();
 	}
 	else

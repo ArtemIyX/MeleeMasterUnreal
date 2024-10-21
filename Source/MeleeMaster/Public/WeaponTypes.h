@@ -22,3 +22,11 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TArray<FWeaponHitDataElement> Elements;
 };
+
+UENUM(Blueprintable, BlueprintType)
+enum class EWeaponTier : uint8
+{
+	Light,
+	Medium,
+	High
+};

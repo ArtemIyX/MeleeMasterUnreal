@@ -236,6 +236,7 @@ public:
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+
 #pragma endregion
 
 #pragma region OnRep
@@ -310,6 +311,9 @@ protected:
 
 	UFUNCTION()
 	virtual void PostAttackFinished();
+
+	UFUNCTION()
+	virtual void PostBlockFinished();
 #pragma endregion
 
 #pragma region TryProxy
