@@ -18,7 +18,7 @@ const FMeleeAttackCurveData& FMeleeAttackData::Get(EWeaponDirection InDir)
 		return Left;
 	default: return Forward;
 	}
-	return Forward;
+	//return Forward;
 }
 
 const FMeleeBlockCurveData& FMeleeBlockData::Get(EWeaponDirection InDir)
@@ -35,7 +35,7 @@ const FMeleeBlockCurveData& FMeleeBlockData::Get(EWeaponDirection InDir)
 		return Left;
 	default: return Forward;
 	}
-	return Forward;
+	//return Forward;
 }
 
 UMeleeWeaponDataAsset::UMeleeWeaponDataAsset() : Super(), Attack(), Block()

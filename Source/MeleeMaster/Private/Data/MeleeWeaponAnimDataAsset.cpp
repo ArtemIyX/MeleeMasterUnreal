@@ -18,7 +18,7 @@ const FMeleeAttackAnimMontageData& FMeleeAttackAnimData::Get(EWeaponDirection In
 		return Left;
 	default: return Forward;
 	}
-	return Forward;
+	//return Forward;
 }
 
 const FMeleeBlockAnimMontageData& FMeleeBlockAnimData::Get(EWeaponDirection InDir)
@@ -35,7 +35,7 @@ const FMeleeBlockAnimMontageData& FMeleeBlockAnimData::Get(EWeaponDirection InDi
 		return Left;
 	default: return Forward;
 	}
-	return Forward;
+	//return Forward;
 }
 
 UMeleeWeaponAnimDataAsset::UMeleeWeaponAnimDataAsset() : Super()

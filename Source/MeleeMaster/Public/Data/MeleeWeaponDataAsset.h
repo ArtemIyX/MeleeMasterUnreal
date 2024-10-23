@@ -21,6 +21,11 @@ struct MELEEMASTER_API FWeaponCurveData
 	GENERATED_BODY()
 
 public:
+	FWeaponCurveData(): CurveTime(1.0f)
+	{
+	}
+
+public:
 	/**
 	 * @brief Float curve that defines the timeline of weapon actions.
 	 */
@@ -64,7 +69,7 @@ public:
 	float PostAttackLen{0.5f};
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	UWeaponHitPathAsset* HitPath;
+	UWeaponHitPathAsset* HitPath{nullptr};
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float BasicDamage{35.0f};

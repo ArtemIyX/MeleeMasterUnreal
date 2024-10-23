@@ -6,6 +6,12 @@ USTRUCT(Blueprintable, BlueprintType)
 struct MELEEMASTER_API FWeaponHitDataElement
 {
 	GENERATED_BODY()
+
+public:
+	FWeaponHitDataElement(): Start(0.0f), End(0.0f)
+	{
+	}
+
 public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FVector Start;

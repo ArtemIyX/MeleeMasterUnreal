@@ -72,6 +72,10 @@ USTRUCT(Blueprintable, BlueprintType)
 struct MELEEMASTER_API FSequenceData
 {
 	GENERATED_BODY()
+public:
+	FSequenceData(): FirstPerson(nullptr), ThirdPerson(nullptr)
+	{
+	}
 
 public:
 	/**

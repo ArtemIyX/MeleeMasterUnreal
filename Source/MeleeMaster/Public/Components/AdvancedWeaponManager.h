@@ -81,7 +81,7 @@ struct FMeleeHitDebugData
 	GENERATED_BODY()
 
 public:
-	FMeleeHitDebugData(): BaseDamage(0), Multiplier(0)
+	FMeleeHitDebugData(): Location(), BaseDamage(0), Multiplier(0)
 	{
 	}
 

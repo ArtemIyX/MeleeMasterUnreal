@@ -3,7 +3,7 @@
 
 #include "Data/WeaponAnimationDataAsset.h"
 
-UWeaponAnimationDataAsset::UWeaponAnimationDataAsset(): Idle(nullptr), AimOffset(nullptr)
+UWeaponAnimationDataAsset::UWeaponAnimationDataAsset(): AimOffset(nullptr)
 {
 	AssetType = FName(TEXT("WeaponAnim"));
 }
