@@ -371,7 +371,7 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 			}
 			const FMeleeAttackCurveData& attackData = meleeWeaponData->Attack.Get(CurrentDirection);
 
-			float dmg = attackData.BasicDamage * HitPower;
+			float dmg = attackData.GetDamage() * HitPower;
 			if (bDebugMeleeHits)
 			{
 				debugArr.Add(FMeleeHitDebugData(el.Value.Location, attackData.BasicDamage, HitPower));

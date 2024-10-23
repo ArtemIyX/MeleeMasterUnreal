@@ -50,6 +50,10 @@ struct MELEEMASTER_API FMeleeAttackCurveData : public FWeaponCurveData
 	GENERATED_BODY()
 
 public:
+	FMeleeAttackCurveData(): bDamageForFullPath(false)
+	{
+	}
+
 	/**
 	 * @brief Time required before the attack swing begins.
 	 */
@@ -75,7 +79,12 @@ public:
 	float BasicDamage{35.0f};
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	uint8 bDamageForFullPath:1;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TSubclassOf<UDamageType> DamageType;
+
+	float GetDamage() const;
 };
 
 /**

@@ -3,6 +3,19 @@
 
 #include "Data/MeleeWeaponDataAsset.h"
 #include "Components/AdvancedWeaponManager.h"
+#include "Data/WeaponHitPathAsset.h"
+
+float FMeleeAttackCurveData::GetDamage() const
+{
+	if (bDamageForFullPath && HitPath)
+	{
+		if (HitPath->Data.Elements.Num() > 0)
+		{
+			return BasicDamage / HitPath->Data.Elements.Num();
+		}
+	}
+	return BasicDamage;
+}
 
 const FMeleeAttackCurveData& FMeleeAttackData::Get(EWeaponDirection InDir)
 {
