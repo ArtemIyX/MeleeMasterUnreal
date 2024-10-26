@@ -444,6 +444,9 @@ protected:
 	 */
 	UFUNCTION(NetMulticast, Reliable)
 	void Multi_AttachBack(const FString& InWeaponGuid);
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multi_DropWeaponVisual(const FString& InWeaponGuid);
 
 #pragma endregion
 
@@ -479,6 +482,9 @@ public:
 
 #pragma region Exposed
 
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Weapon")
+	virtual void DropWeaponVisual(const FString& InWeaponGuid);
+	
 	/**
 	 * @brief Adds a new weapon to the weapon list.
 	 * @param InWeaponAsset The asset data for the new weapon.

@@ -317,7 +317,7 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 {
 	if (InHits.Num() <= 0)
 		return;
-	
+
 	AGameModeBase* gm = GetWorld()->GetAuthGameMode();
 
 	if (!IsValid(gm))
@@ -584,7 +584,7 @@ void UAdvancedWeaponManager::MeleeHitProcedure()
 		{
 			ProcessHits(meleeWeapon, hits);
 		}
-			
+
 		HitNum++;
 	}
 	else
@@ -934,9 +934,36 @@ void UAdvancedWeaponManager::Multi_CancelCurrentAnim_Implementation()
 }
 
 
+void UAdvancedWeaponManager::Multi_DropWeaponVisual_Implementation(const FString& InWeaponGuid)
+{
+	// Skip server
+	if (GetOwner()->HasAuthority())
+		return;
+	AActor* owner = GetOwner();
+	const ENetRole role = owner->GetLocalRole();
+	const bool bIsLocallyControlled = (role == ROLE_AutonomousProxy);
+	if (UAbstractWeapon* weapon = WeaponByGuid(InWeaponGuid))
+	{
+		TArray<AWeaponVisual*> weaponVisuals;
+		weapon->GetVisual(weaponVisuals);
+		for (AWeaponVisual* visual : weaponVisuals)
+		{
+			if (IsValid(visual))
+			{
+				if (bIsLocallyControlled)
+				{
+					visual->Show();
+				}
+				visual->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+				visual->ActivatePhysics();
+			}
+		}
+	}
+}
+
 void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InVisual)
 {
-	// Skip servers, it is already attached to actor
+	// Skip server, it is already attached to actor
 	if (GetOwner()->HasAuthority())
 		return;
 
@@ -966,14 +993,7 @@ void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InVisual)
 
 	if (bIsLocallyControlled)
 	{
-		if (USkeletalMeshComponent* visualSkeletalMesh = InVisual->GetSkeletalMeshComponent())
-		{
-			visualSkeletalMesh->CastShadow = false;
-			visualSkeletalMesh->bCastHiddenShadow = false;
-			visualSkeletalMesh->SetVisibility(false);
-			visualSkeletalMesh->SetHiddenInGame(true);
-			InVisual->SetHidden(true);
-		}
+		InVisual->Hide();
 	}
 }
 
@@ -1008,14 +1028,7 @@ void UAdvancedWeaponManager::AttachHand(AWeaponVisual* InVisual)
 
 	if (bIsLocallyControlled)
 	{
-		if (USkeletalMeshComponent* visualSkeletalMesh = InVisual->GetSkeletalMeshComponent())
-		{
-			visualSkeletalMesh->CastShadow = false;
-			visualSkeletalMesh->bCastHiddenShadow = false;
-			visualSkeletalMesh->SetVisibility(true);
-			visualSkeletalMesh->SetHiddenInGame(false);
-			InVisual->SetHidden(false);
-		}
+		InVisual->Show();
 	}
 }
 
@@ -1045,6 +1058,14 @@ void UAdvancedWeaponManager::AttachHand(const FString& WeaponGuid, int32 InVisua
 	if (weapon->GetVisualActor(InVisualIndex, visual))
 	{
 		AttachHand(visual);
+	}
+}
+
+void UAdvancedWeaponManager::DropWeaponVisual(const FString& InWeaponGuid)
+{
+	if (GetOwner()->HasAuthority())
+	{
+		Multi_DropWeaponVisual(InWeaponGuid);
 	}
 }
 

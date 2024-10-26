@@ -66,6 +66,24 @@ void AWeaponVisual::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 	DOREPLIFETIME_WITH_PARAMS_FAST(AWeaponVisual, WeaponGuid, Params);
 }
 
+void AWeaponVisual::Hide()
+{
+	SkeletalMeshComponent->CastShadow = false;
+	SkeletalMeshComponent->bCastHiddenShadow = false;
+	SkeletalMeshComponent->SetVisibility(false);
+	SkeletalMeshComponent->SetHiddenInGame(true);
+	this->SetHidden(true);
+}
+
+void AWeaponVisual::Show()
+{
+	SkeletalMeshComponent->CastShadow = true;
+	SkeletalMeshComponent->bCastHiddenShadow = true;
+	SkeletalMeshComponent->SetVisibility(true);
+	SkeletalMeshComponent->SetHiddenInGame(false);
+	this->SetHidden(false);
+}
+
 int32 AWeaponVisual::GetVisualIndex() const
 {
 	if (AActor* owner = GetOwner())
@@ -85,4 +103,10 @@ void AWeaponVisual::SetGuidString(FString InGuid)
 {
 	this->WeaponGuid = InGuid;
 	MARK_PROPERTY_DIRTY_FROM_NAME(AWeaponVisual, WeaponGuid, this);
+}
+
+void AWeaponVisual::ActivatePhysics()
+{
+	SkeletalMeshComponent->SetCollisionEnabled(ECollisionEnabled::Type::PhysicsOnly);
+	SkeletalMeshComponent->SetSimulatePhysics(true);
 }

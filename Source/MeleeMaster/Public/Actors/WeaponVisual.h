@@ -74,6 +74,13 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 public:
+
+	UFUNCTION(BlueprintCallable, Category="WeaponVisual")
+	virtual void Hide();
+	
+	UFUNCTION(BlueprintCallable, Category="WeaponVisual")
+	virtual void Show();
+	
 	/**
 	 * @brief Retrieves the visual index of the weapon.
 	 * @return The visual index as an integer.
@@ -115,4 +122,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="WeaponVisual")
 	FORCEINLINE FName GetBackSocket() const { return BackSocket; }
+
+	UFUNCTION(BlueprintCallable)
+	void ActivatePhysics();
 };
