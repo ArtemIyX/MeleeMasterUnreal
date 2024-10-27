@@ -77,6 +77,18 @@ void UAbstractWeapon::ClearVisual()
 	MARK_PROPERTY_DIRTY_FROM_NAME(UAbstractWeapon, Visuals, this);
 }
 
+void UAbstractWeapon::DestroyVisuals()
+{
+	if (this->Visuals.Num() > 0)
+	{
+		for (AWeaponVisual* el : Visuals)
+		{
+			el->Destroy();
+		}
+	}
+	ClearVisual();
+}
+
 void UAbstractWeapon::SetVisualActor(int32 InIndex, AWeaponVisual* InVisual)
 {
 	if (Visuals.IsValidIndex(InIndex))
@@ -120,9 +132,9 @@ bool UAbstractWeapon::GetVisualActor(int32 Index, AWeaponVisual*& OutVisual)
 
 int32 UAbstractWeapon::GetVisualIndex(const AWeaponVisual* InVisual)
 {
-	for(int32 i = 0; i < Visuals.Num(); ++i)
+	for (int32 i = 0; i < Visuals.Num(); ++i)
 	{
-		if(Visuals[i] == InVisual)
+		if (Visuals[i] == InVisual)
 		{
 			return i;
 		}

@@ -482,6 +482,12 @@ public:
 
 #pragma region Exposed
 
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
+	virtual void ClearBeforeDestroy();
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
+	virtual void StopWork();
+	
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Weapon")
 	virtual void DropWeaponVisual(const FString& InWeaponGuid);
 	

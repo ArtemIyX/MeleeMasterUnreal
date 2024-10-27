@@ -118,9 +118,13 @@ public:
 
 	/**
 	 * @brief Clears visual array
+	 * @note Only references will be cleared. Actors will be still alive
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AbstractWeapon")
 	virtual void ClearVisual();
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AbstractWeapon")
+	virtual void DestroyVisuals();
 
 	/**
 	 * @brief Sets a visual actor for the weapon at the specified index.
@@ -161,5 +165,7 @@ public:
 	 * @return Visuals.Num()
 	 */
 	UFUNCTION(BlueprintCallable, Category="AbstractWeapon")
-	virtual int32 VisualNum() const { return Visuals.Num(); };
+	virtual int32 VisualNum() const { return Visuals.Num(); }
+
+	
 };

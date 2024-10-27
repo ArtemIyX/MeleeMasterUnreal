@@ -1061,6 +1061,33 @@ void UAdvancedWeaponManager::AttachHand(const FString& WeaponGuid, int32 InVisua
 	}
 }
 
+void UAdvancedWeaponManager::ClearBeforeDestroy()
+{
+	StopWork();
+	const int32 n = WeaponList.Num();
+	for (int32 i = 0; i < n; ++i)
+	{
+		if (WeaponList[i])
+		{
+			WeaponList[i]->DestroyVisuals();
+			WeaponList[i]->ConditionalBeginDestroy();
+			WeaponList[i] = nullptr;
+		}
+	}
+	WeaponList.Empty();
+	MARK_PROPERTY_DIRTY_FROM_NAME(UAdvancedWeaponManager, WeaponList, this);
+}
+
+void UAdvancedWeaponManager::StopWork()
+{
+	SetFightingStatus(EWeaponFightingStatus::Busy);
+	SetManagingStatus(EWeaponManagingStatus::Busy);
+	FTimerManager& timerManager = GetWorld()->GetTimerManager();
+	timerManager.ClearTimer(EquippingTimerHandle);
+	timerManager.ClearTimer(FightTimerHandle);
+	timerManager.ClearTimer(HittingTimerHandle);
+}
+
 void UAdvancedWeaponManager::DropWeaponVisual(const FString& InWeaponGuid)
 {
 	if (GetOwner()->HasAuthority())
