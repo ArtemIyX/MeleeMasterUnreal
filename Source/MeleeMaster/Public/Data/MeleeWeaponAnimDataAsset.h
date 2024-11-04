@@ -133,12 +133,12 @@ public:
 	/**
 	 * @brief Animation montage data for melee attacks in all directions.
 	 */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Melee", meta=(ShowOnlyInnerProperties))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Melee")
 	FMeleeAttackAnimData Attack;
 
 	/**
 	 * @brief Animation montage data for melee blocks in all directions.
 	 */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Melee", meta=(ShowOnlyInnerProperties))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Melee")
 	FMeleeBlockAnimData Block;
 };
