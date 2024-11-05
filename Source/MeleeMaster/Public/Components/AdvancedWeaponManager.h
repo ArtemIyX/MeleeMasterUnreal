@@ -116,6 +116,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FWeaponManagerChargingDelegate,
                                                UCurveFloat*, Curve,
                                                float, FinishTime);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAdvancedWeaponManagerFightingStatusDelegate,
+	EWeaponFightingStatus, Previous, EWeaponFightingStatus, Current);
 /**
  * @class UAdvancedWeaponManager
  * @brief Manages advanced weapon systems for characters.
@@ -296,7 +298,7 @@ protected:
 	 * @brief Called when the fighting status is replicated.
 	 */
 	UFUNCTION()
-	virtual void OnRep_FightingStatus();
+	virtual void OnRep_FightingStatus(EWeaponFightingStatus PreviousState);
 
 	/**
 	 * @brief Called when the current direction is replicated.
@@ -653,5 +655,8 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FAdvancedWeaponManagerDelegate OnCancelCurrentFpAnim;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FAdvancedWeaponManagerFightingStatusDelegate OnClientFightingStatusChanged;
 #pragma endregion
 };

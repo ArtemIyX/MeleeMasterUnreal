@@ -136,8 +136,9 @@ void UAdvancedWeaponManager::OnRep_ManagingStatus()
 {
 }
 
-void UAdvancedWeaponManager::OnRep_FightingStatus()
+void UAdvancedWeaponManager::OnRep_FightingStatus(EWeaponFightingStatus PreviousState)
 {
+	OnClientFightingStatusChanged.Broadcast(PreviousState, FightingStatus);
 }
 
 void UAdvancedWeaponManager::OnRep_CurrentDirection()
@@ -1221,7 +1222,13 @@ bool UAdvancedWeaponManager::CanAttack() const
 		return false;
 	if (!cur->IsValidData())
 		return false;
-	if (GetFightingStatus() != EWeaponFightingStatus::AttackCharging)
+	EWeaponFightingStatus fightingStatus = GetFightingStatus();
+	if (!GetOwner()->HasAuthority())
+	{
+		TRACEWARN(LogWeapon, "Fighting status was: %s", *UEnum::GetValueAsString(fightingStatus));
+	}
+
+	if (fightingStatus != EWeaponFightingStatus::AttackCharging)
 		return false;
 
 	return true;
