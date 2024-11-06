@@ -115,6 +115,10 @@ void UAdvancedWeaponManager::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (GetOwner()->HasAuthority())
+	{
+		AddDefaultWeapon_Internal();
+	}
 	// ...
 }
 
@@ -745,7 +749,42 @@ void UAdvancedWeaponManager::Server_UnBlock_Implementation()
 	}
 }
 
-void UAdvancedWeaponManager::Server_DeEquip_Implementation(int32 InIndex)
+void UAdvancedWeaponManager::EquipNextWeapon_Internal()
+{
+	if (NextEquip.IsValid())
+	{
+		int32 wpnIndex = WeaponIndex(NextEquip.Get());
+		if (wpnIndex != INDEX_NONE)
+		{
+			if (CanEquip(wpnIndex))
+			{
+				Equip_Internal(wpnIndex);
+				NextEquip.Reset();
+			}
+		}
+	}
+}
+
+void UAdvancedWeaponManager::DeEquipFinished()
+{
+	UAbstractWeapon* curWeapon = GetCurrentWeapon();
+	FString guid = curWeapon->GetGUIDString();
+	SetSavedGuid(guid);
+	Multi_AttachBack(guid);
+	SetCurrentWeaponPtr(nullptr);
+	SetManagingStatus(EWeaponManagingStatus::NoWeapon);
+	SetFightingStatus(EWeaponFightingStatus::Idle);
+
+	if (NextEquip.IsValid())
+	{
+		GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([this]()
+		{
+			EquipNextWeapon_Internal();
+		}));
+	}
+}
+
+void UAdvancedWeaponManager::DeEquip_Internal(int32 InIndex)
 {
 	if (!CanDeEquip(InIndex))
 		return;
@@ -757,17 +796,7 @@ void UAdvancedWeaponManager::Server_DeEquip_Implementation(int32 InIndex)
 	UWeaponDataAsset* data = weapon->GetData();
 	UWeaponAnimationDataAsset* anims = data->Animations;
 
-	auto delegate = FTimerDelegate::CreateLambda([this]()
-	{
-		SetManagingStatus(EWeaponManagingStatus::NoWeapon);
-		SetFightingStatus(EWeaponFightingStatus::Idle);
-		UAbstractWeapon* curWeapon = GetCurrentWeapon();
-		FString guid = curWeapon->GetGUIDString();
-		SetSavedGuid(guid);
-		Multi_AttachBack(guid);
-		SetCurrentWeaponPtr(nullptr);
-	});
-
+	auto delegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::DeEquipFinished);
 	GetWorld()->GetTimerManager().SetTimer(EquippingTimerHandle, delegate, data->DeEquipTime, false);
 
 	if (IsValid(anims))
@@ -776,8 +805,13 @@ void UAdvancedWeaponManager::Server_DeEquip_Implementation(int32 InIndex)
 	}
 }
 
+void UAdvancedWeaponManager::Server_DeEquip_Implementation(int32 InIndex)
+{
+	DeEquip_Internal(InIndex);
+}
 
-void UAdvancedWeaponManager::Server_Equip_Implementation(int32 InIndex)
+
+void UAdvancedWeaponManager::Equip_Internal(int32 InIndex)
 {
 	if (!CanEquip(InIndex))
 		return;
@@ -796,7 +830,7 @@ void UAdvancedWeaponManager::Server_Equip_Implementation(int32 InIndex)
 	{
 		SetManagingStatus(EWeaponManagingStatus::Idle);
 		SetFightingStatus(EWeaponFightingStatus::Idle);
-		Multi_AttachBack(SavedGuid);
+		//Multi_AttachBack(GetCurrentWeapon()->GetGUIDString());
 	});
 	GetWorld()->GetTimerManager().SetTimer(EquippingTimerHandle, delegate, data->EquipTime, false);
 
@@ -804,6 +838,28 @@ void UAdvancedWeaponManager::Server_Equip_Implementation(int32 InIndex)
 	{
 		Multi_PlayAnim(weapon, anims->Equip, data->EquipTime);
 	}
+}
+
+void UAdvancedWeaponManager::AddDefaultWeapon_Internal()
+{
+	if (DefaultWeapons.Num() <= 0)
+		return;
+
+	TArray<UWeaponDataAsset*> assets;
+	assets.Reserve(DefaultWeapons.Num());
+	for (TSoftObjectPtr<UWeaponDataAsset> wpn : DefaultWeapons)
+	{
+		assets.Add(wpn.LoadSynchronous());
+	}
+	for (UWeaponDataAsset* asset : assets)
+	{
+		AddNewWeapon(asset);
+	}
+}
+
+void UAdvancedWeaponManager::Server_Equip_Implementation(int32 InIndex)
+{
+	Equip_Internal(InIndex);
 }
 
 void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection InDirection)
@@ -874,6 +930,8 @@ void UAdvancedWeaponManager::Multi_PlayAnim_Implementation(
 	{
 		data = FAnimPlayData(InWeapon, AnimSet, Time);
 	}
+	TRACE(LogWeapon, "Saved guid now is: '%s'. Anim to play: %s", *SavedGuid,
+	      *data.AnimSet.ThirdPerson.Value.LoadSynchronous()->GetFName().ToString());
 	if (GetOwnerRole() == ROLE_AutonomousProxy)
 	{
 		OnFpAnim.Broadcast(data);
@@ -909,7 +967,7 @@ void UAdvancedWeaponManager::Multi_AttachBack_Implementation(const FString& InWe
 	if (GetOwner()->HasAuthority())
 		return;
 
-	UAbstractWeapon* wpn = WeaponByGuid(SavedGuid);
+	UAbstractWeapon* wpn = WeaponByGuid(InWeaponGuid);
 	if (!IsValid(wpn))
 		return;
 	if (!wpn->IsValidData())
@@ -1026,7 +1084,8 @@ void UAdvancedWeaponManager::AttachHand(AWeaponVisual* InVisual)
 	const FName handSocket = InVisual->GetHandSocket();
 	InVisual->AttachToComponent(attachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale,
 	                            handSocket);
-
+	FString wpn = InVisual->GetGUIDString();
+	//TRACE(LogWeapon, "Visual '%s' was attached to hand. Saved Guid: '%s'", *wpn, *SavedGuid);
 	if (bIsLocallyControlled)
 	{
 		InVisual->Show();
@@ -1116,6 +1175,17 @@ UAbstractWeapon* UAdvancedWeaponManager::Weapon(int32 InIndex) const
 	return WeaponList[InIndex];
 }
 
+int32 UAdvancedWeaponManager::WeaponIndex(UAbstractWeapon* InWeapon)
+{
+	if (!IsValid(InWeapon))
+		return INDEX_NONE;
+
+	if (!WeaponList.Contains(InWeapon))
+		return INDEX_NONE;
+
+	return WeaponList.IndexOfByKey(InWeapon);
+}
+
 UAbstractWeapon* UAdvancedWeaponManager::WeaponByGuid(FString InGuid)
 {
 	for (UAbstractWeapon* el : WeaponList)
@@ -1145,7 +1215,6 @@ bool UAdvancedWeaponManager::CanEquip(int32 InIndex) const
 
 	const bool bIdle = ManagingStatus == EWeaponManagingStatus::Idle;
 	const bool bNoWeapon = ManagingStatus == EWeaponManagingStatus::NoWeapon;
-	// Idle or NoWeapon
 	if (!(bIdle || bNoWeapon))
 	{
 		return false;
@@ -1153,20 +1222,21 @@ bool UAdvancedWeaponManager::CanEquip(int32 InIndex) const
 
 	// Equip is allowed if current weapon is null
 	UAbstractWeapon* currentWeapon = GetCurrentWeapon();
-	if (!IsValid(currentWeapon))
-	{
-		return true;
-	}
-
-	// Already equipped
-	UAbstractWeapon* wpn = Weapon(InIndex);
-	if (wpn == currentWeapon)
+	if (IsValid(currentWeapon))
 	{
 		return false;
 	}
 
+	// // Already equipped
+	// UAbstractWeapon* wpn = Weapon(InIndex);
+	// if (wpn == currentWeapon)
+	// {
+	// 	return false;
+	// }
+
 	return true;
 }
+
 
 bool UAdvancedWeaponManager::CanDeEquip(int32 InIndex) const
 {
@@ -1225,7 +1295,7 @@ bool UAdvancedWeaponManager::CanAttack() const
 	EWeaponFightingStatus fightingStatus = GetFightingStatus();
 	if (!GetOwner()->HasAuthority())
 	{
-		TRACEWARN(LogWeapon, "Fighting status was: %s", *UEnum::GetValueAsString(fightingStatus));
+		//TRACEWARN(LogWeapon, "Fighting status was: %s", *UEnum::GetValueAsString(fightingStatus));
 	}
 
 	if (fightingStatus != EWeaponFightingStatus::AttackCharging)
@@ -1265,12 +1335,36 @@ bool UAdvancedWeaponManager::CanUnBlock()
 	return bBlockCharge;
 }
 
+
+bool UAdvancedWeaponManager::CanChange(int32 InIndex)
+{
+	if (!IsValid(GetCurrentWeapon()))
+	{
+		// Can not change weapon if we don't have weapon
+		// You should use Equip method
+		// @see Equip
+		return false;
+	}
+	const int32 curIndex = GetCurrentWeaponIndex();
+	if (curIndex == InIndex)
+	{
+		// Can not change weapon to current
+		return false;
+	}
+	const bool bDeEquip = CanDeEquip(curIndex);
+	return bDeEquip;
+}
+
 void UAdvancedWeaponManager::TryEquipProxy(int32 InIndex)
 {
-	if (!CanEquip(InIndex))
-		return;
-
-	Server_Equip(InIndex);
+	if (CanChange(InIndex))
+	{
+		Server_Change(InIndex);
+	}
+	else if (CanEquip(InIndex))
+	{
+		Server_Equip(InIndex);
+	}
 }
 
 void UAdvancedWeaponManager::TryDeEquipProxy(int32 InIndex)
@@ -1307,4 +1401,16 @@ void UAdvancedWeaponManager::RequestBlockReleasedProxy()
 	if (!CanUnBlock())
 		return;
 	Server_UnBlock();
+}
+
+void UAdvancedWeaponManager::Server_Change_Implementation(int32 InIndex)
+{
+	if (!CanChange(InIndex))
+		return;
+
+	if (UAbstractWeapon* wpn = Weapon(InIndex))
+	{
+		NextEquip = wpn;
+		DeEquip_Internal(GetCurrentWeaponIndex());
+	}
 }

@@ -3,7 +3,9 @@
 
 #include "Data/AnimNotifies/AttachSavedWeaponToBody.h"
 
+#include "MeleeMaster.h"
 #include "Components/AdvancedWeaponManager.h"
+#include "Subsystems/LoggerLib.h"
 
 class AWeaponVisual;
 class UAdvancedWeaponManager;
@@ -17,6 +19,15 @@ void UAttachSavedWeaponToBody::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 	{
 		if (UAdvancedWeaponManager* weaponManager = owner->FindComponentByClass<UAdvancedWeaponManager>())
 		{
+			// auto world = MeshComp->GetWorld();
+			// auto mode = (GEngine->GetNetMode(world) == NM_Client)
+			// 				? TEXT("[Client] ")
+			// 				: (GEngine->GetNetMode(world) == NM_ListenServer)
+			// 				? TEXT("[ListenServer] ")
+			// 				: (GEngine->GetNetMode(world) == NM_DedicatedServer)
+			// 				? TEXT("[DedicatedServer] ")
+			// 				: TEXT("[Standalone]");
+			// TRACE(LogWeapon, "%s Attach to BACK notify, saved guid: '%s'", mode, *weaponManager->SavedGuid);
 			weaponManager->AttachBack(weaponManager->SavedGuid, VisualIndex);
 		}
 	}

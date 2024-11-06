@@ -3,8 +3,10 @@
 
 #include "Data/AnimNotifies/AttachCurrentWeaponToHand.h"
 
+#include "MeleeMaster.h"
 #include "Components/AdvancedWeaponManager.h"
 #include "Objects/AbstractWeapon.h"
+#include "Subsystems/LoggerLib.h"
 
 void UAttachCurrentWeaponToHand::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
                                         const FAnimNotifyEventReference& EventReference)
@@ -15,9 +17,16 @@ void UAttachCurrentWeaponToHand::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 	{
 		if (UAdvancedWeaponManager* weaponManager = owner->FindComponentByClass<UAdvancedWeaponManager>())
 		{
-			AWeaponVisual* weaponVisual;
-			weaponManager->GetCurrentWeapon()->GetVisualActor(VisualIndex, weaponVisual);
-			weaponManager->AttachHand(weaponVisual);
+			// auto world = MeshComp->GetWorld();
+			// auto mode = (GEngine->GetNetMode(world) == NM_Client)
+			// 	            ? TEXT("[Client] ")
+			// 	            : (GEngine->GetNetMode(world) == NM_ListenServer)
+			// 	            ? TEXT("[ListenServer] ")
+			// 	            : (GEngine->GetNetMode(world) == NM_DedicatedServer)
+			// 	            ? TEXT("[DedicatedServer] ")
+			// 	            : TEXT("[Standalone]");
+			// TRACE(LogWeapon, "%s Attach to hand notify, saved guid: '%s'", mode, *weaponManager->SavedGuid);
+			weaponManager->AttachHand(weaponManager->SavedGuid, VisualIndex);
 		}
 	}
 }

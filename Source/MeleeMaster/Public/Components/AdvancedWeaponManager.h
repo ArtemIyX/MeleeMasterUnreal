@@ -117,7 +117,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FWeaponManagerChargingDelegate,
                                                float, FinishTime);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAdvancedWeaponManagerFightingStatusDelegate,
-	EWeaponFightingStatus, Previous, EWeaponFightingStatus, Current);
+                                             EWeaponFightingStatus, Previous, EWeaponFightingStatus, Current);
+
 /**
  * @class UAdvancedWeaponManager
  * @brief Manages advanced weapon systems for characters.
@@ -142,6 +143,9 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	FString SavedGuid;
 
+	UPROPERTY(Transient)
+	TWeakObjectPtr<UAbstractWeapon> NextEquip;
+
 	UPROPERTY(BlueprintReadOnly)
 	int32 HitNum{0};
 
@@ -152,11 +156,14 @@ public:
 #pragma region Defaults
 
 protected:
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category="UAdvancedWeaponManager|Weapons")
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category="AdvancedWeaponManager|Weapons")
 	float MinimalCurveValue{0.1f};
 
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category="UAdvancedWeaponManager|Weapons")
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category="AdvancedWeaponManager|Weapons")
 	bool bDebugMeleeHits{true};
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category="AdvancedWeaponManager|Weapons")
+	TArray<TSoftObjectPtr<UWeaponDataAsset>> DefaultWeapons;
 #pragma endregion
 
 protected:
@@ -317,6 +324,14 @@ protected:
 
 #pragma endregion
 
+#pragma region Internal
+
+
+	virtual void DeEquip_Internal(int32 InIndex);
+	virtual void Equip_Internal(int32 InIndex);
+	virtual void AddDefaultWeapon_Internal();
+#pragma endregion
+
 #pragma region Utils
 
 protected:
@@ -342,12 +357,16 @@ protected:
 
 	UFUNCTION()
 	virtual void MeleeHitProcedure();
-
+	
 	UFUNCTION()
 	virtual void PostAttackFinished();
 
 	UFUNCTION()
 	virtual void PostBlockFinished();
+
+	void EquipNextWeapon_Internal();
+	UFUNCTION()
+	virtual void DeEquipFinished();
 #pragma endregion
 
 #pragma region TryProxy
@@ -409,6 +428,9 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void Server_UnBlock();
 
+	UFUNCTION(Server, Reliable)
+	void Server_Change(int32 InIndex);
+
 #pragma endregion
 
 #pragma region Multi
@@ -446,7 +468,7 @@ protected:
 	 */
 	UFUNCTION(NetMulticast, Reliable)
 	void Multi_AttachBack(const FString& InWeaponGuid);
-	
+
 	UFUNCTION(NetMulticast, Reliable)
 	void Multi_DropWeaponVisual(const FString& InWeaponGuid);
 
@@ -489,10 +511,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
 	virtual void StopWork();
-	
+
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Weapon")
 	virtual void DropWeaponVisual(const FString& InWeaponGuid);
-	
+
 	/**
 	 * @brief Adds a new weapon to the weapon list.
 	 * @param InWeaponAsset The asset data for the new weapon.
@@ -524,6 +546,14 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
 	virtual bool CanEquip(int32 InIndex) const;
+
+	/**
+	 * @brief Determines if a weapon can be changed based on its index.
+	 * @param InIndex The index of the weapon to check.
+	 * @return Whether the weapon can be changed.
+	 */
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
+	virtual bool CanChange(int32 InIndex);
 
 	/**
 	 * @brief Determines if a weapon can be de-equipped based on its index.
@@ -569,6 +599,9 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
 	virtual UAbstractWeapon* Weapon(int32 InIndex) const;
+
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
+	virtual int32 WeaponIndex(UAbstractWeapon* InWeapon);
 
 	/**
 	 * @brief Retrieves a weapon by its GUID.
