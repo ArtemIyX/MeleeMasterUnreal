@@ -20,7 +20,7 @@ enum class EWeaponManagingStatus : uint8
 	DeEquipping, // DeEquipping current weapon
 	Busy, // We are in fight, using special attack, stunned etc...
 	ShieldGetting, // Taking the shield from the back
-	ShieldRemoving,// Hiding the shield
+	ShieldRemoving, // Hiding the shield
 	NoWeapon, // No weapon in hands
 };
 
@@ -359,18 +359,21 @@ protected:
 
 	UFUNCTION()
 	virtual void MeleeHitProcedure();
-	
+
 	UFUNCTION()
 	virtual void PostAttackFinished();
 
 	UFUNCTION()
 	virtual void PostBlockFinished();
-	
+
 	UFUNCTION()
 	virtual void DeEquipFinished();
 
 	UFUNCTION()
 	virtual void ShieldRaiseFinished();
+
+	UFUNCTION()
+	virtual void ShieldRemoveFinished();
 #pragma endregion
 
 #pragma region TryProxy
@@ -392,7 +395,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
 	virtual void TryRemoveShieldProxy();
-	
+
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
 	virtual void TryGetShieldProxy();
 
@@ -630,7 +633,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual bool CanRemoveShield() const;
-	
+
 #pragma endregion
 
 #pragma region Getters

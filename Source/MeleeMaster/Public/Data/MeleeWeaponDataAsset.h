@@ -210,10 +210,10 @@ public:
 	FMeleeBlockData Block;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float GetTime{0.3f};
+	float GetTime{1.0f};
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float RemoveTime{0.3f};
+	float RemoveTime{1.0f};
 };
 
 /**

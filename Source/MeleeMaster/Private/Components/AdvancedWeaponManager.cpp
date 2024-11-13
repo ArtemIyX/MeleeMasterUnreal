@@ -655,7 +655,9 @@ void UAdvancedWeaponManager::Server_Attack_Implementation()
 		auto hittingDelegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::MeleeHitProcedure);
 		GetWorld()->GetTimerManager().SetTimer(HittingTimerHandle, hittingDelegate, frequency, true);
 
-		const FMeleeAttackAnimMontageData& attackAnim = meleeAnims->Attack.Get(CurrentDirection);
+		const FMeleeAttackAnimData& attackAnimData = meleeWeapon->IsShieldEquipped() ? meleeAnims->Shield.Attack : meleeAnims->Attack;
+		const FMeleeAttackAnimMontageData& attackAnim =attackAnimData.Get(CurrentDirection);
+		
 		Multi_PlayAnim(meleeWeapon, attackAnim, attackData.HittingTime, true,
 		               attackAnim.AttackSection);
 	}
@@ -708,9 +710,12 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 		SetChargingCurve(curve);
 		OnStartedChargingBlock.Broadcast(meleeWeapon, GetChargingCurve(), GetChargingFinishTime());
 
-		const FMeleeBlockAnimMontageData& blockAnimData = meleeAnims->Block.Get(CurrentDirection);
+		const FMeleeBlockAnimData& blockAnimData = meleeWeapon->IsShieldEquipped()
+			                                           ? meleeAnims->Shield.Block
+			                                           : meleeAnims->Block;
+		const FMeleeBlockAnimMontageData& blockAnim = blockAnimData.Get(CurrentDirection);
 
-		Multi_PlayAnim(meleeWeapon, blockAnimData, blockAnimData.LiftingTime);
+		Multi_PlayAnim(meleeWeapon, blockAnim, blockAnim.LiftingTime);
 	}
 	else
 	{
@@ -796,6 +801,7 @@ void UAdvancedWeaponManager::Server_GetShield_Implementation()
 		meleeWeapon->SetShieldEquipped(true);
 		auto delegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::ShieldRaiseFinished);
 
+		GetWorld()->GetTimerManager().SetTimer(EquippingTimerHandle, delegate, meleeWeaponData->Shield.GetTime, false);
 		Multi_PlayAnim(meleeWeapon, meleeAnims->Shield.Get, meleeWeaponData->Shield.GetTime);
 	}
 	else
@@ -812,10 +818,52 @@ void UAdvancedWeaponManager::ShieldRaiseFinished()
 	SetFightingStatus(EWeaponFightingStatus::Idle);
 }
 
+void UAdvancedWeaponManager::ShieldRemoveFinished()
+{
+	SetManagingStatus(EWeaponManagingStatus::Idle);
+	SetFightingStatus(EWeaponFightingStatus::Idle);
+}
+
 void UAdvancedWeaponManager::Server_RemoveShield_Implementation()
 {
 	if (!CanRemoveShield())
 		return;
+
+	SetManagingStatus(EWeaponManagingStatus::ShieldRemoving);
+	SetFightingStatus(EWeaponFightingStatus::Busy);
+
+	UAbstractWeapon* weapon = GetCurrentWeapon();
+	UWeaponDataAsset* data = weapon->GetData();
+	UWeaponAnimationDataAsset* anims = data->Animations;
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
+	{
+		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to remove shield",
+					   *data->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(anims);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) remove shield",
+					   *anims->GetClass()->GetFName().ToString());
+			return;
+		}
+		meleeWeapon->SetShieldEquipped(false);
+		auto delegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::ShieldRemoveFinished);
+
+		GetWorld()->GetTimerManager().SetTimer(EquippingTimerHandle, delegate, meleeWeaponData->Shield.RemoveTime, false);
+		Multi_PlayAnim(meleeWeapon, meleeAnims->Shield.Remove, meleeWeaponData->Shield.RemoveTime);
+	}
+	else
+	{
+		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to remove shield",
+				   *weapon->GetClass()->GetFName().ToString());
+		return;
+	}
 }
 
 
@@ -1001,7 +1049,8 @@ void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection 
 		auto initialDelegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::PreAttackFinished);
 		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, initialDelegate, attackData.PreAttackLen, false);
 
-		FMeleeAttackAnimMontageData attackAnim = meleeAnims->Attack.Get(InDirection);
+		const FMeleeAttackAnimData& attackAnimData = meleeWeapon->IsShieldEquipped() ? meleeAnims->Shield.Attack : meleeAnims->Attack;
+		const FMeleeAttackAnimMontageData& attackAnim = attackAnimData.Get(InDirection);
 		FAnimMontageFullData montageData = attackAnim;
 		Multi_PlayAnim(weapon, montageData, attackData.PreAttackLen);
 	}
@@ -1465,8 +1514,7 @@ bool UAdvancedWeaponManager::CanGetShield() const
 
 bool UAdvancedWeaponManager::CanRemoveShield() const
 {
-	return false;
-	/*UAbstractWeapon* cur = GetCurrentWeapon();
+	UAbstractWeapon* cur = GetCurrentWeapon();
 	if (!IsValid(cur))
 		return false;
 	if (!cur->IsValidData())
@@ -1488,7 +1536,7 @@ bool UAdvancedWeaponManager::CanRemoveShield() const
 	const EWeaponManagingStatus status = GetManagingStatus();
 	const bool bIdle = status == EWeaponManagingStatus::Idle;
 
-	return bIdle;*/
+	return bIdle;
 }
 
 

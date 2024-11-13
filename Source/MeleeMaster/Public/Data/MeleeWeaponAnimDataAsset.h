@@ -58,7 +58,7 @@ public:
 	 * @param InDir The direction for which the montage data is requested.
 	 * @return The animation montage data for the specified direction.
 	 */
-	const FMeleeAttackAnimMontageData& Get(EWeaponDirection InDir);
+	const FMeleeAttackAnimMontageData& Get(EWeaponDirection InDir) const;
 };
 
 USTRUCT(Blueprintable, BlueprintType)
@@ -110,7 +110,7 @@ public:
 	 * @param InDir The direction for which the montage data is requested.
 	 * @return The animation montage data for the specified direction.
 	 */
-	const FMeleeBlockAnimMontageData& Get(EWeaponDirection InDir);
+	const FMeleeBlockAnimMontageData& Get(EWeaponDirection InDir) const;
 };
 
 /**
@@ -158,6 +158,14 @@ public:
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FMeleeBlockAnimData Block;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FSequenceData Idle;
+	/**
+	 * @brief Aim offset blend space used for weapon aiming.
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UAimOffsetBlendSpace1D* AimOffset;
 };
 
 

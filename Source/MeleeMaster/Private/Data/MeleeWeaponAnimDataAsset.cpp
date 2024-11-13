@@ -4,7 +4,7 @@
 #include "Data/MeleeWeaponAnimDataAsset.h"
 #include "Components/AdvancedWeaponManager.h"
 
-const FMeleeAttackAnimMontageData& FMeleeAttackAnimData::Get(EWeaponDirection InDir)
+const FMeleeAttackAnimMontageData& FMeleeAttackAnimData::Get(EWeaponDirection InDir) const
 {
 	switch (InDir)
 	{
@@ -21,7 +21,7 @@ const FMeleeAttackAnimMontageData& FMeleeAttackAnimData::Get(EWeaponDirection In
 	//return Forward;
 }
 
-const FMeleeBlockAnimMontageData& FMeleeBlockAnimData::Get(EWeaponDirection InDir)
+const FMeleeBlockAnimMontageData& FMeleeBlockAnimData::Get(EWeaponDirection InDir) const
 {
 	switch (InDir)
 	{
@@ -38,7 +38,7 @@ const FMeleeBlockAnimMontageData& FMeleeBlockAnimData::Get(EWeaponDirection InDi
 	//return Forward;
 }
 
-UMeleeWeaponAnimDataAsset::UMeleeWeaponAnimDataAsset()
+UMeleeWeaponAnimDataAsset::UMeleeWeaponAnimDataAsset(): Shield()
 {
 	AssetType = TEXT("MeleeWeaponAnim");
 }
