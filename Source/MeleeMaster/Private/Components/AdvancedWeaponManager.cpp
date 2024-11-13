@@ -374,8 +374,9 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 				           *data->GetClass()->GetFName().ToString());
 				continue;
 			}
-			
-			const FMeleeAttackCurveData& attackData = meleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(CurrentDirection);
+
+			const FMeleeAttackCurveData& attackData = meleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(
+				CurrentDirection);
 
 			float dmg = attackData.GetDamage() * HitPower;
 			if (bDebugMeleeHits)
@@ -538,7 +539,8 @@ void UAdvancedWeaponManager::MeleeHitProcedure()
 			return;
 		}
 
-		const FMeleeAttackCurveData& attackData = meleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(CurrentDirection);
+		const FMeleeAttackCurveData& attackData = meleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(
+			CurrentDirection);
 		if (!attackData.HitPath)
 		{
 			TRACEERROR(LogWeapon, "%s hit path of %s is null",
@@ -629,7 +631,8 @@ void UAdvancedWeaponManager::Server_Attack_Implementation()
 			           *anims->GetClass()->GetFName().ToString());
 			return;
 		}
-		const FMeleeAttackCurveData& attackData = meleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(CurrentDirection);
+		const FMeleeAttackCurveData& attackData = meleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(
+			CurrentDirection);
 
 		if (!attackData.HitPath)
 		{
@@ -750,6 +753,72 @@ void UAdvancedWeaponManager::Server_UnBlock_Implementation()
 	}
 }
 
+void UAdvancedWeaponManager::Server_Change_Implementation(int32 InIndex)
+{
+	if (!CanChange(InIndex))
+		return;
+
+	if (UAbstractWeapon* wpn = Weapon(InIndex))
+	{
+		NextEquip = wpn;
+		DeEquip_Internal(GetCurrentWeaponIndex());
+	}
+}
+
+void UAdvancedWeaponManager::Server_GetShield_Implementation()
+{
+	if (!CanGetShield())
+		return;
+
+	SetManagingStatus(EWeaponManagingStatus::ShieldGetting);
+	SetFightingStatus(EWeaponFightingStatus::Busy);
+
+	UAbstractWeapon* weapon = GetCurrentWeapon();
+	UWeaponDataAsset* data = weapon->GetData();
+	UWeaponAnimationDataAsset* anims = data->Animations;
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
+	{
+		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to equip shield",
+			           *data->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(anims);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) equip shield",
+			           *anims->GetClass()->GetFName().ToString());
+			return;
+		}
+		meleeWeapon->SetShieldEquipped(true);
+		auto delegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::ShieldRaiseFinished);
+
+		Multi_PlayAnim(meleeWeapon, meleeAnims->Shield.Get, meleeWeaponData->Shield.GetTime);
+	}
+	else
+	{
+		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to equip shield",
+		           *weapon->GetClass()->GetFName().ToString());
+		return;
+	}
+}
+
+void UAdvancedWeaponManager::ShieldRaiseFinished()
+{
+	SetManagingStatus(EWeaponManagingStatus::Idle);
+	SetFightingStatus(EWeaponFightingStatus::Idle);
+}
+
+void UAdvancedWeaponManager::Server_RemoveShield_Implementation()
+{
+	if (!CanRemoveShield())
+		return;
+}
+
+
 void UAdvancedWeaponManager::EquipNextWeapon_Internal()
 {
 	if (NextEquip.IsValid())
@@ -785,6 +854,7 @@ void UAdvancedWeaponManager::DeEquipFinished()
 	}
 }
 
+
 void UAdvancedWeaponManager::DeEquip_Internal(int32 InIndex)
 {
 	if (!CanDeEquip(InIndex))
@@ -800,11 +870,27 @@ void UAdvancedWeaponManager::DeEquip_Internal(int32 InIndex)
 	auto delegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::DeEquipFinished);
 	GetWorld()->GetTimerManager().SetTimer(EquippingTimerHandle, delegate, data->DeEquipTime, false);
 
-	if (IsValid(anims))
+	if (!IsValid(anims))
 	{
-		Multi_PlayAnim(weapon, anims->DeEquip, data->DeEquipTime);
+		return;
 	}
+
+	// If melee weapon -> check if shield raised
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
+	{
+		if (UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(anims))
+		{
+			const FAnimMontageFullData& deEquipData = meleeWeapon->IsShieldEquipped()
+				                                          ? meleeAnims->Shield.DeEquip
+				                                          : anims->DeEquip;
+			Multi_PlayAnim(weapon, deEquipData, data->DeEquipTime);
+			return;
+		}
+	}
+
+	Multi_PlayAnim(weapon, anims->DeEquip, data->DeEquipTime);
 }
+
 
 void UAdvancedWeaponManager::Server_DeEquip_Implementation(int32 InIndex)
 {
@@ -835,10 +921,23 @@ void UAdvancedWeaponManager::Equip_Internal(int32 InIndex)
 	});
 	GetWorld()->GetTimerManager().SetTimer(EquippingTimerHandle, delegate, data->EquipTime, false);
 
-	if (IsValid(anims))
+	if (!IsValid(anims))
 	{
-		Multi_PlayAnim(weapon, anims->Equip, data->EquipTime);
+		return;
 	}
+	// If melee weapon -> check if shield raised
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
+	{
+		if (UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(anims))
+		{
+			const FAnimMontageFullData& equipData = meleeWeapon->IsShieldEquipped()
+				                                        ? meleeAnims->Shield.Equip
+				                                        : anims->Equip;
+			Multi_PlayAnim(weapon, equipData, data->DeEquipTime);
+			return;
+		}
+	}
+	Multi_PlayAnim(weapon, anims->Equip, data->EquipTime);
 }
 
 void UAdvancedWeaponManager::AddDefaultWeapon_Internal()
@@ -1020,6 +1119,7 @@ void UAdvancedWeaponManager::Multi_DropWeaponVisual_Implementation(const FString
 		}
 	}
 }
+
 
 void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InVisual)
 {
@@ -1305,7 +1405,7 @@ bool UAdvancedWeaponManager::CanAttack() const
 	return true;
 }
 
-bool UAdvancedWeaponManager::CanBlock()
+bool UAdvancedWeaponManager::CanBlock() const
 {
 	// TODO: Check if weapon can block (melee)
 	UAbstractWeapon* cur = GetCurrentWeapon();
@@ -1321,7 +1421,7 @@ bool UAdvancedWeaponManager::CanBlock()
 	return bIdle || bAttackCharge;
 }
 
-bool UAdvancedWeaponManager::CanUnBlock()
+bool UAdvancedWeaponManager::CanUnBlock() const
 {
 	// TODO: Check if weapon can unblock (melee)
 	UAbstractWeapon* cur = GetCurrentWeapon();
@@ -1334,6 +1434,61 @@ bool UAdvancedWeaponManager::CanUnBlock()
 	const bool bBlockCharge = status == EWeaponFightingStatus::BlockCharging;
 
 	return bBlockCharge;
+}
+
+bool UAdvancedWeaponManager::CanGetShield() const
+{
+	UAbstractWeapon* cur = GetCurrentWeapon();
+	if (!IsValid(cur))
+		return false;
+	if (!cur->IsValidData())
+		return false;
+
+	UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(cur);
+
+	if (!IsValid(meleeWeapon))
+		return false;
+
+	// Weapon must have shield
+	if (!meleeWeapon->IsWeaponShieldSupported())
+		return false;
+
+	// Shield must be not equipped
+	if (meleeWeapon->IsShieldEquipped())
+		return false;
+
+	const EWeaponManagingStatus status = GetManagingStatus();
+	const bool bIdle = status == EWeaponManagingStatus::Idle;
+
+	return bIdle;
+}
+
+bool UAdvancedWeaponManager::CanRemoveShield() const
+{
+	return false;
+	/*UAbstractWeapon* cur = GetCurrentWeapon();
+	if (!IsValid(cur))
+		return false;
+	if (!cur->IsValidData())
+		return false;
+
+	UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(cur);
+
+	if (!IsValid(meleeWeapon))
+		return false;
+
+	// Weapon must have shield
+	if (!meleeWeapon->IsWeaponShieldSupported())
+		return false;
+
+	// Shield must be equipped
+	if (!meleeWeapon->IsShieldEquipped())
+		return false;
+
+	const EWeaponManagingStatus status = GetManagingStatus();
+	const bool bIdle = status == EWeaponManagingStatus::Idle;
+
+	return bIdle;*/
 }
 
 
@@ -1376,6 +1531,34 @@ void UAdvancedWeaponManager::TryDeEquipProxy(int32 InIndex)
 	Server_DeEquip(InIndex);
 }
 
+void UAdvancedWeaponManager::TryRemoveShieldProxy()
+{
+	if (!CanRemoveShield())
+		return;
+
+	Server_RemoveShield();
+}
+
+void UAdvancedWeaponManager::TryGetShieldProxy()
+{
+	if (!CanGetShield())
+		return;
+
+	Server_GetShield();
+}
+
+void UAdvancedWeaponManager::TrySwapShieldProxy()
+{
+	if (CanGetShield())
+	{
+		Server_GetShield();
+	}
+	else if (CanRemoveShield())
+	{
+		Server_RemoveShield();
+	}
+}
+
 void UAdvancedWeaponManager::RequestAttackProxy(EWeaponDirection InDirection)
 {
 	if (!CanStartAttack())
@@ -1402,16 +1585,4 @@ void UAdvancedWeaponManager::RequestBlockReleasedProxy()
 	if (!CanUnBlock())
 		return;
 	Server_UnBlock();
-}
-
-void UAdvancedWeaponManager::Server_Change_Implementation(int32 InIndex)
-{
-	if (!CanChange(InIndex))
-		return;
-
-	if (UAbstractWeapon* wpn = Weapon(InIndex))
-	{
-		NextEquip = wpn;
-		DeEquip_Internal(GetCurrentWeaponIndex());
-	}
 }

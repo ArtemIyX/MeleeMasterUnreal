@@ -19,6 +19,8 @@ enum class EWeaponManagingStatus : uint8
 	Equipping, // Equipping new weapon 
 	DeEquipping, // DeEquipping current weapon
 	Busy, // We are in fight, using special attack, stunned etc...
+	ShieldGetting, // Taking the shield from the back
+	ShieldRemoving,// Hiding the shield
 	NoWeapon, // No weapon in hands
 };
 
@@ -326,7 +328,7 @@ protected:
 
 #pragma region Internal
 
-
+	virtual void EquipNextWeapon_Internal();
 	virtual void DeEquip_Internal(int32 InIndex);
 	virtual void Equip_Internal(int32 InIndex);
 	virtual void AddDefaultWeapon_Internal();
@@ -363,10 +365,12 @@ protected:
 
 	UFUNCTION()
 	virtual void PostBlockFinished();
-
-	void EquipNextWeapon_Internal();
+	
 	UFUNCTION()
 	virtual void DeEquipFinished();
+
+	UFUNCTION()
+	virtual void ShieldRaiseFinished();
 #pragma endregion
 
 #pragma region TryProxy
@@ -385,6 +389,15 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
 	virtual void TryDeEquipProxy(int32 InIndex);
+
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
+	virtual void TryRemoveShieldProxy();
+	
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
+	virtual void TryGetShieldProxy();
+
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
+	virtual void TrySwapShieldProxy();
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual void RequestAttackProxy(EWeaponDirection InDirection);
@@ -416,20 +429,53 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void Server_DeEquip(int32 InIndex);
 
+	/**
+	 * @brief Starts an attack in a specified direction on the server.
+	 * 
+	 * @param InDirection The direction of the attack (e.g., forward, backward, left, right).
+	 */
 	UFUNCTION(Server, Reliable)
 	void Server_StartAttack(EWeaponDirection InDirection);
 
+	/**
+	 * @brief Initiates an attack on the server.
+	 */
 	UFUNCTION(Server, Reliable)
 	void Server_Attack();
 
+	/**
+	 * @brief Initiates a block action in a specified direction on the server.
+	 * 
+	 * @param InDirection The direction to block (e.g., forward, backward, left, right).
+	 */
 	UFUNCTION(Server, Reliable)
 	void Server_Block(EWeaponDirection InDirection);
 
+	/**
+	 * @brief Ends the block action on the server.
+	 */
 	UFUNCTION(Server, Reliable)
 	void Server_UnBlock();
 
+	/**
+	 * @brief Changes an item or equipment on the server.
+	 * 
+	 * @param InIndex The index of the item or equipment to change to.
+	 */
 	UFUNCTION(Server, Reliable)
 	void Server_Change(int32 InIndex);
+
+	/**
+	 * @brief Equips a shield on the server.
+	 */
+	UFUNCTION(Server, Reliable)
+	void Server_GetShield();
+
+	/**
+	 * @brief Unequips the shield on the server.
+	 */
+	UFUNCTION(Server, Reliable)
+	void Server_RemoveShield();
 
 #pragma endregion
 
@@ -573,11 +619,18 @@ public:
 
 	// Idle -> Block
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
-	virtual bool CanBlock();
+	virtual bool CanBlock() const;
 
 	// Block -> Idle
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
-	virtual bool CanUnBlock();
+	virtual bool CanUnBlock() const;
+
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
+	virtual bool CanGetShield() const;
+
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
+	virtual bool CanRemoveShield() const;
+	
 #pragma endregion
 
 #pragma region Getters

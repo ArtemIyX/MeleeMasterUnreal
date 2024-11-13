@@ -200,14 +200,20 @@ public:
 	/**
 	 * @brief Data for melee attack curves and timings.
 	 */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Melee")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FMeleeAttackData Attack;
 
 	/**
 	 * @brief Data for melee block curves and timings.
 	 */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Melee")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FMeleeBlockData Block;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float GetTime{0.3f};
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float RemoveTime{0.3f};
 };
 
 /**
