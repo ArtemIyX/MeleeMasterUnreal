@@ -6,6 +6,8 @@
 #include "AbstractWeapon.h"
 #include "MeleeWeapon.generated.h"
 
+struct FMeleeCombinedData;
+class UMeleeWeaponDataAsset;
 /**
  * 
  */
@@ -17,6 +19,28 @@ class MELEEMASTER_API UMeleeWeapon : public UAbstractWeapon
 public:
 	UMeleeWeapon(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+protected:
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_ShieldEquipped)
+	uint8 bShieldEquipped;
+
+
+protected:
+	UFUNCTION()
+	void OnRep_ShieldEquipped();
+
 public:
+	void SetShieldEquipped(bool bInValue);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	bool IsWeaponShieldSupported() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	bool IsShieldEquipped() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	UMeleeWeaponDataAsset* GetMeleeData() const;
+
+	const FMeleeCombinedData& GetCurrentMeleeCombinedData() const;
 	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };

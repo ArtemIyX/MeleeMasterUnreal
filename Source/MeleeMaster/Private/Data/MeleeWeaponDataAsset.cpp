@@ -17,7 +17,7 @@ float FMeleeAttackCurveData::GetDamage() const
 	return BasicDamage;
 }
 
-const FMeleeAttackCurveData& FMeleeAttackData::Get(EWeaponDirection InDir)
+const FMeleeAttackCurveData& FMeleeAttackData::Get(EWeaponDirection InDir) const
 {
 	switch (InDir)
 	{
@@ -34,7 +34,7 @@ const FMeleeAttackCurveData& FMeleeAttackData::Get(EWeaponDirection InDir)
 	//return Forward;
 }
 
-const FMeleeBlockCurveData& FMeleeBlockData::Get(EWeaponDirection InDir)
+const FMeleeBlockCurveData& FMeleeBlockData::Get(EWeaponDirection InDir) const
 {
 	switch (InDir)
 	{
@@ -51,7 +51,8 @@ const FMeleeBlockCurveData& FMeleeBlockData::Get(EWeaponDirection InDir)
 	//return Forward;
 }
 
-UMeleeWeaponDataAsset::UMeleeWeaponDataAsset() : Super(), Attack(), Block()
+UMeleeWeaponDataAsset::UMeleeWeaponDataAsset() : Super()
 {
 	AssetType = FName(TEXT("MeleeWeaponData"));
+	bHasShield = false;
 }

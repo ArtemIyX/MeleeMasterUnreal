@@ -114,6 +114,54 @@ public:
 };
 
 /**
+ * @struct FMeleeShieldAnimData
+ * @brief Struct for managing shield-related animation montages, including equipping, de-equipping, attacking, and blocking.
+ */
+USTRUCT(Blueprintable, BlueprintType)
+struct MELEEMASTER_API FMeleeShieldAnimData
+{
+	GENERATED_BODY()
+
+public:
+	/** 
+	 * @brief Animation montage data for equipping the shield. 
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FAnimMontageFullData Equip;
+
+	/** 
+	 * @brief Animation montage data for de-equipping the shield. 
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FAnimMontageFullData DeEquip;
+
+	/** 
+	 * @brief Animation montage data for obtaining the shield. 
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FAnimMontageFullData Get;
+
+	/** 
+	 * @brief Animation montage data for removing the shield. 
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FAnimMontageFullData Remove;
+
+	/** 
+	 * @brief Animation montage data for shield-based attacks in various directions.
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FMeleeAttackAnimData Attack;
+
+	/** 
+	 * @brief Animation montage data for shield-based blocks in various directions.
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FMeleeBlockAnimData Block;
+};
+
+
+/**
  * @class UMeleeWeaponAnimDataAsset
  * @brief Data asset class for handling melee weapon animation data for attack and block animations.
  * Inherits from UWeaponAnimationDataAsset.
@@ -141,4 +189,12 @@ public:
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Melee")
 	FMeleeBlockAnimData Block;
+	
+	/**
+	 * @brief Animation montage data for shield actions, including equip, de-equip, attack, and block.
+	 * 
+	 * This property is used if the weapon includes a shield, storing the animation montages for shield-related actions.
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Shield", meta=(ShowOnlyInnerProperties))
+	FMeleeShieldAnimData Shield;
 };

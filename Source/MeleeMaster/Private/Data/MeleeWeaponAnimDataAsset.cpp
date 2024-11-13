@@ -38,7 +38,7 @@ const FMeleeBlockAnimMontageData& FMeleeBlockAnimData::Get(EWeaponDirection InDi
 	//return Forward;
 }
 
-UMeleeWeaponAnimDataAsset::UMeleeWeaponAnimDataAsset() : Super()
+UMeleeWeaponAnimDataAsset::UMeleeWeaponAnimDataAsset()
 {
 	AssetType = TEXT("MeleeWeaponAnim");
 }

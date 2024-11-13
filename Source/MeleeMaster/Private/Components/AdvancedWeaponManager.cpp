@@ -374,7 +374,8 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 				           *data->GetClass()->GetFName().ToString());
 				continue;
 			}
-			const FMeleeAttackCurveData& attackData = meleeWeaponData->Attack.Get(CurrentDirection);
+			
+			const FMeleeAttackCurveData& attackData = meleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(CurrentDirection);
 
 			float dmg = attackData.GetDamage() * HitPower;
 			if (bDebugMeleeHits)
@@ -432,7 +433,7 @@ void UAdvancedWeaponManager::PreAttackFinished()
 			return;
 		}
 
-		const FMeleeAttackCurveData& attack = meleeWeaponData->Attack.Get(CurrentDirection);
+		const FMeleeAttackCurveData& attack = meleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(CurrentDirection);
 		float currentTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
 		SetChargeStarted(currentTime);
 		SetChargeFinished(currentTime + attack.CurveTime);
@@ -474,7 +475,7 @@ void UAdvancedWeaponManager::HitFinished()
 			return;
 		}
 
-		const FMeleeAttackCurveData& attack = meleeWeaponData->Attack.Get(CurrentDirection);
+		const FMeleeAttackCurveData& attack = meleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(CurrentDirection);
 		float postAttackTime = attack.PostAttackLen;
 		TDelegate<TDelegate<void(), FNotThreadSafeNotCheckedDelegateUserPolicy>::RetValType(),
 		          FNotThreadSafeNotCheckedDelegateUserPolicy> delegate = FTimerDelegate::CreateUObject(
@@ -537,7 +538,7 @@ void UAdvancedWeaponManager::MeleeHitProcedure()
 			return;
 		}
 
-		const FMeleeAttackCurveData& attackData = meleeWeaponData->Attack.Get(CurrentDirection);
+		const FMeleeAttackCurveData& attackData = meleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(CurrentDirection);
 		if (!attackData.HitPath)
 		{
 			TRACEERROR(LogWeapon, "%s hit path of %s is null",
@@ -628,7 +629,7 @@ void UAdvancedWeaponManager::Server_Attack_Implementation()
 			           *anims->GetClass()->GetFName().ToString());
 			return;
 		}
-		const FMeleeAttackCurveData& attackData = meleeWeaponData->Attack.Get(CurrentDirection);
+		const FMeleeAttackCurveData& attackData = meleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(CurrentDirection);
 
 		if (!attackData.HitPath)
 		{
@@ -696,7 +697,7 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 			return;
 		}
 
-		const FMeleeBlockCurveData& blockData = meleeWeaponData->Block.Get(CurrentDirection);
+		const FMeleeBlockCurveData& blockData = meleeWeapon->GetCurrentMeleeCombinedData().Block.Get(CurrentDirection);
 		float currentTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
 		SetChargeStarted(currentTime);
 		SetChargeFinished(currentTime + blockData.CurveTime);
@@ -736,7 +737,7 @@ void UAdvancedWeaponManager::Server_UnBlock_Implementation()
 			           *data->GetClass()->GetFName().ToString());
 			return;
 		}
-		const FMeleeBlockCurveData& blockData = meleeWeaponData->Block.Get(CurrentDirection);
+		const FMeleeBlockCurveData& blockData = meleeWeapon->GetCurrentMeleeCombinedData().Block.Get(CurrentDirection);
 		auto delegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::PostBlockFinished);
 		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, delegate, blockData.PostBlockLen, false);
 		Multi_CancelCurrentAnim();
@@ -896,7 +897,7 @@ void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection 
 			return;
 		}
 
-		const FMeleeAttackCurveData& attackData = meleeWeaponData->Attack.Get(InDirection);
+		const FMeleeAttackCurveData& attackData = meleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(InDirection);
 
 		auto initialDelegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::PreAttackFinished);
 		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, initialDelegate, attackData.PreAttackLen, false);

@@ -79,7 +79,7 @@ public:
 	float BasicDamage{35.0f};
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	uint8 bDamageForFullPath:1;
+	uint8 bDamageForFullPath : 1;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TSubclassOf<UDamageType> DamageType;
@@ -145,7 +145,7 @@ public:
 	 * @param InDir The direction of the attack.
 	 * @return The corresponding attack curve data.
 	 */
-	const FMeleeAttackCurveData& Get(EWeaponDirection InDir);
+	const FMeleeAttackCurveData& Get(EWeaponDirection InDir) const;
 };
 
 /**
@@ -187,7 +187,27 @@ public:
 	 * @param InDir The direction of the block.
 	 * @return The corresponding block curve data.
 	 */
-	const FMeleeBlockCurveData& Get(EWeaponDirection InDir);
+	const FMeleeBlockCurveData& Get(EWeaponDirection InDir) const;
+};
+
+
+USTRUCT(Blueprintable, BlueprintType)
+struct MELEEMASTER_API FMeleeCombinedData
+{
+	GENERATED_BODY()
+
+public:
+	/**
+	 * @brief Data for melee attack curves and timings.
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Melee")
+	FMeleeAttackData Attack;
+
+	/**
+	 * @brief Data for melee block curves and timings.
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Melee")
+	FMeleeBlockData Block;
 };
 
 /**
@@ -207,15 +227,13 @@ public:
 	UMeleeWeaponDataAsset();
 
 public:
-	/**
-	 * @brief Data for melee attack curves and timings.
-	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Melee")
-	FMeleeAttackData Attack;
+	FMeleeCombinedData Base;
 
-	/**
-	 * @brief Data for melee block curves and timings.
-	 */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Melee")
-	FMeleeBlockData Block;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Shield")
+	uint8 bHasShield : 1;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Shield",
+		meta=(EditCondition="bHasShield", EditConditionHides="bHasShield"))
+	FMeleeCombinedData Shield;
 };
