@@ -250,7 +250,8 @@ float UAdvancedWeaponManager::EvaluateCurrentCurve() const
 			// Eval
 			return GetChargingCurve()->GetFloatValue(curveActualTime);
 		}
-		return MinimalCurveValue;
+		// Eval last curve item
+		return GetChargingCurve()->GetFloatValue(GetChargingCurve()->FloatCurve.GetLastKey().Time);
 	}
 	return 0.0f;
 }
@@ -1344,7 +1345,7 @@ EBlockResult UAdvancedWeaponManager::CanBlockIncomingDamage(UAdvancedWeaponManag
 {
 	if (!IsValid(Causer))
 		return EBlockResult::Invalid;
-	
+
 	UAbstractWeapon* causerWpn = Causer->GetCurrentWeapon();
 
 	// Target weapon must be valid
@@ -1374,11 +1375,43 @@ EBlockResult UAdvancedWeaponManager::CanBlockIncomingDamage(UAdvancedWeaponManag
 	if (!IsBlocking())
 		return EBlockResult::FullDamage;
 
+	const auto attackDir = Causer->GetCurrentDirection();
+	const auto blockDir = GetCurrentDirection();
+
+	auto checkBlockDir = [](EWeaponDirection attack, EWeaponDirection block)
+	{
+		switch (attack)
+		{
+		case EWeaponDirection::Forward:
+		case EWeaponDirection::Backward:
+			// Block direction must match for Forward and Backward attacks
+			return attack == block;
+
+		case EWeaponDirection::Right:
+			// Block direction must be Left for a Right attack
+			return block == EWeaponDirection::Left;
+
+		case EWeaponDirection::Left:
+			// Block direction must be Right for a Left attack
+			return block == EWeaponDirection::Right;
+		default:
+			// If WeaponDir is invalid, return false
+			return false;
+		}
+	};
+
+	// Check direction
+	if (!checkBlockDir(attackDir, blockDir))
+	{
+		return EBlockResult::FullDamage;
+	}
+
 	const float blockValue = EvaluateCurrentCurve();
 	const float attackValue = Causer->GetCurrentHitPower();
 
 	const uint8 blockTier = static_cast<uint8>(meleeWpn->GetData()->WeaponTier);
 	const uint8 attackTier = static_cast<uint8>(meleeCauserWeapon->GetData()->WeaponTier);
+
 
 	/*
 	* We can only parry weapons of the same class or lower.
@@ -1389,13 +1422,13 @@ EBlockResult UAdvancedWeaponManager::CanBlockIncomingDamage(UAdvancedWeaponManag
 	const bool bIsAbleToParry = blockTier >= attackTier;
 
 	// Full attack and full block = Block penetration
-	if (attackValue > 1.0f && blockValue > 1.0f)
+	if (attackValue >= 1.0f && blockValue >= 1.0f)
 	{
 		return EBlockResult::PartialDamage;
 	}
 
 	// Full block, but not full attack = parry/partial damage
-	if (attackValue < 1.0f && blockValue > 1.0f)
+	if (attackValue < 1.0f && blockValue >= 1.0f)
 	{
 		return bIsAbleToParry ? EBlockResult::Parry : EBlockResult::PartialDamage;
 	}

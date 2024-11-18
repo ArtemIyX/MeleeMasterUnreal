@@ -192,7 +192,7 @@ public:
 
 
 USTRUCT(Blueprintable, BlueprintType)
-struct MELEEMASTER_API FMeleeCombinedData
+	struct MELEEMASTER_API FMeleeCombinedData
 {
 	GENERATED_BODY()
 public:
@@ -211,13 +211,13 @@ public:
 	FMeleeBlockData Block;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float GetTime{1.0f};
-	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float RemoveTime{1.0f};
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TMap<EWeaponTier, float> BlockPercent;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Misc")
+	float GetTime{1.0f}; // Only for shield
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Misc")
+	float RemoveTime{1.0f};  // Only for shield
 };
 
 /**
