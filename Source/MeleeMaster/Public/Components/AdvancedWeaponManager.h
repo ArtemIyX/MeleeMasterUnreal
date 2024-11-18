@@ -663,7 +663,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Block")
 	EBlockResult CanBlockIncomingDamage(UAdvancedWeaponManager* Causer);
-	
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Block")
+	float BlockIncomingDamage(float InDmg, UAdvancedWeaponManager* Causer);
 
 	/**
 	 * @brief Retrieves a weapon by its index.

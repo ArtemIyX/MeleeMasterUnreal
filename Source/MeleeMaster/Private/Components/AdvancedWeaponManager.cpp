@@ -1448,6 +1448,46 @@ EBlockResult UAdvancedWeaponManager::CanBlockIncomingDamage(UAdvancedWeaponManag
 	return EBlockResult::FullDamage;
 }
 
+float UAdvancedWeaponManager::BlockIncomingDamage(float InDmg, UAdvancedWeaponManager* Causer)
+{
+	if (!IsValid(Causer))
+		return InDmg;
+
+	UAbstractWeapon* causerWpn = Causer->GetCurrentWeapon();
+
+	// Target weapon must be valid
+	if (!IsValid(causerWpn))
+		return InDmg;
+
+	// Target weapon must be melee class
+	UMeleeWeapon* meleeCauserWeapon = Cast<UMeleeWeapon>(causerWpn);
+	if (!IsValid(meleeCauserWeapon))
+		return InDmg;
+
+	// Causer must be in state 'Attacking'
+	if (Causer->GetFightingStatus() != EWeaponFightingStatus::Attacking)
+		return InDmg;
+
+	// No weapon, no block :D
+	UAbstractWeapon* wpn = GetCurrentWeapon();
+	if (!IsValid(wpn))
+		return InDmg;
+
+	// Only melee weapon is able to block
+	UMeleeWeapon* meleeWpn = Cast<UMeleeWeapon>(wpn);
+	if (!IsValid(meleeWpn))
+		return InDmg;
+
+	auto causerTier = meleeCauserWeapon->GetData()->WeaponTier;
+	const FMeleeCombinedData& meleeData = meleeWpn->GetCurrentMeleeCombinedData();
+	if(meleeData.BlockPercent.Contains(causerTier))
+	{
+		// reducedAmount = Amount * (1.0f - blockPercent);
+		return InDmg * (1.0f - FMath::Clamp(meleeData.BlockPercent[causerTier], 0.0f, 1.0f));
+	}
+	return InDmg;
+}
+
 UAbstractWeapon* UAdvancedWeaponManager::Weapon(int32 InIndex) const
 {
 	if (!WeaponList.IsValidIndex(InIndex))
