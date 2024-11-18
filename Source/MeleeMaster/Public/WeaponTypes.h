@@ -32,9 +32,10 @@ public:
 UENUM(Blueprintable, BlueprintType)
 enum class EWeaponTier : uint8
 {
-	Light,
-	Medium,
-	High
+	None = 0 UMETA(Hidden),
+	Light = 1,
+	Medium = 2,
+	High = 3
 };
 
 UENUM(Blueprintable, BlueprintType)

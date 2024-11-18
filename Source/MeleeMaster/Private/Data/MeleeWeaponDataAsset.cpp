@@ -51,6 +51,15 @@ const FMeleeBlockCurveData& FMeleeBlockData::Get(EWeaponDirection InDir) const
 	//return Forward;
 }
 
+FMeleeCombinedData::FMeleeCombinedData()
+{
+	BlockPercent = {
+		{EWeaponTier::High, 0.2f},
+		{EWeaponTier::Medium, 0.25f},
+		{EWeaponTier::Light, 0.35f},
+	};
+}
+
 UMeleeWeaponDataAsset::UMeleeWeaponDataAsset() : Super()
 {
 	AssetType = FName(TEXT("MeleeWeaponData"));

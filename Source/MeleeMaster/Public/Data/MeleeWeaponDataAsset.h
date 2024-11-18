@@ -195,7 +195,8 @@ USTRUCT(Blueprintable, BlueprintType)
 struct MELEEMASTER_API FMeleeCombinedData
 {
 	GENERATED_BODY()
-
+public:
+	FMeleeCombinedData();
 public:
 	/**
 	 * @brief Data for melee attack curves and timings.
@@ -208,12 +209,15 @@ public:
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FMeleeBlockData Block;
-
+	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float GetTime{1.0f};
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float RemoveTime{1.0f};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	TMap<EWeaponTier, float> BlockPercent;
 };
 
 /**

@@ -49,6 +49,16 @@ enum class EWeaponDirection : uint8
 	Left
 };
 
+UENUM(Blueprintable, BlueprintType)
+enum class EBlockResult : uint8
+{
+	Parry,
+FullShieldBlock,
+	PartialDamage,
+	FullDamage,
+	Invalid
+};
+
 USTRUCT(Blueprintable, BlueprintType)
 struct MELEEMASTER_API FAnimPlayData
 {
@@ -150,9 +160,9 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 HitNum{0};
-
+	
 	UPROPERTY(BlueprintReadOnly)
-	float HitPower{1.0f};
+	float HitPower{1.0f}; // Server only
 #pragma endregion
 
 #pragma region Defaults
@@ -648,6 +658,13 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Charge")
 	FORCEINLINE float GetChargingFinishTime() const { return ChargeWillBeFinished; }
 
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Weapon")
+	bool IsBlocking() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Block")
+	EBlockResult CanBlockIncomingDamage(UAdvancedWeaponManager* Causer);
+	
+
 	/**
 	 * @brief Retrieves a weapon by its index.
 	 * @param InIndex The index of the weapon to retrieve.
@@ -718,6 +735,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Getters")
 	float EvaluateCurrentCurve() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Getters")
+	float GetCurrentHitPower() const;
 #pragma endregion
 
 #pragma region Events

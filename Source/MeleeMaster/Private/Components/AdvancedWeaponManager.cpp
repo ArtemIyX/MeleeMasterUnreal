@@ -255,6 +255,18 @@ float UAdvancedWeaponManager::EvaluateCurrentCurve() const
 	return 0.0f;
 }
 
+float UAdvancedWeaponManager::GetCurrentHitPower() const
+{
+	if (UMeleeWeapon* curWpn = Cast<UMeleeWeapon>(GetCurrentWeapon()))
+	{
+		if (GetFightingStatus() == EWeaponFightingStatus::Attacking)
+		{
+			return HitPower;
+		}
+	}
+	return 0.0f;
+}
+
 int32 UAdvancedWeaponManager::AddNewWeapon(UWeaponDataAsset* InWeaponAsset)
 {
 	if (!IsValid(InWeaponAsset))
@@ -452,6 +464,7 @@ void UAdvancedWeaponManager::PreAttackFinished()
 
 void UAdvancedWeaponManager::HitFinished()
 {
+	HitPower = 0.0f;
 	GetWorld()->GetTimerManager().ClearTimer(FightTimerHandle);
 	GetWorld()->GetTimerManager().ClearTimer(HittingTimerHandle);
 
@@ -655,9 +668,11 @@ void UAdvancedWeaponManager::Server_Attack_Implementation()
 		auto hittingDelegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::MeleeHitProcedure);
 		GetWorld()->GetTimerManager().SetTimer(HittingTimerHandle, hittingDelegate, frequency, true);
 
-		const FMeleeAttackAnimData& attackAnimData = meleeWeapon->IsShieldEquipped() ? meleeAnims->Shield.Attack : meleeAnims->Attack;
-		const FMeleeAttackAnimMontageData& attackAnim =attackAnimData.Get(CurrentDirection);
-		
+		const FMeleeAttackAnimData& attackAnimData = meleeWeapon->IsShieldEquipped()
+			                                             ? meleeAnims->Shield.Attack
+			                                             : meleeAnims->Attack;
+		const FMeleeAttackAnimMontageData& attackAnim = attackAnimData.Get(CurrentDirection);
+
 		Multi_PlayAnim(meleeWeapon, attackAnim, attackData.HittingTime, true,
 		               attackAnim.AttackSection);
 	}
@@ -841,7 +856,7 @@ void UAdvancedWeaponManager::Server_RemoveShield_Implementation()
 		if (!IsValid(meleeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to remove shield",
-					   *data->GetClass()->GetFName().ToString());
+			           *data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -849,19 +864,20 @@ void UAdvancedWeaponManager::Server_RemoveShield_Implementation()
 		if (!IsValid(meleeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) remove shield",
-					   *anims->GetClass()->GetFName().ToString());
+			           *anims->GetClass()->GetFName().ToString());
 			return;
 		}
 		meleeWeapon->SetShieldEquipped(false);
 		auto delegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::ShieldRemoveFinished);
 
-		GetWorld()->GetTimerManager().SetTimer(EquippingTimerHandle, delegate, meleeWeaponData->Shield.RemoveTime, false);
+		GetWorld()->GetTimerManager().SetTimer(EquippingTimerHandle, delegate, meleeWeaponData->Shield.RemoveTime,
+		                                       false);
 		Multi_PlayAnim(meleeWeapon, meleeAnims->Shield.Remove, meleeWeaponData->Shield.RemoveTime);
 	}
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to remove shield",
-				   *weapon->GetClass()->GetFName().ToString());
+		           *weapon->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -1049,7 +1065,9 @@ void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection 
 		auto initialDelegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::PreAttackFinished);
 		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, initialDelegate, attackData.PreAttackLen, false);
 
-		const FMeleeAttackAnimData& attackAnimData = meleeWeapon->IsShieldEquipped() ? meleeAnims->Shield.Attack : meleeAnims->Attack;
+		const FMeleeAttackAnimData& attackAnimData = meleeWeapon->IsShieldEquipped()
+			                                             ? meleeAnims->Shield.Attack
+			                                             : meleeAnims->Attack;
 		const FMeleeAttackAnimMontageData& attackAnim = attackAnimData.Get(InDirection);
 		FAnimMontageFullData montageData = attackAnim;
 		Multi_PlayAnim(weapon, montageData, attackData.PreAttackLen);
@@ -1314,6 +1332,87 @@ bool UAdvancedWeaponManager::RemoveWeapon(int32 InIndex)
 	}
 	// TODO: Remove
 	return true;
+}
+
+bool UAdvancedWeaponManager::IsBlocking() const
+{
+	return GetFightingStatus() ==
+		EWeaponFightingStatus::BlockCharging;
+}
+
+EBlockResult UAdvancedWeaponManager::CanBlockIncomingDamage(UAdvancedWeaponManager* Causer)
+{
+	if (!IsValid(Causer))
+		return EBlockResult::Invalid;
+	
+	UAbstractWeapon* causerWpn = Causer->GetCurrentWeapon();
+
+	// Target weapon must be valid
+	if (!IsValid(causerWpn))
+		return EBlockResult::Invalid;
+
+	// Target weapon must be melee class
+	UMeleeWeapon* meleeCauserWeapon = Cast<UMeleeWeapon>(causerWpn);
+	if (!IsValid(meleeCauserWeapon))
+		return EBlockResult::Invalid;
+
+	// Causer must be in state 'Attacking'
+	if (Causer->GetFightingStatus() != EWeaponFightingStatus::Attacking)
+		return EBlockResult::Invalid;
+
+	// No weapon, no block :D
+	UAbstractWeapon* wpn = GetCurrentWeapon();
+	if (!IsValid(wpn))
+		return EBlockResult::FullDamage;
+
+	// Only melee weapon is able to block
+	UMeleeWeapon* meleeWpn = Cast<UMeleeWeapon>(wpn);
+	if (!IsValid(meleeWpn))
+		return EBlockResult::FullDamage;
+
+	// No block, no reduction :D
+	if (!IsBlocking())
+		return EBlockResult::FullDamage;
+
+	const float blockValue = EvaluateCurrentCurve();
+	const float attackValue = Causer->GetCurrentHitPower();
+
+	const uint8 blockTier = static_cast<uint8>(meleeWpn->GetData()->WeaponTier);
+	const uint8 attackTier = static_cast<uint8>(meleeCauserWeapon->GetData()->WeaponTier);
+
+	/*
+	* We can only parry weapons of the same class or lower.
+	* So 'High' can parry all
+	* 'Medium' can only parry itself and 'Light'
+	* 'Light' only itself
+	 */
+	const bool bIsAbleToParry = blockTier >= attackTier;
+
+	// Full attack and full block = Block penetration
+	if (attackValue > 1.0f && blockValue > 1.0f)
+	{
+		return EBlockResult::PartialDamage;
+	}
+
+	// Full block, but not full attack = parry/partial damage
+	if (attackValue < 1.0f && blockValue > 1.0f)
+	{
+		return bIsAbleToParry ? EBlockResult::Parry : EBlockResult::PartialDamage;
+	}
+
+	// The attack is weaker than the block
+	if (attackValue < blockValue)
+	{
+		return bIsAbleToParry ? EBlockResult::Parry : EBlockResult::PartialDamage;
+	}
+
+	// The attack is stronger than the block, so it breaks through the block.
+	if (attackValue > blockValue)
+	{
+		return EBlockResult::PartialDamage;
+	}
+
+	return EBlockResult::FullDamage;
 }
 
 UAbstractWeapon* UAdvancedWeaponManager::Weapon(int32 InIndex) const
