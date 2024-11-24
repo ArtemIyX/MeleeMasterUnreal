@@ -35,6 +35,8 @@ enum class EWeaponFightingStatus : uint8
 	PostBlock, // Cooldown after blocked
 	PostAttack, // Cooldown after attacked
 	HighStunned, // Faced with a maximally charged enemy attack
+	BlockStunned, // Blocked, but partially. That's why the block is down
+	AttackStunned, // Hit but was blocked, temporarily stunned
 	SuccessfullyPaired, // Successfully sparred and ready to counter-attack
 	ParryStunned, // Was sparred, causing him to be slowed and stunned
 	Busy, // Jumping, Dashing, Stunned etc..
@@ -176,6 +178,8 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category="AdvancedWeaponManager|Weapons")
 	TArray<TSoftObjectPtr<UWeaponDataAsset>> DefaultWeapons;
+
+
 #pragma endregion
 
 protected:
@@ -290,6 +294,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 
+
 #pragma endregion
 
 #pragma region OnRep
@@ -384,6 +389,12 @@ protected:
 
 	UFUNCTION()
 	virtual void ShieldRemoveFinished();
+
+	UFUNCTION()
+	virtual void BlockStunFinished();
+
+	UFUNCTION()
+	virtual void AttackStunFinished();
 #pragma endregion
 
 #pragma region TryProxy
@@ -565,6 +576,13 @@ public:
 
 #pragma region Exposed
 
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
+	virtual void NotifyEnemyBlockRuined();
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
+	virtual void ApplyBlockStun();
+	
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
 	virtual void ClearBeforeDestroy();
 
@@ -666,6 +684,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Block")
 	float BlockIncomingDamage(float InDmg, UAdvancedWeaponManager* Causer);
+
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Block")
+	bool CanBlockSide(const FVector& DamageSourceLocation);
 
 	/**
 	 * @brief Retrieves a weapon by its index.

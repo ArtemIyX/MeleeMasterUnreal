@@ -3,6 +3,7 @@
 
 #include "Components/AdvancedWeaponManager.h"
 
+#include "MathUtil.h"
 #include "MeleeMaster.h"
 #include "Actors/WeaponVisual.h"
 #include "Data/MeleeWeaponAnimDataAsset.h"
@@ -22,6 +23,8 @@
 #include "Objects/AbstractWeapon.h"
 #include "Objects/MeleeWeapon.h"
 #include "Subsystems/LoggerLib.h"
+
+#include "Math/UnrealMathUtility.h"
 
 
 FAnimPlayData::FAnimPlayData(): bUseSection(false)
@@ -840,6 +843,18 @@ void UAdvancedWeaponManager::ShieldRemoveFinished()
 	SetFightingStatus(EWeaponFightingStatus::Idle);
 }
 
+void UAdvancedWeaponManager::BlockStunFinished()
+{
+	SetManagingStatus(EWeaponManagingStatus::Idle);
+	SetFightingStatus(EWeaponFightingStatus::Idle);
+}
+
+void UAdvancedWeaponManager::AttackStunFinished()
+{
+	SetManagingStatus(EWeaponManagingStatus::Idle);
+	SetFightingStatus(EWeaponFightingStatus::Idle);
+}
+
 void UAdvancedWeaponManager::Server_RemoveShield_Implementation()
 {
 	if (!CanRemoveShield())
@@ -1061,7 +1076,8 @@ void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection 
 			return;
 		}
 
-		const FMeleeAttackCurveData& attackData = meleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(InDirection);
+		const FMeleeCombinedData& currentData = meleeWeapon->GetCurrentMeleeCombinedData();
+		const FMeleeAttackCurveData& attackData = currentData.Attack.Get(InDirection);
 
 		auto initialDelegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::PreAttackFinished);
 		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, initialDelegate, attackData.PreAttackLen, false);
@@ -1290,6 +1306,92 @@ void UAdvancedWeaponManager::AttachHand(const FString& WeaponGuid, int32 InVisua
 	}
 }
 
+void UAdvancedWeaponManager::NotifyEnemyBlockRuined()
+{
+	SetManagingStatus(EWeaponManagingStatus::Busy);
+	SetFightingStatus(EWeaponFightingStatus::AttackStunned);
+	FTimerManager& timerManager = GetWorld()->GetTimerManager();
+	timerManager.ClearTimer(HittingTimerHandle);
+	timerManager.ClearTimer(FightTimerHandle);
+	timerManager.ClearTimer(EquippingTimerHandle);
+
+	UAbstractWeapon* weapon = GetCurrentWeapon();
+	UWeaponDataAsset* data = weapon->GetData();
+	//UWeaponAnimationDataAsset* anims = data->Animations;
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
+	{
+		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s)to apply attack stun",
+			           *data->GetClass()->GetFName().ToString());
+			return;
+		}
+		const float attackStunLen = meleeWeapon->GetCurrentMeleeCombinedData().Attack.AttackStunLen;
+		timerManager.SetTimer(FightTimerHandle,
+		                      FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::AttackStunFinished),
+		                      attackStunLen, false);
+		Multi_CancelCurrentAnim();
+
+		//TODO: Visual effects
+	}
+	else
+	{
+		TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to apply attack stun",
+		           *data->GetClass()->GetFName().ToString());
+		return;
+	}
+}
+
+void UAdvancedWeaponManager::ApplyBlockStun()
+{
+	SetManagingStatus(EWeaponManagingStatus::Busy);
+	SetFightingStatus(EWeaponFightingStatus::BlockStunned);
+
+	UAbstractWeapon* weapon = GetCurrentWeapon();
+	UWeaponDataAsset* data = weapon->GetData();
+	UWeaponAnimationDataAsset* anims = data->Animations;
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
+	{
+		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s)to apply block stun",
+			           *data->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(anims);
+		if (!IsValid(meleeAnims))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s)to apply block stun",
+			           *data->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		const FMeleeCombinedData& currentData = meleeWeapon->GetCurrentMeleeCombinedData();
+		float stunLen = currentData.Block.BlockStunLen;
+
+		const FMeleeBlockRuinAnimData& blockRuinAnimData = meleeWeapon->IsShieldEquipped()
+			                                                   ? meleeAnims->Shield.BlockRuin
+			                                                   : meleeAnims->BlockRuin;
+		const FAnimMontageFullData& dirBlockData = blockRuinAnimData.Get(CurrentDirection);
+		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle,
+		                                       FTimerDelegate::CreateUObject(
+			                                       this, &UAdvancedWeaponManager::BlockStunFinished),
+		                                       stunLen, false);
+
+		Multi_PlayAnim(meleeWeapon, dirBlockData, stunLen);
+		//TODO: Visual effects
+	}
+	else
+	{
+		TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to apply block stun",
+		           *data->GetClass()->GetFName().ToString());
+		return;
+	}
+}
+
 void UAdvancedWeaponManager::ClearBeforeDestroy()
 {
 	StopWork();
@@ -1478,14 +1580,49 @@ float UAdvancedWeaponManager::BlockIncomingDamage(float InDmg, UAdvancedWeaponMa
 	if (!IsValid(meleeWpn))
 		return InDmg;
 
-	auto causerTier = meleeCauserWeapon->GetData()->WeaponTier;
+	const EWeaponTier causerTier = meleeCauserWeapon->GetData()->WeaponTier;
 	const FMeleeCombinedData& meleeData = meleeWpn->GetCurrentMeleeCombinedData();
-	if(meleeData.BlockPercent.Contains(causerTier))
+	if (meleeData.BlockPercent.Contains(causerTier))
 	{
 		// reducedAmount = Amount * (1.0f - blockPercent);
 		return InDmg * (1.0f - FMath::Clamp(meleeData.BlockPercent[causerTier], 0.0f, 1.0f));
 	}
 	return InDmg;
+}
+
+bool UAdvancedWeaponManager::CanBlockSide(const FVector& DamageSourceLocation)
+{
+	// No weapon, no block :D
+	UAbstractWeapon* wpn = GetCurrentWeapon();
+	if (!IsValid(wpn))
+		return false;
+
+	// Only melee weapon is able to block
+	UMeleeWeapon* meleeWpn = Cast<UMeleeWeapon>(wpn);
+	if (!IsValid(meleeWpn))
+		return false;
+
+	// Direction the actor is facing (forward vector)
+	FVector actorForward = GetOwner()->GetActorForwardVector();
+	actorForward.Z = 0.0f; // Ignore vertical component (Z-axis)
+	actorForward.Normalize();
+
+	// Direction to the damage source
+	FVector toDamageSource = DamageSourceLocation - GetOwner()->GetActorLocation();
+	toDamageSource.Z = 0.0f; // Ignore vertical component (Z-axis)
+	toDamageSource.Normalize();
+
+	// Angle between the two vectors
+	const float dotProduct = FVector::DotProduct(actorForward, toDamageSource);
+
+	//float AngleDegrees = FMath::Acos(DotProduct) * (180.0f / PI);
+	const float angleDegrees = FMath::Acos(dotProduct) * (FMathd::RadToDeg);
+
+	const float blockAngle = meleeWpn->GetCurrentMeleeCombinedData().BlockAngle;
+
+	TRACE(LogWeapon, "Block angle: %.1f", angleDegrees);
+
+	return angleDegrees <= blockAngle / 2.0f;
 }
 
 UAbstractWeapon* UAdvancedWeaponManager::Weapon(int32 InIndex) const

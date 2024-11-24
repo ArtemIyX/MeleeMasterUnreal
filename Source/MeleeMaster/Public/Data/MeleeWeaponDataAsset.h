@@ -139,6 +139,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FMeleeAttackCurveData Left;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float AttackStunLen{0.3f};
 
 	/**
 	 * @brief Returns the attack curve data for a given direction.
@@ -182,6 +184,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FMeleeBlockCurveData Left;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float BlockStunLen{0.3f};
+
 	/**
 	 * @brief Returns the block curve data for a given direction.
 	 * @param InDir The direction of the block.
@@ -192,11 +197,13 @@ public:
 
 
 USTRUCT(Blueprintable, BlueprintType)
-	struct MELEEMASTER_API FMeleeCombinedData
+struct MELEEMASTER_API FMeleeCombinedData
 {
 	GENERATED_BODY()
+
 public:
 	FMeleeCombinedData();
+
 public:
 	/**
 	 * @brief Data for melee attack curves and timings.
@@ -209,15 +216,18 @@ public:
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FMeleeBlockData Block;
-	
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TMap<EWeaponTier, float> BlockPercent;
-	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Misc")
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float BlockAngle {130.0f};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float GetTime{1.0f}; // Only for shield
-	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Misc")
-	float RemoveTime{1.0f};  // Only for shield
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float RemoveTime{1.0f}; // Only for shield
 };
 
 /**

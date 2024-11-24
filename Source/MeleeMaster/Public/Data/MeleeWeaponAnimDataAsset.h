@@ -113,6 +113,29 @@ public:
 	const FMeleeBlockAnimMontageData& Get(EWeaponDirection InDir) const;
 };
 
+USTRUCT(Blueprintable, BlueprintType)
+struct MELEEMASTER_API FMeleeBlockRuinAnimData
+{
+	GENERATED_BODY()
+public:
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FAnimMontageFullData Forward;
+
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FAnimMontageFullData Backward;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FAnimMontageFullData Right;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FAnimMontageFullData Left;
+
+	const FAnimMontageFullData& Get(EWeaponDirection InDir) const;
+};
+
+
 /**
  * @struct FMeleeShieldAnimData
  * @brief Struct for managing shield-related animation montages, including equipping, de-equipping, attacking, and blocking.
@@ -160,6 +183,9 @@ public:
 	FMeleeBlockAnimData Block;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FMeleeBlockRuinAnimData BlockRuin;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FSequenceData Idle;
 	/**
 	 * @brief Aim offset blend space used for weapon aiming.
@@ -167,6 +193,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	UAimOffsetBlendSpace1D* AimOffset;
 };
+
 
 
 /**
@@ -197,6 +224,9 @@ public:
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Melee")
 	FMeleeBlockAnimData Block;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Melee")
+	FMeleeBlockRuinAnimData BlockRuin;
 	
 	/**
 	 * @brief Animation montage data for shield actions, including equip, de-equip, attack, and block.

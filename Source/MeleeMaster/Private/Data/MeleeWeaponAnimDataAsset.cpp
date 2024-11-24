@@ -38,6 +38,22 @@ const FMeleeBlockAnimMontageData& FMeleeBlockAnimData::Get(EWeaponDirection InDi
 	//return Forward;
 }
 
+const FAnimMontageFullData& FMeleeBlockRuinAnimData::Get(EWeaponDirection InDir) const
+{
+	switch (InDir)
+	{
+	case EWeaponDirection::Forward:
+		return Forward;
+	case EWeaponDirection::Backward:
+		return Backward;
+	case EWeaponDirection::Right:
+		return Right;
+	case EWeaponDirection::Left:
+		return Left;
+	default: return Forward;
+	}
+}
+
 UMeleeWeaponAnimDataAsset::UMeleeWeaponAnimDataAsset(): Shield()
 {
 	AssetType = TEXT("MeleeWeaponAnim");
