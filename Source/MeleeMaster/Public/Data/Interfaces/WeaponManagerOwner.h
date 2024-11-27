@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "WeaponTypes.h"
 #include "UObject/Interface.h"
 #include "WeaponManagerOwner.generated.h"
 
@@ -22,7 +23,11 @@ class MELEEMASTER_API IWeaponManagerOwner
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="WeaponManagerOwner")
 	USkeletalMeshComponent* GetAttachComponent() const;
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="WeaponManagerOwner")
+	EDamageReturn ApplyDamage(AActor* Causer, float Amount,
+	                          const FHitResult& HitResult,
+	                          TSubclassOf<UDamageType> DamageType);
 };

@@ -1501,11 +1501,16 @@ EBlockResult UAdvancedWeaponManager::CanBlockIncomingDamage(UAdvancedWeaponManag
 			return false;
 		}
 	};
+	const bool bShield = meleeWpn->IsShieldEquipped();
 
-	// Check direction
-	if (!checkBlockDir(attackDir, blockDir))
+	// Only without shield we should check direction
+	if (!bShield)
 	{
-		return EBlockResult::FullDamage;
+		// Check direction
+		if (!checkBlockDir(attackDir, blockDir))
+		{
+			return EBlockResult::FullDamage;
+		}
 	}
 
 	const float blockValue = EvaluateCurrentCurve();
@@ -1513,7 +1518,6 @@ EBlockResult UAdvancedWeaponManager::CanBlockIncomingDamage(UAdvancedWeaponManag
 
 	const uint8 blockTier = static_cast<uint8>(meleeWpn->GetData()->WeaponTier);
 	const uint8 attackTier = static_cast<uint8>(meleeCauserWeapon->GetData()->WeaponTier);
-
 
 	/*
 	* We can only parry weapons of the same class or lower.
@@ -1526,18 +1530,30 @@ EBlockResult UAdvancedWeaponManager::CanBlockIncomingDamage(UAdvancedWeaponManag
 	// Full attack and full block = Block penetration
 	if (attackValue >= 1.0f && blockValue >= 1.0f)
 	{
+		if (bShield)
+		{
+			return EBlockResult::FullShieldBlock;
+		}
 		return EBlockResult::PartialDamage;
 	}
 
 	// Full block, but not full attack = parry/partial damage
 	if (attackValue < 1.0f && blockValue >= 1.0f)
 	{
+		if (bShield)
+		{
+			return EBlockResult::FullShieldBlock;
+		}
 		return bIsAbleToParry ? EBlockResult::Parry : EBlockResult::PartialDamage;
 	}
 
 	// The attack is weaker than the block
 	if (attackValue < blockValue)
 	{
+		if (bShield)
+		{
+			return EBlockResult::FullShieldBlock;
+		}
 		return bIsAbleToParry ? EBlockResult::Parry : EBlockResult::PartialDamage;
 	}
 
@@ -1846,6 +1862,72 @@ bool UAdvancedWeaponManager::CanRemoveShield() const
 	const bool bIdle = status == EWeaponManagingStatus::Idle;
 
 	return bIdle;
+}
+
+EDamageReturn UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float Amount,
+                                                          const FHitResult& HitResult,
+                                                          TSubclassOf<UDamageType> DamageType)
+{
+	UAdvancedWeaponManager* causerWpnManager = Causer->FindComponentByClass<UAdvancedWeaponManager>();
+	EBlockResult blockResult = this->CanBlockIncomingDamage(causerWpnManager);
+
+	if (blockResult == EBlockResult::Invalid)
+	{
+		TRACEERROR(LogWeapon, "Failed to block incoming damage (%s)", *UEnum::GetValueAsString(blockResult))
+		return EDamageReturn::Failed;
+	}
+
+	// So we are ready to parry or block something
+	if (blockResult != EBlockResult::FullDamage)
+	{
+		// Wide angle of attack
+		if (!this->CanBlockSide(HitResult.TraceStart))
+		{
+			blockResult = EBlockResult::FullDamage;
+		}
+	}
+
+	float realDmg = Amount;
+	EDamageReturn dmgReturnResult = EDamageReturn::Failed;
+	// Apply damage
+	if (blockResult == EBlockResult::FullDamage ||
+		blockResult == EBlockResult::PartialDamage)
+	{
+		// Block some of the damage
+		if (blockResult == EBlockResult::PartialDamage)
+		{
+			realDmg = this->BlockIncomingDamage(Amount, causerWpnManager);
+			TRACE(LogWeapon, "%s Blocked some damage from %s. Incoming: %.1f. After block: %.1f",
+			      *this->GetFName().ToString(),
+			      *Causer->GetFName().ToString(),
+			      Amount,
+			      realDmg);
+		}
+
+		if (GetOwner()->Implements<UWeaponManagerOwner>())
+		{
+			dmgReturnResult = IWeaponManagerOwner::Execute_ApplyDamage(GetOwner(), Causer, realDmg, HitResult,
+			                                                           DamageType);
+		}
+
+		if (blockResult == EBlockResult::PartialDamage)
+		{
+			this->ApplyBlockStun();
+			causerWpnManager->NotifyEnemyBlockRuined();
+		}
+	}
+	else if (blockResult == EBlockResult::FullShieldBlock)
+	{
+		//this->ApplyBlockStun();
+		causerWpnManager->NotifyEnemyBlockRuined();
+	}
+	else if (blockResult == EBlockResult::Parry)
+	{
+		// TODO: Notify causer parry stun
+		// TODO: Start attack
+	}
+
+	return dmgReturnResult;
 }
 
 

@@ -8,6 +8,7 @@
 #include "AdvancedWeaponManager.generated.h"
 
 
+enum class EDamageReturn : uint8;
 class AWeaponVisual;
 class UAbstractWeapon;
 class UWeaponDataAsset;
@@ -133,6 +134,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FWeaponManagerChargingDelegate,
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAdvancedWeaponManagerFightingStatusDelegate,
                                              EWeaponFightingStatus, Previous, EWeaponFightingStatus, Current);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAdvancedWeaponManagerDamageDelegate,
+		AActor*, Causer,
+		float, Dmg);
 /**
  * @class UAdvancedWeaponManager
  * @brief Manages advanced weapon systems for characters.
@@ -662,6 +666,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual bool CanRemoveShield() const;
 
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
+	virtual EDamageReturn ProcessWeaponDamage(AActor* Causer, float Amount,
+																	  const FHitResult& HitResult,
+																	  TSubclassOf<UDamageType> DamageType);
+
 #pragma endregion
 
 #pragma region Getters
@@ -761,6 +770,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Getters")
 	float GetCurrentHitPower() const;
+
 #pragma endregion
 
 #pragma region Events
@@ -790,5 +800,8 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FAdvancedWeaponManagerFightingStatusDelegate OnClientFightingStatusChanged;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FAdvancedWeaponManagerDamageDelegate OnDamageRequested;
 #pragma endregion
 };
