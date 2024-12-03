@@ -150,6 +150,25 @@ public:
 	const FMeleeAttackCurveData& Get(EWeaponDirection InDir) const;
 };
 
+USTRUCT(Blueprintable, BlueprintType)
+struct MELEEMASTER_API FDirectionCameraShakes
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	TSubclassOf<UCameraShakeBase> Forward;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	TSubclassOf<UCameraShakeBase> Backward;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	TSubclassOf<UCameraShakeBase> Right;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	TSubclassOf<UCameraShakeBase> Left;
+};
+
 /**
  * @struct FMeleeBlockData
  * @brief Struct containing directional block curve data for different melee block directions.
@@ -158,6 +177,8 @@ USTRUCT(Blueprintable, BlueprintType)
 struct MELEEMASTER_API FMeleeBlockData
 {
 	GENERATED_BODY()
+
+	FMeleeBlockData();
 
 public:
 	/**
@@ -186,6 +207,9 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float BlockStunLen{0.3f};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FDirectionCameraShakes BlockRuinShakes;
 
 	/**
 	 * @brief Returns the block curve data for a given direction.
@@ -221,7 +245,7 @@ public:
 	TMap<EWeaponTier, float> BlockPercent;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float BlockAngle {130.0f};
+	float BlockAngle{130.0f};
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float GetTime{1.0f}; // Only for shield

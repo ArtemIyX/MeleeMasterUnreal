@@ -34,6 +34,11 @@ const FMeleeAttackCurveData& FMeleeAttackData::Get(EWeaponDirection InDir) const
 	//return Forward;
 }
 
+FMeleeBlockData::FMeleeBlockData()
+{
+
+}
+
 const FMeleeBlockCurveData& FMeleeBlockData::Get(EWeaponDirection InDir) const
 {
 	switch (InDir)

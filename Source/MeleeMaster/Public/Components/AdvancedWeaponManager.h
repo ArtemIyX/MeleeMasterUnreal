@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Data/MeleeWeaponDataAsset.h"
 #include "Data/WeaponAnimationDataAsset.h"
 #include "AdvancedWeaponManager.generated.h"
 
@@ -137,6 +138,13 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAdvancedWeaponManagerFightingStatu
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAdvancedWeaponManagerDamageDelegate,
 		AActor*, Causer,
 		float, Dmg);
+
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWeaponManagerDirectionDelegate, EWeaponDirection, Direction);
+
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWeaponManagerBlockRuinDelegate, EWeaponDirection, Direction,
+	const FMeleeBlockData&, BlockData);
 /**
  * @class UAdvancedWeaponManager
  * @brief Manages advanced weapon systems for characters.
@@ -545,7 +553,9 @@ protected:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multi_DropWeaponVisual(const FString& InWeaponGuid);
-
+	
+	UFUNCTION(Client, Unreliable)
+	void Client_BlockRuinStun(EWeaponDirection InDirection, const FMeleeBlockData& InBlockData);
 #pragma endregion
 
 #pragma region Attach
@@ -582,7 +592,7 @@ public:
 
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
-	virtual void NotifyEnemyBlockRuined();
+	virtual void NotifyEnemyBlocked();
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
 	virtual void ApplyBlockStun();
@@ -803,5 +813,8 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FAdvancedWeaponManagerDamageDelegate OnDamageRequested;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")	
+	FWeaponManagerBlockRuinDelegate OnClientBlockRuined;
 #pragma endregion
 };

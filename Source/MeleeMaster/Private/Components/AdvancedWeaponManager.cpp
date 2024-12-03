@@ -1205,6 +1205,11 @@ void UAdvancedWeaponManager::Multi_DropWeaponVisual_Implementation(const FString
 }
 
 
+void UAdvancedWeaponManager::Client_BlockRuinStun_Implementation(EWeaponDirection InDirection,  const FMeleeBlockData& InBlockData)
+{
+	OnClientBlockRuined.Broadcast(InDirection, InBlockData);
+}
+
 void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InVisual)
 {
 	// Skip server, it is already attached to actor
@@ -1306,7 +1311,7 @@ void UAdvancedWeaponManager::AttachHand(const FString& WeaponGuid, int32 InVisua
 	}
 }
 
-void UAdvancedWeaponManager::NotifyEnemyBlockRuined()
+void UAdvancedWeaponManager::NotifyEnemyBlocked()
 {
 	SetManagingStatus(EWeaponManagingStatus::Busy);
 	SetFightingStatus(EWeaponFightingStatus::AttackStunned);
@@ -1382,6 +1387,7 @@ void UAdvancedWeaponManager::ApplyBlockStun()
 		                                       stunLen, false);
 
 		Multi_PlayAnim(meleeWeapon, dirBlockData, stunLen);
+		Client_BlockRuinStun(CurrentDirection, currentData.Block);
 		//TODO: Visual effects
 	}
 	else
@@ -1433,7 +1439,7 @@ bool UAdvancedWeaponManager::RemoveWeapon(int32 InIndex)
 	{
 		return false;
 	}
-	// TODO: Remove
+	// TODO: Remove weapon imlementation
 	return true;
 }
 
@@ -1913,13 +1919,12 @@ EDamageReturn UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float 
 		if (blockResult == EBlockResult::PartialDamage)
 		{
 			this->ApplyBlockStun();
-			causerWpnManager->NotifyEnemyBlockRuined();
+			causerWpnManager->NotifyEnemyBlocked();
 		}
 	}
 	else if (blockResult == EBlockResult::FullShieldBlock)
 	{
-		//this->ApplyBlockStun();
-		causerWpnManager->NotifyEnemyBlockRuined();
+		causerWpnManager->NotifyEnemyBlocked();
 	}
 	else if (blockResult == EBlockResult::Parry)
 	{
