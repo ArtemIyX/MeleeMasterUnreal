@@ -820,8 +820,8 @@ void UAdvancedWeaponManager::Server_GetShield_Implementation()
 		meleeWeapon->SetShieldEquipped(true);
 		auto delegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::ShieldRaiseFinished);
 
-		GetWorld()->GetTimerManager().SetTimer(EquippingTimerHandle, delegate, meleeWeaponData->Shield.GetTime, false);
-		Multi_PlayAnim(meleeWeapon, meleeAnims->Shield.Get, meleeWeaponData->Shield.GetTime);
+		GetWorld()->GetTimerManager().SetTimer(EquippingTimerHandle, delegate, meleeWeaponData->ShieldGetTime, false);
+		Multi_PlayAnim(meleeWeapon, meleeAnims->Shield.Get, meleeWeaponData->ShieldGetTime);
 	}
 	else
 	{
@@ -892,9 +892,9 @@ void UAdvancedWeaponManager::Server_RemoveShield_Implementation()
 		meleeWeapon->SetShieldEquipped(false);
 		auto delegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::ShieldRemoveFinished);
 
-		GetWorld()->GetTimerManager().SetTimer(EquippingTimerHandle, delegate, meleeWeaponData->Shield.RemoveTime,
+		GetWorld()->GetTimerManager().SetTimer(EquippingTimerHandle, delegate, meleeWeaponData->ShieldRemoveTime,
 		                                       false);
-		Multi_PlayAnim(meleeWeapon, meleeAnims->Shield.Remove, meleeWeaponData->Shield.RemoveTime);
+		Multi_PlayAnim(meleeWeapon, meleeAnims->Shield.Remove, meleeWeaponData->ShieldRemoveTime);
 	}
 	else
 	{

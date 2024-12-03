@@ -176,6 +176,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FMeleeAttackAnimData Attack;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FMeleeAttackAnimData Parry;
+
 	/** 
 	 * @brief Animation montage data for shield-based blocks in various directions.
 	 */
@@ -219,6 +222,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Melee")
 	FMeleeAttackAnimData Attack;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Melee")
+	FMeleeAttackAnimData Parry;
 	/**
 	 * @brief Animation montage data for melee blocks in all directions.
 	 */

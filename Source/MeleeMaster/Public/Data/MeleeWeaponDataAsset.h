@@ -19,7 +19,7 @@ struct MELEEMASTER_API FDirectionCameraShakes
 public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TSubclassOf<UCameraShakeBase> Forward;
-	
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TSubclassOf<UCameraShakeBase> Backward;
 
@@ -162,7 +162,7 @@ public:
 	float AttackStunLen{0.3f};
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FDirectionCameraShakes ParryStunCameraShakes;
+	FDirectionCameraShakes AttackStunCameraShakes;
 
 	/**
 	 * @brief Returns the attack curve data for a given direction.
@@ -239,6 +239,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FMeleeAttackData Attack;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FMeleeAttackData Parry;
+
 	/**
 	 * @brief Data for melee block curves and timings.
 	 */
@@ -250,12 +253,6 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float BlockAngle{130.0f};
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float GetTime{1.0f}; // Only for shield
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float RemoveTime{1.0f}; // Only for shield
 };
 
 /**
@@ -280,6 +277,12 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Shield")
 	uint8 bHasShield : 1;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Shield")
+	float ShieldGetTime{1.0f};
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Shield")
+	float ShieldRemoveTime{1.0f};
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Shield",
 		meta=(EditCondition="bHasShield", EditConditionHides="bHasShield"))
