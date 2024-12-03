@@ -688,6 +688,62 @@ void UAdvancedWeaponManager::Server_Attack_Implementation()
 	}
 }
 
+void UAdvancedWeaponManager::StartParry(EWeaponDirection InDirection)
+{
+	FTimerManager& timerManager = GetWorld()->GetTimerManager();
+	timerManager.ClearTimer(HittingTimerHandle);
+	timerManager.ClearTimer(FightTimerHandle);
+	timerManager.ClearTimer(EquippingTimerHandle);
+	
+	// Save direction
+	SetDirection(InDirection);
+	SetManagingStatus(EWeaponManagingStatus::Busy);
+	SetFightingStatus(EWeaponFightingStatus::AttackCharging);
+
+	UAbstractWeapon* weapon = GetCurrentWeapon();
+	UWeaponDataAsset* data = weapon->GetData();
+	UWeaponAnimationDataAsset* anims = data->Animations;
+
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
+	{
+		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start melee attack",
+					   *data->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(anims);
+
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to start melee attack",
+					   *anims->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		const FMeleeAttackCurveData& parry = meleeWeapon->GetCurrentMeleeCombinedData().Parry.Get(CurrentDirection);
+		float currentTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
+		SetChargeStarted(currentTime);
+		SetChargeFinished(currentTime + parry.CurveTime);
+		
+		UCurveFloat* curve = parry.Curve.LoadSynchronous();
+		SetChargingCurve(curve);
+		OnStartedCharging.Broadcast(meleeWeapon, GetChargingCurve(), GetChargingFinishTime());
+
+		const FMeleeAttackAnimData& parryData = meleeWeapon->IsShieldEquipped() ? meleeAnims->Shield.Parry : meleeAnims->Parry;
+		auto dirParryData = parryData.Get(InDirection);
+		Multi_PlayAnim(weapon, dirParryData, parry.PreAttackLen);
+	}
+	else
+	{
+		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to start attack",
+				   *weapon->GetClass()->GetFName().ToString());
+		return;
+	}
+}
+
 void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDirection)
 {
 	if (!CanBlock())
@@ -1996,7 +2052,7 @@ EDamageReturn UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float 
 	else if (blockResult == EBlockResult::Parry)
 	{
 		causerWpnManager->ApplyParryStun();
-		// TODO: Start attack
+		this->StartParry(CurrentDirection);
 	}
 
 	return dmgReturnResult;

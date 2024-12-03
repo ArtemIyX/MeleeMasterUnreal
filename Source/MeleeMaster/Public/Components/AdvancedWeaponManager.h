@@ -599,6 +599,8 @@ public:
 
 #pragma region Exposed
 
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
+	virtual void StartParry(EWeaponDirection InDirection);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
 	virtual void NotifyEnemyBlocked();
@@ -687,8 +689,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual bool CanRemoveShield() const;
-
-
+	
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual EDamageReturn ProcessWeaponDamage(AActor* Causer, float Amount,
 																	  const FHitResult& HitResult,
