@@ -855,6 +855,12 @@ void UAdvancedWeaponManager::AttackStunFinished()
 	SetFightingStatus(EWeaponFightingStatus::Idle);
 }
 
+void UAdvancedWeaponManager::ParryStunFinished()
+{
+	SetManagingStatus(EWeaponManagingStatus::Idle);
+	SetFightingStatus(EWeaponFightingStatus::Idle);
+}
+
 void UAdvancedWeaponManager::Server_RemoveShield_Implementation()
 {
 	if (!CanRemoveShield())
@@ -1210,6 +1216,12 @@ void UAdvancedWeaponManager::Client_BlockRuinStun_Implementation(EWeaponDirectio
 	OnClientBlockRuined.Broadcast(InDirection, InBlockData);
 }
 
+void UAdvancedWeaponManager::Client_ParryStun_Implementation(EWeaponDirection InDirection,
+	const FMeleeAttackData& InAttackData)
+{
+	OnClientParryStunned.Broadcast(InDirection, InAttackData);
+}
+
 void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InVisual)
 {
 	// Skip server, it is already attached to actor
@@ -1353,6 +1365,11 @@ void UAdvancedWeaponManager::ApplyBlockStun()
 	SetManagingStatus(EWeaponManagingStatus::Busy);
 	SetFightingStatus(EWeaponFightingStatus::BlockStunned);
 
+	FTimerManager& timerManager = GetWorld()->GetTimerManager();
+	timerManager.ClearTimer(HittingTimerHandle);
+	timerManager.ClearTimer(FightTimerHandle);
+	timerManager.ClearTimer(EquippingTimerHandle);
+	
 	UAbstractWeapon* weapon = GetCurrentWeapon();
 	UWeaponDataAsset* data = weapon->GetData();
 	UWeaponAnimationDataAsset* anims = data->Animations;
@@ -1388,12 +1405,61 @@ void UAdvancedWeaponManager::ApplyBlockStun()
 
 		Multi_PlayAnim(meleeWeapon, dirBlockData, stunLen);
 		Client_BlockRuinStun(CurrentDirection, currentData.Block);
-		//TODO: Visual effects
 	}
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to apply block stun",
 		           *data->GetClass()->GetFName().ToString());
+		return;
+	}
+}
+
+void UAdvancedWeaponManager::ApplyParryStun()
+{
+	SetManagingStatus(EWeaponManagingStatus::Busy);
+	SetFightingStatus(EWeaponFightingStatus::ParryStunned);
+
+	FTimerManager& timerManager = GetWorld()->GetTimerManager();
+	timerManager.ClearTimer(HittingTimerHandle);
+	timerManager.ClearTimer(FightTimerHandle);
+	timerManager.ClearTimer(EquippingTimerHandle);
+
+	UAbstractWeapon* weapon = GetCurrentWeapon();
+	UWeaponDataAsset* data = weapon->GetData();
+	UWeaponAnimationDataAsset* anims = data->Animations;
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
+	{
+		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s)to apply parry stun",
+					   *data->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(anims);
+		if (!IsValid(meleeAnims))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s)to apply parry stun",
+					   *data->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		const FMeleeCombinedData& currentData = meleeWeapon->GetCurrentMeleeCombinedData();
+		float stunLen = currentData.Attack.AttackStunLen;
+		
+		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle,
+											   FTimerDelegate::CreateUObject(
+												   this, &UAdvancedWeaponManager::ParryStunFinished),
+											   stunLen, false);
+
+		Multi_CancelCurrentAnim();
+		Client_ParryStun(CurrentDirection, currentData.Attack);
+	}
+	else
+	{
+		TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to apply block stun",
+				   *data->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -1925,10 +1991,11 @@ EDamageReturn UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float 
 	else if (blockResult == EBlockResult::FullShieldBlock)
 	{
 		causerWpnManager->NotifyEnemyBlocked();
+		//TODO: Event to remove stamina and maybe destroy shield
 	}
 	else if (blockResult == EBlockResult::Parry)
 	{
-		// TODO: Notify causer parry stun
+		causerWpnManager->ApplyParryStun();
 		// TODO: Start attack
 	}
 

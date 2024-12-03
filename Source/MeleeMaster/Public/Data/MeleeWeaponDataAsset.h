@@ -11,6 +11,25 @@ class UWeaponHitPathAsset;
 enum class EWeaponFightingStatus : uint8;
 enum class EWeaponDirection : uint8;
 
+USTRUCT(Blueprintable, BlueprintType)
+struct MELEEMASTER_API FDirectionCameraShakes
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	TSubclassOf<UCameraShakeBase> Forward;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	TSubclassOf<UCameraShakeBase> Backward;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	TSubclassOf<UCameraShakeBase> Right;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	TSubclassOf<UCameraShakeBase> Left;
+};
+
 /**
  * @struct FWeaponCurveData
  * @brief Base struct for handling curve data for weapon-related timings.
@@ -142,6 +161,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float AttackStunLen{0.3f};
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FDirectionCameraShakes ParryStunCameraShakes;
+
 	/**
 	 * @brief Returns the attack curve data for a given direction.
 	 * @param InDir The direction of the attack.
@@ -150,24 +172,6 @@ public:
 	const FMeleeAttackCurveData& Get(EWeaponDirection InDir) const;
 };
 
-USTRUCT(Blueprintable, BlueprintType)
-struct MELEEMASTER_API FDirectionCameraShakes
-{
-	GENERATED_BODY()
-
-public:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	TSubclassOf<UCameraShakeBase> Forward;
-	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	TSubclassOf<UCameraShakeBase> Backward;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	TSubclassOf<UCameraShakeBase> Right;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	TSubclassOf<UCameraShakeBase> Left;
-};
 
 /**
  * @struct FMeleeBlockData

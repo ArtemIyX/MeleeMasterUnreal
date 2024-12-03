@@ -145,6 +145,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWeaponManagerDirectionDelegate, EWe
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWeaponManagerBlockRuinDelegate, EWeaponDirection, Direction,
 	const FMeleeBlockData&, BlockData);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWeaponManagerAttackRuinDelegate, EWeaponDirection, Direction,
+	const FMeleeAttackData&, BlockData);
 /**
  * @class UAdvancedWeaponManager
  * @brief Manages advanced weapon systems for characters.
@@ -407,6 +410,9 @@ protected:
 
 	UFUNCTION()
 	virtual void AttackStunFinished();
+
+	UFUNCTION()
+	virtual void ParryStunFinished();
 #pragma endregion
 
 #pragma region TryProxy
@@ -556,6 +562,9 @@ protected:
 	
 	UFUNCTION(Client, Unreliable)
 	void Client_BlockRuinStun(EWeaponDirection InDirection, const FMeleeBlockData& InBlockData);
+
+	UFUNCTION(Client, Unreliable)
+	void Client_ParryStun(EWeaponDirection InDirection, const FMeleeAttackData& InAttackData);
 #pragma endregion
 
 #pragma region Attach
@@ -596,6 +605,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
 	virtual void ApplyBlockStun();
+	
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
+	virtual void ApplyParryStun();
 	
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
 	virtual void ClearBeforeDestroy();
@@ -675,6 +687,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual bool CanRemoveShield() const;
+
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual EDamageReturn ProcessWeaponDamage(AActor* Causer, float Amount,
@@ -816,5 +829,8 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")	
 	FWeaponManagerBlockRuinDelegate OnClientBlockRuined;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")	
+	FWeaponManagerAttackRuinDelegate OnClientParryStunned;
 #pragma endregion
 };
