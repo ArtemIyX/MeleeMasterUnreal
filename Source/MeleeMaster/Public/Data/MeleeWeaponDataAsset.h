@@ -11,21 +11,36 @@ class UWeaponHitPathAsset;
 enum class EWeaponFightingStatus : uint8;
 enum class EWeaponDirection : uint8;
 
+/**
+ * @struct FDirectionCameraShakes
+ * @brief Struct for defining camera shakes for various directions.
+ */
 USTRUCT(Blueprintable, BlueprintType)
 struct MELEEMASTER_API FDirectionCameraShakes
 {
 	GENERATED_BODY()
 
-public:
+	/**
+	* @brief Camera shake for forward direction.
+	*/
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TSubclassOf<UCameraShakeBase> Forward;
 
+	/**
+	 * @brief Camera shake for backward direction.
+	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TSubclassOf<UCameraShakeBase> Backward;
 
+	/**
+	 * @brief Camera shake for right direction.
+	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TSubclassOf<UCameraShakeBase> Right;
 
+	/**
+	 * @brief Camera shake for left direction.
+	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TSubclassOf<UCameraShakeBase> Left;
 };
@@ -69,10 +84,12 @@ struct MELEEMASTER_API FMeleeAttackCurveData : public FWeaponCurveData
 	GENERATED_BODY()
 
 public:
-	FMeleeAttackCurveData(): bDamageForFullPath(false)
-	{
-	}
+	/**
+	 * @brief Default constructor initializing specific properties.
+	 */
+	FMeleeAttackCurveData() : bDamageForFullPath(false) {}
 
+public:
 	/**
 	 * @brief Time required before the attack swing begins.
 	 */
@@ -91,18 +108,34 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float PostAttackLen{0.5f};
 
+	/**
+	 * @brief The hit path asset used for the attack.
+	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	UWeaponHitPathAsset* HitPath{nullptr};
 
+	/**
+	 * @brief Base damage dealt by the attack.
+	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float BasicDamage{35.0f};
 
+	/**
+	 * @brief Whether the damage applies for the full path of the attack.
+	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	uint8 bDamageForFullPath : 1;
 
+	/**
+	 * @brief Type of damage dealt.
+	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TSubclassOf<UDamageType> DamageType;
 
+	/**
+	 * @brief Gets the basic damage of the attack.
+	 * @return The base damage value.
+	 */
 	float GetDamage() const;
 };
 
@@ -158,9 +191,15 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FMeleeAttackCurveData Left;
 
+	/**
+	 * @brief Duration of the stun caused by the attack.
+	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float AttackStunLen{0.3f};
 
+	/**
+	 * @brief Camera shakes applied during the attack stun phase.
+	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FDirectionCameraShakes AttackStunCameraShakes;
 
@@ -171,7 +210,6 @@ public:
 	 */
 	const FMeleeAttackCurveData& Get(EWeaponDirection InDir) const;
 };
-
 
 /**
  * @struct FMeleeBlockData
@@ -224,12 +262,19 @@ public:
 };
 
 
+/**
+ * @struct FMeleeCombinedData
+ * @brief Struct combining attack and block data for melee weapons.
+ */
 USTRUCT(Blueprintable, BlueprintType)
 struct MELEEMASTER_API FMeleeCombinedData
 {
 	GENERATED_BODY()
 
 public:
+	/**
+	 * @brief Default constructor initializing combined data.
+	 */
 	FMeleeCombinedData();
 
 public:
@@ -239,6 +284,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FMeleeAttackData Attack;
 
+	/**
+	 * @brief Data for melee parry curves and timings.
+	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FMeleeAttackData Parry;
 
@@ -248,9 +296,15 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FMeleeBlockData Block;
 
+	/**
+	 * @brief Map of block percentages based on weapon tier.
+	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TMap<EWeaponTier, float> BlockPercent;
 
+	/**
+	 * @brief Maximum angle for a successful block.
+	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float BlockAngle{130.0f};
 };
