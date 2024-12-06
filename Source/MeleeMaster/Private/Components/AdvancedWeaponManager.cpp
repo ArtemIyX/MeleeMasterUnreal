@@ -150,6 +150,7 @@ void UAdvancedWeaponManager::OnRep_FightingStatus(EWeaponFightingStatus Previous
 
 void UAdvancedWeaponManager::OnRep_CurrentDirection()
 {
+	OnClientDirectionChanged.Broadcast(CurrentDirection);
 }
 
 void UAdvancedWeaponManager::OnRep_CurrentCurve()
@@ -236,7 +237,18 @@ float UAdvancedWeaponManager::EvaluateCurrentCurve() const
 		if (!IsValid(CurrentCurve))
 			return MinimalCurveValue;
 		// Current time
-		const float currentServerTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
+		UWorld* world = GetWorld();
+		if(!world)
+		{
+			return 0.0f;
+		}
+		AGameStateBase* gs = world->GetGameState();
+		if(!gs)
+		{
+			return 0.0f;
+		}
+		
+		const float currentServerTime = gs->GetServerWorldTimeSeconds();
 		const float finishTime = GetChargingFinishTime();
 		const float startTime = GetChargingStartTime();
 		if (currentServerTime <= finishTime)

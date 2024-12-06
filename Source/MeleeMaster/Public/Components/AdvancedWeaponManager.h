@@ -826,6 +826,9 @@ public:
 	FAdvancedWeaponManagerFightingStatusDelegate OnClientFightingStatusChanged;
 
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FWeaponManagerDirectionDelegate OnClientDirectionChanged;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FAdvancedWeaponManagerDamageDelegate OnDamageRequested;
 
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")	
