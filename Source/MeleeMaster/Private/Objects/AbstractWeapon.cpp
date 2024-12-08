@@ -43,6 +43,33 @@ bool UAbstractWeapon::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bun
 	return Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
 }
 
+bool UAbstractWeapon::IsAttackDirected() const
+{
+	if (UWeaponDataAsset* data = GetData())
+	{
+		return data->bAttackDirected;
+	}
+	return false;
+}
+
+bool UAbstractWeapon::IsBlockAllowed() const
+{
+	if (UWeaponDataAsset* data = GetData())
+	{
+		return data->bBlockAllowed;
+	}
+	return false;
+}
+
+bool UAbstractWeapon::IsBlockDirected() const
+{
+	if (UWeaponDataAsset* data = GetData())
+	{
+		return data->bBlockDirected;
+	}
+	return false;
+}
+
 void UAbstractWeapon::SetGuidString(FString InGuid)
 {
 	this->Guid = InGuid;

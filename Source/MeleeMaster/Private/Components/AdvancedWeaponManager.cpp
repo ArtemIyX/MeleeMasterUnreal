@@ -229,6 +229,33 @@ int32 UAdvancedWeaponManager::GetCurrentWeaponIndex() const
 	return INDEX_NONE;
 }
 
+bool UAdvancedWeaponManager::IsCurrentWeaponAttackDirected() const
+{
+	if (UAbstractWeapon* wpn = GetCurrentWeapon())
+	{
+		return wpn->IsAttackDirected();
+	}
+	return false;
+}
+
+bool UAdvancedWeaponManager::IsCurrentWeaponBlockAllowed() const
+{
+	if (UAbstractWeapon* wpn = GetCurrentWeapon())
+	{
+		return wpn->IsAttackDirected();
+	}
+	return false;
+}
+
+bool UAdvancedWeaponManager::IsCurrentWeaponBlockDirected() const
+{
+	if (UAbstractWeapon* wpn = GetCurrentWeapon())
+	{
+		return wpn->IsAttackDirected();
+	}
+	return false;
+}
+
 float UAdvancedWeaponManager::EvaluateCurrentCurve() const
 {
 	EWeaponFightingStatus fightStatus = GetFightingStatus();
@@ -238,16 +265,16 @@ float UAdvancedWeaponManager::EvaluateCurrentCurve() const
 			return MinimalCurveValue;
 		// Current time
 		UWorld* world = GetWorld();
-		if(!world)
+		if (!world)
 		{
 			return 0.0f;
 		}
 		AGameStateBase* gs = world->GetGameState();
-		if(!gs)
+		if (!gs)
 		{
 			return 0.0f;
 		}
-		
+
 		const float currentServerTime = gs->GetServerWorldTimeSeconds();
 		const float finishTime = GetChargingFinishTime();
 		const float startTime = GetChargingStartTime();
@@ -706,7 +733,7 @@ void UAdvancedWeaponManager::StartParry(EWeaponDirection InDirection)
 	timerManager.ClearTimer(HittingTimerHandle);
 	timerManager.ClearTimer(FightTimerHandle);
 	timerManager.ClearTimer(EquippingTimerHandle);
-	
+
 	// Save direction
 	SetDirection(InDirection);
 	SetManagingStatus(EWeaponManagingStatus::Busy);
@@ -722,7 +749,7 @@ void UAdvancedWeaponManager::StartParry(EWeaponDirection InDirection)
 		if (!IsValid(meleeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start melee attack",
-					   *data->GetClass()->GetFName().ToString());
+			           *data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -731,7 +758,7 @@ void UAdvancedWeaponManager::StartParry(EWeaponDirection InDirection)
 		if (!IsValid(meleeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to start melee attack",
-					   *anims->GetClass()->GetFName().ToString());
+			           *anims->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -739,19 +766,21 @@ void UAdvancedWeaponManager::StartParry(EWeaponDirection InDirection)
 		float currentTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
 		SetChargeStarted(currentTime);
 		SetChargeFinished(currentTime + parry.CurveTime);
-		
+
 		UCurveFloat* curve = parry.Curve.LoadSynchronous();
 		SetChargingCurve(curve);
 		OnStartedCharging.Broadcast(meleeWeapon, GetChargingCurve(), GetChargingFinishTime());
 
-		const FMeleeAttackAnimData& parryData = meleeWeapon->IsShieldEquipped() ? meleeAnims->Shield.Parry : meleeAnims->Parry;
+		const FMeleeAttackAnimData& parryData = meleeWeapon->IsShieldEquipped()
+			                                        ? meleeAnims->Shield.Parry
+			                                        : meleeAnims->Parry;
 		auto dirParryData = parryData.Get(InDirection);
 		Multi_PlayAnim(weapon, dirParryData, parry.PreAttackLen);
 	}
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to start attack",
-				   *weapon->GetClass()->GetFName().ToString());
+		           *weapon->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -1279,13 +1308,14 @@ void UAdvancedWeaponManager::Multi_DropWeaponVisual_Implementation(const FString
 }
 
 
-void UAdvancedWeaponManager::Client_BlockRuinStun_Implementation(EWeaponDirection InDirection,  const FMeleeBlockData& InBlockData)
+void UAdvancedWeaponManager::Client_BlockRuinStun_Implementation(EWeaponDirection InDirection,
+                                                                 const FMeleeBlockData& InBlockData)
 {
 	OnClientBlockRuined.Broadcast(InDirection, InBlockData);
 }
 
 void UAdvancedWeaponManager::Client_ParryStun_Implementation(EWeaponDirection InDirection,
-	const FMeleeAttackData& InAttackData)
+                                                             const FMeleeAttackData& InAttackData)
 {
 	OnClientParryStunned.Broadcast(InDirection, InAttackData);
 }
@@ -1437,7 +1467,7 @@ void UAdvancedWeaponManager::ApplyBlockStun()
 	timerManager.ClearTimer(HittingTimerHandle);
 	timerManager.ClearTimer(FightTimerHandle);
 	timerManager.ClearTimer(EquippingTimerHandle);
-	
+
 	UAbstractWeapon* weapon = GetCurrentWeapon();
 	UWeaponDataAsset* data = weapon->GetData();
 	UWeaponAnimationDataAsset* anims = data->Animations;
@@ -1501,7 +1531,7 @@ void UAdvancedWeaponManager::ApplyParryStun()
 		if (!IsValid(meleeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s)to apply parry stun",
-					   *data->GetClass()->GetFName().ToString());
+			           *data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -1509,17 +1539,17 @@ void UAdvancedWeaponManager::ApplyParryStun()
 		if (!IsValid(meleeAnims))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s)to apply parry stun",
-					   *data->GetClass()->GetFName().ToString());
+			           *data->GetClass()->GetFName().ToString());
 			return;
 		}
 
 		const FMeleeCombinedData& currentData = meleeWeapon->GetCurrentMeleeCombinedData();
 		float stunLen = currentData.Attack.AttackStunLen;
-		
+
 		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle,
-											   FTimerDelegate::CreateUObject(
-												   this, &UAdvancedWeaponManager::ParryStunFinished),
-											   stunLen, false);
+		                                       FTimerDelegate::CreateUObject(
+			                                       this, &UAdvancedWeaponManager::ParryStunFinished),
+		                                       stunLen, false);
 
 		Multi_CancelCurrentAnim();
 		Client_ParryStun(CurrentDirection, currentData.Attack);
@@ -1527,7 +1557,7 @@ void UAdvancedWeaponManager::ApplyParryStun()
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to apply block stun",
-				   *data->GetClass()->GetFName().ToString());
+		           *data->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -1923,9 +1953,13 @@ bool UAdvancedWeaponManager::CanBlock() const
 {
 	// TODO: Check if weapon can block (melee)
 	UAbstractWeapon* cur = GetCurrentWeapon();
+
 	if (!IsValid(cur))
 		return false;
 	if (!cur->IsValidData())
+		return false;
+
+	if (!cur->IsBlockAllowed())
 		return false;
 
 	const EWeaponFightingStatus status = GetFightingStatus();

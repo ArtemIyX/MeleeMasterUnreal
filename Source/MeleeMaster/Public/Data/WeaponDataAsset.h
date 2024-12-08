@@ -61,6 +61,15 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Damage", meta=(ClampMin="0.01"))
 	EWeaponTier WeaponTier;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Flags")
+	uint8 bAttackDirected:1;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Flags")
+	uint8 bBlockAllowed:1;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Flags")
+	uint8 bBlockDirected:1;
 public:
 	/**
 	 * @brief Checks if the data asset is valid for weapon creation.

@@ -76,17 +76,23 @@ public:
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 
 public:
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AbstractWeapon")
+	virtual bool IsAttackDirected() const;
 
-	
-	
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AbstractWeapon")
+	virtual bool IsBlockAllowed() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AbstractWeapon")
+	virtual bool IsBlockDirected() const;
+
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AbstractWeapon")
 	FORCEINLINE FString GetGUIDString() const { return Guid; }
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AbstractWeapon")
-	void SetGuidString(FString InGuid);
+	virtual void SetGuidString(FString InGuid);
 
 	UFUNCTION(BlueprintCallable, Category="AbstractWeapon")
-	FString MakeRandomGuidString();
+	virtual FString MakeRandomGuidString();
 	/**
 	 * @brief Retrieves the weapon data asset.
 	 * @return The weapon data asset.
@@ -166,6 +172,4 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="AbstractWeapon")
 	virtual int32 VisualNum() const { return Visuals.Num(); }
-
-	
 };

@@ -754,6 +754,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Weapon")
 	virtual int32 GetCurrentWeaponIndex() const;
 
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Weapon")
+	virtual bool IsCurrentWeaponAttackDirected() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Weapon")
+	virtual bool IsCurrentWeaponBlockAllowed() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Weapon")
+	virtual bool IsCurrentWeaponBlockDirected() const;
+	
 	/**
 	 * @brief Retrieves the currently equipped weapon.
 	 * @return The currently equipped weapon.
