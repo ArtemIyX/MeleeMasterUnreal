@@ -3,93 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "WeaponTypes.h"
 #include "Animation/AimOffsetBlendSpace.h"
 #include "Data/AdvancedDataAsset.h"
 #include "WeaponAnimationDataAsset.generated.h"
-
-class UAimOffsetBlendSpace1D;
-
-/**
- * @struct FAnimMontageSingleData
- * @brief Struct that stores a single animation montage data for either first or third person view.
- */
-USTRUCT(Blueprintable, BlueprintType)
-struct MELEEMASTER_API FAnimMontageSingleData
-{
-	GENERATED_BODY()
-
-public:
-	/**
-	 * @brief Default constructor initializing the montage to nullptr and length to 1.0.
-	 */
-	FAnimMontageSingleData() : Value(nullptr), Length(1.0f)
-	{
-	}
-
-public:
-	/**
-	 * @brief Soft reference to the animation montage asset.
-	 */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	TSoftObjectPtr<UAnimMontage> Value;
-
-	/**
-	 * @brief Length of the montage. Minimum value is clamped to 0.01 seconds.
-	 */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta=(ClampMin="0.01"))
-	float Length;
-};
-
-/**
- * @struct FAnimMontageFullData
- * @brief Struct that stores animation montage data for both first-person and third-person perspectives.
- */
-USTRUCT(Blueprintable, BlueprintType)
-struct MELEEMASTER_API FAnimMontageFullData
-{
-	GENERATED_BODY()
-
-public:
-
-	/**
-	 * @brief Animation montage data for first-person view.
-	 */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FAnimMontageSingleData FirstPerson;
-
-	/**
-	 * @brief Animation montage data for third-person view.
-	 */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FAnimMontageSingleData ThirdPerson;
-};
-
-/**
- * @struct FSequenceData
- * @brief Struct that stores animation sequences for both first-person and third-person perspectives.
- */
-USTRUCT(Blueprintable, BlueprintType)
-struct MELEEMASTER_API FSequenceData
-{
-	GENERATED_BODY()
-public:
-	FSequenceData(): FirstPerson(nullptr), ThirdPerson(nullptr)
-	{
-	}
-
-public:
-	/**
-	 * @brief Animation sequence for first-person view.
-	 */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	UAnimSequence* FirstPerson;
-	
-	/**
-	 * @brief Animation sequence for third-person view.
-	 */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	UAnimSequence* ThirdPerson;
-};
 
 
 /**

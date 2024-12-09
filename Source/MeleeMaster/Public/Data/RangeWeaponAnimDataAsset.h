@@ -16,4 +16,8 @@ class MELEEMASTER_API URangeWeaponAnimDataAsset : public UWeaponAnimationDataAss
 
 public:
 	URangeWeaponAnimDataAsset();
+
+public:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Range")
+	FAttackAnimMontageData Pull;
 };

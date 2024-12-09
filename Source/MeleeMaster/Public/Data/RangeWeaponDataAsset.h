@@ -16,4 +16,14 @@ class MELEEMASTER_API URangeWeaponDataAsset : public UWeaponDataAsset
 
 public:
 	URangeWeaponDataAsset();
+
+public:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Range", meta=(ClampMin="0.01"))
+	float PreAttackLen{0.5f};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Range", meta=(ClampMin="0.01"))
+	float AttackLen{1.0f};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Range")
+	FWeaponCurveData AttackCurve;
 };

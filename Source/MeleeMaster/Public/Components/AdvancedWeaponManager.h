@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "WeaponTypes.h"
 #include "Data/MeleeWeaponDataAsset.h"
 #include "Data/WeaponAnimationDataAsset.h"
 #include "AdvancedWeaponManager.generated.h"
@@ -14,54 +15,6 @@ class AWeaponVisual;
 class UAbstractWeapon;
 class UWeaponDataAsset;
 
-UENUM(Blueprintable, BlueprintType)
-enum class EWeaponManagingStatus : uint8
-{
-	Idle, // No actions, can start to equip another weapon
-	Equipping, // Equipping new weapon 
-	DeEquipping, // DeEquipping current weapon
-	Busy, // We are in fight, using special attack, stunned etc...
-	ShieldGetting, // Taking the shield from the back
-	ShieldRemoving, // Hiding the shield
-	NoWeapon, // No weapon in hands
-};
-
-UENUM(Blueprintable, BlueprintType)
-enum class EWeaponFightingStatus : uint8
-{
-	Idle, // No actions, ready to fight
-	PreAttack, // Clicked lmb
-	AttackCharging, // Left click is holding
-	BlockCharging, // Right click is holding
-	Attacking, // Hitting
-	PostBlock, // Cooldown after blocked
-	PostAttack, // Cooldown after attacked
-	HighStunned, // Faced with a maximally charged enemy attack
-	BlockStunned, // Blocked, but partially. That's why the block is down
-	AttackStunned, // Hit but was blocked, temporarily stunned
-	SuccessfullyPaired, // Successfully sparred and ready to counter-attack
-	ParryStunned, // Was sparred, causing him to be slowed and stunned
-	Busy, // Jumping, Dashing, Stunned etc..
-};
-
-UENUM(Blueprintable, BlueprintType)
-enum class EWeaponDirection : uint8
-{
-	Forward,
-	Backward,
-	Right,
-	Left
-};
-
-UENUM(Blueprintable, BlueprintType)
-enum class EBlockResult : uint8
-{
-	Parry,
-FullShieldBlock,
-	PartialDamage,
-	FullDamage,
-	Invalid
-};
 
 USTRUCT(Blueprintable, BlueprintType)
 struct MELEEMASTER_API FAnimPlayData
@@ -385,6 +338,9 @@ protected:
 	virtual void PreAttackFinished();
 
 	UFUNCTION()
+	virtual void RangePreAttackFinished();
+
+	UFUNCTION()
 	virtual void HitFinished();
 
 	UFUNCTION()
@@ -442,7 +398,11 @@ public:
 	virtual void TrySwapShieldProxy();
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
-	virtual void RequestAttackProxy(EWeaponDirection InDirection);
+	virtual void RequestDirectedAttackProxy(EWeaponDirection InDirection);
+
+
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
+	virtual void RequestSimpleAttackProxy();
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual void RequestAttackReleasedProxy();
@@ -479,6 +439,9 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void Server_StartAttack(EWeaponDirection InDirection);
 
+	UFUNCTION(Server, Reliable)
+	void Server_StartAttackSimple();
+	
 	/**
 	 * @brief Initiates an attack on the server.
 	 */

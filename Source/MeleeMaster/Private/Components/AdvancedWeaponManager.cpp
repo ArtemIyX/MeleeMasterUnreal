@@ -8,6 +8,8 @@
 #include "Actors/WeaponVisual.h"
 #include "Data/MeleeWeaponAnimDataAsset.h"
 #include "Data/MeleeWeaponDataAsset.h"
+#include "Data/RangeWeaponAnimDataAsset.h"
+#include "Data/RangeWeaponDataAsset.h"
 #include "Data/WeaponAnimationDataAsset.h"
 #include "Data/WeaponDataAsset.h"
 #include "Data/WeaponHitPathAsset.h"
@@ -25,6 +27,7 @@
 #include "Subsystems/LoggerLib.h"
 
 #include "Math/UnrealMathUtility.h"
+#include "Objects/LongRangeWeapon.h"
 
 
 FAnimPlayData::FAnimPlayData(): bUseSection(false)
@@ -505,6 +508,11 @@ void UAdvancedWeaponManager::PreAttackFinished()
 	}
 }
 
+void UAdvancedWeaponManager::RangePreAttackFinished()
+{
+	
+}
+
 void UAdvancedWeaponManager::HitFinished()
 {
 	HitPower = 0.0f;
@@ -714,7 +722,7 @@ void UAdvancedWeaponManager::Server_Attack_Implementation()
 		const FMeleeAttackAnimData& attackAnimData = meleeWeapon->IsShieldEquipped()
 			                                             ? meleeAnims->Shield.Attack
 			                                             : meleeAnims->Attack;
-		const FMeleeAttackAnimMontageData& attackAnim = attackAnimData.Get(CurrentDirection);
+		const FAttackAnimMontageData& attackAnim = attackAnimData.Get(CurrentDirection);
 
 		Multi_PlayAnim(meleeWeapon, attackAnim, attackData.HittingTime, true,
 		               attackAnim.AttackSection);
@@ -726,6 +734,9 @@ void UAdvancedWeaponManager::Server_Attack_Implementation()
 		return;
 	}
 }
+
+
+
 
 void UAdvancedWeaponManager::StartParry(EWeaponDirection InDirection)
 {
@@ -811,7 +822,7 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 		}
 
 		UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(anims);
-		if (!IsValid(meleeWeaponData))
+		if (!IsValid(meleeAnims))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to block",
 			           *anims->GetClass()->GetFName().ToString());
@@ -908,7 +919,7 @@ void UAdvancedWeaponManager::Server_GetShield_Implementation()
 		}
 
 		UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(anims);
-		if (!IsValid(meleeWeaponData))
+		if (!IsValid(meleeAnims))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) equip shield",
 			           *anims->GetClass()->GetFName().ToString());
@@ -980,7 +991,7 @@ void UAdvancedWeaponManager::Server_RemoveShield_Implementation()
 		}
 
 		UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(anims);
-		if (!IsValid(meleeWeaponData))
+		if (!IsValid(meleeAnims))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) remove shield",
 			           *anims->GetClass()->GetFName().ToString());
@@ -1172,7 +1183,7 @@ void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection 
 
 		UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(anims);
 
-		if (!IsValid(meleeWeaponData))
+		if (!IsValid(meleeAnims))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to start melee attack",
 			           *anims->GetClass()->GetFName().ToString());
@@ -1188,7 +1199,7 @@ void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection 
 		const FMeleeAttackAnimData& attackAnimData = meleeWeapon->IsShieldEquipped()
 			                                             ? meleeAnims->Shield.Attack
 			                                             : meleeAnims->Attack;
-		const FMeleeAttackAnimMontageData& attackAnim = attackAnimData.Get(InDirection);
+		const FAttackAnimMontageData& attackAnim = attackAnimData.Get(InDirection);
 		FAnimMontageFullData montageData = attackAnim;
 		Multi_PlayAnim(weapon, montageData, attackData.PreAttackLen);
 	}
@@ -1196,6 +1207,58 @@ void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection 
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to start attack",
 		           *weapon->GetClass()->GetFName().ToString());
+		return;
+	}
+}
+
+void UAdvancedWeaponManager::Server_StartAttackSimple_Implementation()
+{
+	if (!CanStartAttack())
+		return;
+
+	SetManagingStatus(EWeaponManagingStatus::Busy);
+	SetFightingStatus(EWeaponFightingStatus::PreAttack);
+	
+	UAbstractWeapon* weapon = GetCurrentWeapon();
+	UWeaponDataAsset* data = weapon->GetData();
+	UWeaponAnimationDataAsset* anims = data->Animations;
+
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
+	{
+		// TODO: Melee undirected attack
+
+		TRACEERROR(LogWeapon, "%s is not NOT IMPLEMENTED for 'UMeleeWeapon'",
+				   *weapon->GetClass()->GetFName().ToString());
+	}
+	else if(ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
+	{
+		URangeWeaponDataAsset* rangeData = rangeWeapon->GetRangeData();
+		if (!IsValid(rangeData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start range attack",
+					   *data->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		URangeWeaponAnimDataAsset* rangeAnims = Cast<URangeWeaponAnimDataAsset>(anims);
+		if (!IsValid(rangeAnims))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to start range attack",
+					   *anims->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		auto initialDelegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::RangePreAttackFinished);
+		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, initialDelegate, rangeData->PreAttackLen, false);
+
+		const FAttackAnimMontageData& attackAnimData = rangeAnims->Pull;
+		
+		Multi_PlayAnim(weapon, attackAnimData, rangeData->PreAttackLen);
+	}
+	else
+	{
+		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to start simple attack",
+				   *weapon->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -1913,7 +1976,7 @@ bool UAdvancedWeaponManager::CanDeEquip(int32 InIndex) const
 
 bool UAdvancedWeaponManager::CanStartAttack() const
 {
-	// TODO: Check if weapon can start attack
+	// TODO: Check if weapon can start attack (e.g. have ammo or stamina)
 	UAbstractWeapon* cur = GetCurrentWeapon();
 	if (!IsValid(cur))
 		return false;
@@ -2172,11 +2235,18 @@ void UAdvancedWeaponManager::TrySwapShieldProxy()
 	}
 }
 
-void UAdvancedWeaponManager::RequestAttackProxy(EWeaponDirection InDirection)
+void UAdvancedWeaponManager::RequestDirectedAttackProxy(EWeaponDirection InDirection)
 {
 	if (!CanStartAttack())
 		return;
 	Server_StartAttack(InDirection);
+}
+
+void UAdvancedWeaponManager::RequestSimpleAttackProxy()
+{
+	if(!CanStartAttack())
+		return;
+	Server_StartAttackSimple();
 }
 
 void UAdvancedWeaponManager::RequestAttackReleasedProxy()
@@ -2199,3 +2269,4 @@ void UAdvancedWeaponManager::RequestBlockReleasedProxy()
 		return;
 	Server_UnBlock();
 }
+
