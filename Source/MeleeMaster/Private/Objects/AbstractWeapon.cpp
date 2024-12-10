@@ -43,6 +43,16 @@ bool UAbstractWeapon::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bun
 	return Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
 }
 
+bool UAbstractWeapon::IsLeftHandIkRequired_Implementation() const
+{
+	return false;
+}
+
+FTransform UAbstractWeapon::GetLeftHandLocation_Implementation(ACharacter* InCharacterOwner) const
+{
+	return FTransform();
+}
+
 bool UAbstractWeapon::IsAttackDirected() const
 {
 	if (UWeaponDataAsset* data = GetData())

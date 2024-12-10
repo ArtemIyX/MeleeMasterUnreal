@@ -561,7 +561,8 @@ public:
 #pragma endregion
 
 #pragma region Exposed
-
+	
+	
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
 	virtual void StartParry(EWeaponDirection InDirection);
 

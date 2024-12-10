@@ -76,6 +76,13 @@ public:
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 
 public:
+
+	UFUNCTION(BlueprintNativeEvent)
+	bool IsLeftHandIkRequired() const;
+
+	UFUNCTION(BlueprintNativeEvent)
+	FTransform GetLeftHandLocation(ACharacter* InCharacterOwner) const;
+
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AbstractWeapon")
 	virtual bool IsAttackDirected() const;
 

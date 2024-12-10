@@ -1280,8 +1280,8 @@ void UAdvancedWeaponManager::Multi_PlayAnim_Implementation(
 	{
 		data = FAnimPlayData(InWeapon, AnimSet, Time);
 	}
-	TRACE(LogWeapon, "Saved guid now is: '%s'. Anim to play: %s", *SavedGuid,
-	      *data.AnimSet.ThirdPerson.Value.LoadSynchronous()->GetFName().ToString());
+	// TRACE(LogWeapon, "Saved guid now is: '%s'. Anim to play: %s", *SavedGuid,
+	//       *data.AnimSet.ThirdPerson.Value.LoadSynchronous()->GetFName().ToString());
 	if (GetOwnerRole() == ROLE_AutonomousProxy)
 	{
 		OnFpAnim.Broadcast(data);
