@@ -66,6 +66,11 @@ void AWeaponVisual::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 	DOREPLIFETIME_WITH_PARAMS_FAST(AWeaponVisual, WeaponGuid, Params);
 }
 
+void AWeaponVisual::PlayAnim_Implementation(const FAnimPlayData& InData, bool bFirstPerson)
+{
+	// Implemented in blueprints
+}
+
 void AWeaponVisual::Hide()
 {
 	SkeletalMeshComponent->CastShadow = false;

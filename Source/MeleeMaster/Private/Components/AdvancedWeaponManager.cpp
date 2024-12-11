@@ -711,9 +711,9 @@ void UAdvancedWeaponManager::Server_Attack_Implementation()
 	{
 		AttackMelee_Internal(meleeWeapon);
 	}
-	else if(ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
+	else if (ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
 	{
-		AttackRange_Internal(rangeWeapon);	
+		AttackRange_Internal(rangeWeapon);
 	}
 	else
 	{
@@ -795,7 +795,7 @@ void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapo
 		if (!IsValid(meleeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start post attack",
-					   *data->GetClass()->GetFName().ToString());
+			           *data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -805,21 +805,22 @@ void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapo
 			this, &UAdvancedWeaponManager::PostAttackFinished);
 		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, delegate, postAttackTime, false);
 	}
-	else if(ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
+	else if (ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
 	{
 		URangeWeaponDataAsset* rangeData = InRangeWeapon->GetRangeData();
 		if (!IsValid(rangeData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to range attack",
-					   *InRangeWeapon->GetData()->GetClass()->GetFName().ToString());
+			           *InRangeWeapon->GetData()->GetClass()->GetFName().ToString());
 			return;
 		}
 
-		URangeWeaponAnimDataAsset* rangeAnimData = Cast<URangeWeaponAnimDataAsset>(InRangeWeapon->GetData()->Animations);
+		URangeWeaponAnimDataAsset* rangeAnimData = Cast<
+			URangeWeaponAnimDataAsset>(InRangeWeapon->GetData()->Animations);
 		if (!IsValid(rangeData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to range attack",
-					   *InRangeWeapon->GetData()->Animations->GetClass()->GetFName().ToString());
+			           *InRangeWeapon->GetData()->Animations->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -835,7 +836,7 @@ void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapo
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to start post attack",
-				   *weapon->GetClass()->GetFName().ToString());
+		           *weapon->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -1369,8 +1370,8 @@ void UAdvancedWeaponManager::Server_StartAttackSimple_Implementation()
 
 void UAdvancedWeaponManager::Multi_PlayAnim_Implementation(
 	UAbstractWeapon* InWeapon,
-	const FAnimMontageFullData& AnimSet,
-	float Time,
+	const FAnimMontageFullData& InAnimSet,
+	float InTimeLen,
 	bool bUseSection,
 	const FName& Section)
 {
@@ -1378,11 +1379,11 @@ void UAdvancedWeaponManager::Multi_PlayAnim_Implementation(
 	FAnimPlayData data;
 	if (bUseSection)
 	{
-		data = FAnimPlayData(InWeapon, AnimSet, Time, Section);
+		data = FAnimPlayData(InWeapon, InAnimSet, InTimeLen, Section);
 	}
 	else
 	{
-		data = FAnimPlayData(InWeapon, AnimSet, Time);
+		data = FAnimPlayData(InWeapon, InAnimSet, InTimeLen);
 	}
 	// TRACE(LogWeapon, "Saved guid now is: '%s'. Anim to play: %s", *SavedGuid,
 	//       *data.AnimSet.ThirdPerson.Value.LoadSynchronous()->GetFName().ToString());
@@ -1395,6 +1396,30 @@ void UAdvancedWeaponManager::Multi_PlayAnim_Implementation(
 		OnTpAnim.Broadcast(data);
 	}
 }
+
+void UAdvancedWeaponManager::Multi_PlayVisualAnim_Implementation(UAbstractWeapon* InWeapon,
+                                                                 const FAnimMontageFullData& InAnimSet, float InTimeLen,
+                                                                 int32 VisualIndex, bool bUseSection,
+                                                                 const FName& Section)
+{
+	FAnimPlayData data;
+	if (bUseSection)
+	{
+		data = FAnimPlayData(InWeapon, InAnimSet, InTimeLen, Section);
+	}
+	else
+	{
+		data = FAnimPlayData(InWeapon, InAnimSet, InTimeLen);
+	}
+
+	AWeaponVisual* wpnVisual;
+	bool bVisual = InWeapon->GetVisualActor(VisualIndex, wpnVisual);
+	if (bVisual && IsValid(wpnVisual))
+	{
+		wpnVisual->PlayAnim(data, GetOwnerRole() == ROLE_AutonomousProxy);
+	}
+}
+
 
 void UAdvancedWeaponManager::Multi_AttachHand_Implementation()
 {
@@ -1486,6 +1511,7 @@ void UAdvancedWeaponManager::Client_ParryStun_Implementation(EWeaponDirection In
 {
 	OnClientParryStunned.Broadcast(InDirection, InAttackData);
 }
+
 
 void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InVisual)
 {
@@ -1586,6 +1612,13 @@ void UAdvancedWeaponManager::AttachHand(const FString& WeaponGuid, int32 InVisua
 	{
 		AttachHand(visual);
 	}
+}
+
+void UAdvancedWeaponManager::NotifyPlayWeaponAnim(UAbstractWeapon* InWeapon, const FAnimMontageFullData& InMontageData,
+                                                  float MontageTime, int32 VisualIndex, bool bUseSection,
+                                                  const FName& Section)
+{
+	Multi_PlayVisualAnim(InWeapon, InMontageData, MontageTime, VisualIndex, bUseSection, Section);
 }
 
 void UAdvancedWeaponManager::NotifyEnemyBlocked()

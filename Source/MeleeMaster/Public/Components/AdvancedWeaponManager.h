@@ -78,6 +78,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FAdvancedWeaponManagerDelegate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAdvancedWeaponManagerAnimationDelegate,
                                             const FAnimPlayData&, Anim);
 
+// DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAdvancedWeaponManagerAnimationVisualDelegate,
+// 											const FAnimPlayData&, Anim, int32, VisualIndex);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWeaponManagerDelegate,
                                             UAbstractWeapon*, InWeaponInstance);
 
@@ -125,6 +128,7 @@ public:
 	 */
 	UPROPERTY(BlueprintReadWrite)
 	FString SavedGuid;
+	
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<UAbstractWeapon> NextEquip;
@@ -238,6 +242,7 @@ protected:
 	 * @param Value The new GUID value.
 	 */
 	virtual void SetSavedGuid(FString Value);
+	
 
 	virtual void SetChargingCurve(UCurveFloat* InCurve);
 
@@ -505,6 +510,20 @@ protected:
 	                    bool bUseSection = false,
 	                    const FName& Section = "Section");
 
+	/**
+	 * @brief Plays an equip animation on all clients (weapon visual)
+	 * @param InWeapon The weapon being equipped.
+	 * @param InMontageData The animation montage data.
+	 * @param MontageTime The duration of the animation (or single section).
+	 * @param bUseSection Should start anim montage from specified Section
+	 * @param Section Where should start play anim montage from
+	 */
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multi_PlayVisualAnim(UAbstractWeapon* InWeapon, const FAnimMontageFullData& InMontageData, float MontageTime,
+						int32 VisualIndex = 0,
+						bool bUseSection = false,
+						const FName& Section = "Section");
+
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multi_CancelCurrentAnim();
 
@@ -565,6 +584,12 @@ public:
 
 #pragma region Exposed
 	
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Anim")
+	virtual void NotifyPlayWeaponAnim(UAbstractWeapon* InWeapon, const FAnimMontageFullData& InMontageData, float MontageTime,
+						int32 VisualIndex = 0,
+						bool bUseSection = false,
+						const FName& Section = "Section");
 	
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
 	virtual void StartParry(EWeaponDirection InDirection);
@@ -785,6 +810,12 @@ public:
 	 */
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FAdvancedWeaponManagerAnimationDelegate OnTpAnim;
+
+	/*UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FAdvancedWeaponManagerAnimationVisualDelegate OnFpVisualAnim;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FAdvancedWeaponManagerAnimationVisualDelegate OnTpVisualAnim;*/
 
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FWeaponManagerChargingDelegate OnStartedCharging;

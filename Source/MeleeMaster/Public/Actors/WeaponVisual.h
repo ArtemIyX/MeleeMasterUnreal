@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Components/AdvancedWeaponManager.h"
 #include "GameFramework/Actor.h"
 #include "WeaponVisual.generated.h"
 
@@ -75,6 +76,9 @@ public:
 
 public:
 
+	UFUNCTION(BlueprintNativeEvent)
+	void PlayAnim(const FAnimPlayData& InData, bool bFirstPerson);
+	
 	UFUNCTION(BlueprintCallable, Category="WeaponVisual")
 	virtual void Hide();
 	
@@ -125,4 +129,5 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ActivatePhysics();
+
 };
