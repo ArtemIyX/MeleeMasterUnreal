@@ -513,7 +513,7 @@ void UAdvancedWeaponManager::RangePreAttackFinished()
 {
 	SetManagingStatus(EWeaponManagingStatus::Busy);
 	SetFightingStatus(EWeaponFightingStatus::RangeCharging);
-	
+
 	UAbstractWeapon* weapon = GetCurrentWeapon();
 	UWeaponDataAsset* data = weapon->GetData();
 	if (ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
@@ -522,7 +522,7 @@ void UAdvancedWeaponManager::RangePreAttackFinished()
 		if (!IsValid(rangeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start charging attack",
-					   *data->GetClass()->GetFName().ToString());
+			           *data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -537,7 +537,7 @@ void UAdvancedWeaponManager::RangePreAttackFinished()
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to finish pre  attack",
-				   *weapon->GetClass()->GetFName().ToString());
+		           *weapon->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -705,56 +705,15 @@ void UAdvancedWeaponManager::Server_Attack_Implementation()
 	HitPower = EvaluateCurrentCurve();
 	SetFightingStatus(EWeaponFightingStatus::Attacking);
 	UAbstractWeapon* weapon = GetCurrentWeapon();
-	UWeaponDataAsset* data = weapon->GetData();
-	UWeaponAnimationDataAsset* anims = data->Animations;
+	//UWeaponDataAsset* data = weapon->GetData();
+	//UWeaponAnimationDataAsset* anims = data->Animations;
 	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
 	{
-		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
-		if (!IsValid(meleeWeaponData))
-		{
-			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to melee attack",
-			           *data->GetClass()->GetFName().ToString());
-			return;
-		}
-
-		UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(anims);
-		if (!IsValid(meleeWeaponData))
-		{
-			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to melee attack",
-			           *anims->GetClass()->GetFName().ToString());
-			return;
-		}
-		const FMeleeAttackCurveData& attackData = meleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(
-			CurrentDirection);
-
-		if (!attackData.HitPath)
-		{
-			TRACEERROR(LogWeapon, "%s hit path of %s if invalid",
-			           *UEnum::GetValueAsString(CurrentDirection),
-			           *meleeWeaponData->GetFName().ToString());
-			return;
-		}
-		UWeaponHitPathAsset* hitPath = attackData.HitPath;
-
-		// Will be called after all elements are line-traced
-		auto hitFinishDelegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::HitFinished);
-		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, hitFinishDelegate, attackData.HittingTime, false);
-
-		// Looped line-trace method
-		HitNum = 0;
-
-		const float frequency = attackData.HittingTime / FMath::Clamp(hitPath->Data.Elements.Num(), 1,
-		                                                              TNumericLimits<int32>::Max() - 1);
-		auto hittingDelegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::MeleeHitProcedure);
-		GetWorld()->GetTimerManager().SetTimer(HittingTimerHandle, hittingDelegate, frequency, true);
-
-		const FMeleeAttackAnimData& attackAnimData = meleeWeapon->IsShieldEquipped()
-			                                             ? meleeAnims->Shield.Attack
-			                                             : meleeAnims->Attack;
-		const FAttackAnimMontageData& attackAnim = attackAnimData.Get(CurrentDirection);
-
-		Multi_PlayAnim(meleeWeapon, attackAnim, attackData.HittingTime, true,
-		               attackAnim.AttackSection);
+		AttackMelee_Internal(meleeWeapon);
+	}
+	else if(ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
+	{
+		AttackRange_Internal(rangeWeapon);	
 	}
 	else
 	{
@@ -764,7 +723,122 @@ void UAdvancedWeaponManager::Server_Attack_Implementation()
 	}
 }
 
+void UAdvancedWeaponManager::AttackMelee_Internal(UMeleeWeapon* InMeleeWeapon)
+{
+	UMeleeWeaponDataAsset* meleeWeaponData = InMeleeWeapon->GetMeleeData();
+	if (!IsValid(meleeWeaponData))
+	{
+		TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to melee attack",
+		           *InMeleeWeapon->GetData()->GetClass()->GetFName().ToString());
+		return;
+	}
 
+	UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(InMeleeWeapon->GetData()->Animations);
+	if (!IsValid(meleeWeaponData))
+	{
+		TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to melee attack",
+		           *InMeleeWeapon->GetData()->Animations->GetClass()->GetFName().ToString());
+		return;
+	}
+	const FMeleeAttackCurveData& attackData = InMeleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(
+		CurrentDirection);
+
+	if (!attackData.HitPath)
+	{
+		TRACEERROR(LogWeapon, "%s hit path of %s if invalid",
+		           *UEnum::GetValueAsString(CurrentDirection),
+		           *meleeWeaponData->GetFName().ToString());
+		return;
+	}
+	UWeaponHitPathAsset* hitPath = attackData.HitPath;
+
+	// Will be called after all elements are line-traced
+	auto hitFinishDelegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::HitFinished);
+	GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, hitFinishDelegate, attackData.HittingTime, false);
+
+	// Looped line-trace method
+	HitNum = 0;
+
+	const float frequency = attackData.HittingTime / FMath::Clamp(hitPath->Data.Elements.Num(), 1,
+	                                                              TNumericLimits<int32>::Max() - 1);
+	auto hittingDelegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::MeleeHitProcedure);
+	GetWorld()->GetTimerManager().SetTimer(HittingTimerHandle, hittingDelegate, frequency, true);
+
+	const FMeleeAttackAnimData& attackAnimData = InMeleeWeapon->IsShieldEquipped()
+		                                             ? meleeAnims->Shield.Attack
+		                                             : meleeAnims->Attack;
+	const FAttackAnimMontageData& attackAnim = attackAnimData.Get(CurrentDirection);
+
+	Multi_PlayAnim(InMeleeWeapon, attackAnim, attackData.HittingTime, true,
+	               attackAnim.AttackSection);
+}
+
+void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapon)
+{
+	GetWorld()->GetTimerManager().ClearTimer(FightTimerHandle);
+	GetWorld()->GetTimerManager().ClearTimer(HittingTimerHandle);
+
+	SetFightingStatus(EWeaponFightingStatus::PostAttack);
+	UAbstractWeapon* weapon = GetCurrentWeapon();
+
+	if (!IsValid(weapon))
+	{
+		SetFightingStatus(EWeaponFightingStatus::Idle);
+		SetManagingStatus(EWeaponManagingStatus::Idle);
+		return;
+	}
+
+	UWeaponDataAsset* data = weapon->GetData();
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
+	{
+		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start post attack",
+					   *data->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		const FMeleeAttackCurveData& attack = meleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(CurrentDirection);
+		float postAttackTime = attack.PostAttackLen;
+		auto delegate = FTimerDelegate::CreateUObject(
+			this, &UAdvancedWeaponManager::PostAttackFinished);
+		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, delegate, postAttackTime, false);
+	}
+	else if(ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
+	{
+		URangeWeaponDataAsset* rangeData = InRangeWeapon->GetRangeData();
+		if (!IsValid(rangeData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to range attack",
+					   *InRangeWeapon->GetData()->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		URangeWeaponAnimDataAsset* rangeAnimData = Cast<URangeWeaponAnimDataAsset>(InRangeWeapon->GetData()->Animations);
+		if (!IsValid(rangeData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to range attack",
+					   *InRangeWeapon->GetData()->Animations->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		//TODO: PIF PAF
+
+		float postAttackTime = rangeData->PostAttackLen;
+		auto delegate = FTimerDelegate::CreateUObject(
+			this, &UAdvancedWeaponManager::PostAttackFinished);
+		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, delegate, postAttackTime, false);
+
+		Multi_PlayAnim(rangeWeapon, rangeAnimData->Pull, postAttackTime, true, rangeAnimData->Pull.AttackSection);
+	}
+	else
+	{
+		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to start post attack",
+				   *weapon->GetClass()->GetFName().ToString());
+		return;
+	}
+}
 
 
 void UAdvancedWeaponManager::StartParry(EWeaponDirection InDirection)
@@ -1180,6 +1254,7 @@ void UAdvancedWeaponManager::AddDefaultWeapon_Internal()
 	}
 }
 
+
 void UAdvancedWeaponManager::Server_Equip_Implementation(int32 InIndex)
 {
 	Equip_Internal(InIndex);
@@ -1247,7 +1322,7 @@ void UAdvancedWeaponManager::Server_StartAttackSimple_Implementation()
 
 	SetManagingStatus(EWeaponManagingStatus::Busy);
 	SetFightingStatus(EWeaponFightingStatus::PreAttack);
-	
+
 	UAbstractWeapon* weapon = GetCurrentWeapon();
 	UWeaponDataAsset* data = weapon->GetData();
 	UWeaponAnimationDataAsset* anims = data->Animations;
@@ -1257,15 +1332,15 @@ void UAdvancedWeaponManager::Server_StartAttackSimple_Implementation()
 		// TODO: Melee undirected attack
 
 		TRACEERROR(LogWeapon, "%s is not NOT IMPLEMENTED for 'UMeleeWeapon'",
-				   *weapon->GetClass()->GetFName().ToString());
+		           *weapon->GetClass()->GetFName().ToString());
 	}
-	else if(ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
+	else if (ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
 	{
 		URangeWeaponDataAsset* rangeData = rangeWeapon->GetRangeData();
 		if (!IsValid(rangeData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start range attack",
-					   *data->GetClass()->GetFName().ToString());
+			           *data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -1273,7 +1348,7 @@ void UAdvancedWeaponManager::Server_StartAttackSimple_Implementation()
 		if (!IsValid(rangeAnims))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to start range attack",
-					   *anims->GetClass()->GetFName().ToString());
+			           *anims->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -1281,13 +1356,13 @@ void UAdvancedWeaponManager::Server_StartAttackSimple_Implementation()
 		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, initialDelegate, rangeData->PreAttackLen, false);
 
 		const FAttackAnimMontageData& attackAnimData = rangeAnims->Pull;
-		
+
 		Multi_PlayAnim(weapon, attackAnimData, rangeData->PreAttackLen);
 	}
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to start simple attack",
-				   *weapon->GetClass()->GetFName().ToString());
+		           *weapon->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -2035,7 +2110,9 @@ bool UAdvancedWeaponManager::CanAttack() const
 		//TRACEWARN(LogWeapon, "Fighting status was: %s", *UEnum::GetValueAsString(fightingStatus));
 	}
 
-	if (fightingStatus != EWeaponFightingStatus::AttackCharging)
+	bool bCharging = fightingStatus == EWeaponFightingStatus::AttackCharging || fightingStatus ==
+		EWeaponFightingStatus::RangeCharging;
+	if (!bCharging)
 		return false;
 
 	return true;
@@ -2273,7 +2350,7 @@ void UAdvancedWeaponManager::RequestDirectedAttackProxy(EWeaponDirection InDirec
 
 void UAdvancedWeaponManager::RequestSimpleAttackProxy()
 {
-	if(!CanStartAttack())
+	if (!CanStartAttack())
 		return;
 	Server_StartAttackSimple();
 }
@@ -2298,4 +2375,3 @@ void UAdvancedWeaponManager::RequestBlockReleasedProxy()
 		return;
 	Server_UnBlock();
 }
-

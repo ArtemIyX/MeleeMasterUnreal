@@ -7,6 +7,7 @@
 #include "WeaponTypes.h"
 #include "Data/MeleeWeaponDataAsset.h"
 #include "Data/WeaponAnimationDataAsset.h"
+#include "Objects/LongRangeWeapon.h"
 #include "AdvancedWeaponManager.generated.h"
 
 
@@ -315,6 +316,8 @@ protected:
 	virtual void DeEquip_Internal(int32 InIndex);
 	virtual void Equip_Internal(int32 InIndex);
 	virtual void AddDefaultWeapon_Internal();
+	virtual void AttackMelee_Internal(class UMeleeWeapon* InMeleeWeapon);
+	virtual void AttackRange_Internal(class ULongRangeWeapon* InRangeWeapon);
 #pragma endregion
 
 #pragma region Utils
