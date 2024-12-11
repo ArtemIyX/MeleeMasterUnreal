@@ -53,6 +53,16 @@ FTransform UAbstractWeapon::GetLeftHandLocation_Implementation(ACharacter* InCha
 	return FTransform();
 }
 
+bool UAbstractWeapon::IsRightHandIkRequired_Implementation() const
+{
+	return false;
+}
+
+FTransform UAbstractWeapon::GetRightHandLocation_Implementation(ACharacter* InCharacterOwner) const
+{
+	return FTransform();
+}
+
 bool UAbstractWeapon::IsAttackDirected() const
 {
 	if (UWeaponDataAsset* data = GetData())
@@ -151,12 +161,12 @@ AWeaponVisual* UAbstractWeapon::RemoveVisualActor(int32 Index)
 	return nullptr;
 }
 
-void UAbstractWeapon::GetVisual(TArray<AWeaponVisual*>& OutVisual)
+void UAbstractWeapon::GetVisual(TArray<AWeaponVisual*>& OutVisual) const
 {
 	OutVisual = this->Visuals;
 }
 
-bool UAbstractWeapon::GetVisualActor(int32 Index, AWeaponVisual*& OutVisual)
+bool UAbstractWeapon::GetVisualActor(int32 Index, AWeaponVisual*& OutVisual) const
 {
 	OutVisual = nullptr;
 	if (Visuals.IsValidIndex(Index))
@@ -167,7 +177,7 @@ bool UAbstractWeapon::GetVisualActor(int32 Index, AWeaponVisual*& OutVisual)
 	return false;
 }
 
-int32 UAbstractWeapon::GetVisualIndex(const AWeaponVisual* InVisual)
+int32 UAbstractWeapon::GetVisualIndex(const AWeaponVisual* InVisual) const
 {
 	for (int32 i = 0; i < Visuals.Num(); ++i)
 	{

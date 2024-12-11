@@ -83,6 +83,12 @@ public:
 	UFUNCTION(BlueprintNativeEvent)
 	FTransform GetLeftHandLocation(ACharacter* InCharacterOwner) const;
 
+	UFUNCTION(BlueprintNativeEvent)
+	bool IsRightHandIkRequired() const;
+
+	UFUNCTION(BlueprintNativeEvent)
+	FTransform GetRightHandLocation(ACharacter* InCharacterOwner) const;
+
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AbstractWeapon")
 	virtual bool IsAttackDirected() const;
 
@@ -160,7 +166,7 @@ public:
 	 * @param OutVisual Array that will store the retrieved visual components.
 	 */
 	UFUNCTION(BlueprintCallable, Category="AbstractWeapon")
-	virtual void GetVisual(TArray<AWeaponVisual*>& OutVisual);
+	virtual void GetVisual(TArray<AWeaponVisual*>& OutVisual) const;
 
 	/**
 	 * @brief Retrieves a visual actor for the weapon at the specified index.
@@ -169,10 +175,10 @@ public:
 	 * @return True if the visual component was successfully retrieved.
 	 */
 	UFUNCTION(BlueprintCallable, Category="AbstractWeapon")
-	virtual bool GetVisualActor(int32 Index, AWeaponVisual*& OutVisual);
+	virtual bool GetVisualActor(int32 Index, AWeaponVisual*& OutVisual) const;
 
 	UFUNCTION(BlueprintCallable, Category="AbstractWeapon")
-	virtual int32 GetVisualIndex(const AWeaponVisual* InVisual);
+	virtual int32 GetVisualIndex(const AWeaponVisual* InVisual) const;
 	/**
 	 * @brief Retrieves a number of visuals for this weapon
 	 * @return Visuals.Num()
