@@ -262,7 +262,8 @@ bool UAdvancedWeaponManager::IsCurrentWeaponBlockDirected() const
 float UAdvancedWeaponManager::EvaluateCurrentCurve() const
 {
 	EWeaponFightingStatus fightStatus = GetFightingStatus();
-	if (fightStatus == EWeaponFightingStatus::AttackCharging || fightStatus == EWeaponFightingStatus::BlockCharging)
+	if (fightStatus == EWeaponFightingStatus::AttackCharging || fightStatus == EWeaponFightingStatus::BlockCharging
+		|| fightStatus == EWeaponFightingStatus::RangeCharging)
 	{
 		if (!IsValid(CurrentCurve))
 			return MinimalCurveValue;
@@ -510,7 +511,35 @@ void UAdvancedWeaponManager::PreAttackFinished()
 
 void UAdvancedWeaponManager::RangePreAttackFinished()
 {
+	SetManagingStatus(EWeaponManagingStatus::Busy);
+	SetFightingStatus(EWeaponFightingStatus::RangeCharging);
 	
+	UAbstractWeapon* weapon = GetCurrentWeapon();
+	UWeaponDataAsset* data = weapon->GetData();
+	if (ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
+	{
+		URangeWeaponDataAsset* rangeWeaponData = Cast<URangeWeaponDataAsset>(data);
+		if (!IsValid(rangeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start charging attack",
+					   *data->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		const FWeaponCurveData& curveData = rangeWeaponData->AttackCurve;
+		float currentTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
+		SetChargeStarted(currentTime);
+		SetChargeFinished(currentTime + curveData.CurveTime);
+		UCurveFloat* curve = curveData.Curve.LoadSynchronous();
+		SetChargingCurve(curve);
+		OnStartedCharging.Broadcast(rangeWeapon, GetChargingCurve(), GetChargingFinishTime());
+	}
+	else
+	{
+		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to finish pre  attack",
+				   *weapon->GetClass()->GetFName().ToString());
+		return;
+	}
 }
 
 void UAdvancedWeaponManager::HitFinished()
