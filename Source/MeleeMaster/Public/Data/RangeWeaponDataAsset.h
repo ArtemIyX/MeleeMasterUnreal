@@ -7,7 +7,7 @@
 #include "RangeWeaponDataAsset.generated.h"
 
 
-
+class ABasicProjectile;
 /**
  * 
  */
@@ -20,6 +20,10 @@ public:
 	URangeWeaponDataAsset();
 
 public:
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Range", meta=(ClampMin="0.01"))
+	float BasicDamage;
+	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Range", meta=(ClampMin="0.01"))
 	float PreAttackLen{0.5f};
 
@@ -29,8 +33,12 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Range")
 	FWeaponCurveData AttackCurve;
 
+	/*UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Range", NoClear)
+	TSubclassOf<ABasicProjectile> ProjectileClass;*/
+	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Range|Visual")
 	FBowArrowData Arrow;
+
 public:
 	
 };

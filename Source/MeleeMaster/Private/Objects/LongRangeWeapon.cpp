@@ -9,6 +9,11 @@
 #include "Data/WeaponDataAsset.h"
 #include "Subsystems/LoggerLib.h"
 
+ULongRangeWeapon::ULongRangeWeapon(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer),
+	LocalArrowVisual(nullptr)
+{
+}
+
 URangeWeaponDataAsset* ULongRangeWeapon::GetRangeData() const
 {
 	return Cast<URangeWeaponDataAsset>(this->GetData());
@@ -44,7 +49,7 @@ void ULongRangeWeapon::ShowOrCreateArrowVisual(USkeletalMeshComponent* ParentCom
 		{
 			const ENetRole role = ParentComponent->GetOwner()->GetLocalRole();
 			const bool bIsLocallyControlled = (role == ROLE_AutonomousProxy);
-			//LocalArrowVisual->SetSkeletal(rangeData->Arrow.Mesh.LoadSynchronous());
+
 			LocalArrowVisual->AttachToComponent(ParentComponent,
 			                                    FAttachmentTransformRules::SnapToTargetNotIncludingScale,
 			                                    bIsLocallyControlled
@@ -74,4 +79,15 @@ AArrowVisual* ULongRangeWeapon::GetLocalArrowVisual() const
 void ULongRangeWeapon::SetLocalArrowVisual(AArrowVisual* InArrow)
 {
 	LocalArrowVisual = InArrow;
+}
+
+void ULongRangeWeapon::GetArrowLocRot_Implementation(FVector& OutLoc, FRotator& OutRot)
+{
+	OutLoc = FVector::ZeroVector;
+	OutRot = FRotator::ZeroRotator;
+}
+
+void ULongRangeWeapon::FireArrow_Implementation(float Power)
+{
+	// IMPLEMENT
 }

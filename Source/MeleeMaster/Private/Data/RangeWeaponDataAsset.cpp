@@ -3,7 +3,10 @@
 
 #include "Data/RangeWeaponDataAsset.h"
 
-URangeWeaponDataAsset::URangeWeaponDataAsset() : Super()
+#include "Actors/BasicProjectile.h"
+
+URangeWeaponDataAsset::URangeWeaponDataAsset() : Super(), BasicDamage(25)
 {
 	AssetType = FName(TEXT("RangeWeaponData"));
+	//ProjectileClass = ABasicProjectile::StaticClass();
 }

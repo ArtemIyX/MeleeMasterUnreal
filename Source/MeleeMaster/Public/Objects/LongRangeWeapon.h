@@ -15,7 +15,8 @@ UCLASS(Blueprintable, BlueprintType)
 class MELEEMASTER_API ULongRangeWeapon : public UAbstractWeapon
 {
 	GENERATED_BODY()
-
+public:
+	ULongRangeWeapon(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 protected:
 	UPROPERTY(Transient)
 	AArrowVisual* LocalArrowVisual;
@@ -32,4 +33,11 @@ public:
 	
 	virtual AArrowVisual* GetLocalArrowVisual() const;
 	virtual void SetLocalArrowVisual(AArrowVisual* InArrow);
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, BlueprintNativeEvent)
+	void GetArrowLocRot(FVector& OutLoc, FRotator& OutRot);
+	
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, BlueprintNativeEvent)
+	void FireArrow(
+		float Power);
 };

@@ -824,7 +824,7 @@ void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapo
 			return;
 		}
 
-		//TODO: PIF PAF
+		rangeWeapon->FireArrow(HitPower);
 
 		float postAttackTime = rangeData->PostAttackLen;
 		auto delegate = FTimerDelegate::CreateUObject(
