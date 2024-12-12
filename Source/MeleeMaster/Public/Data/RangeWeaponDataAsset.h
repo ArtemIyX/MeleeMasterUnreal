@@ -6,6 +6,8 @@
 #include "WeaponDataAsset.h"
 #include "RangeWeaponDataAsset.generated.h"
 
+
+
 /**
  * 
  */
@@ -26,4 +28,9 @@ public:
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Range")
 	FWeaponCurveData AttackCurve;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Range|Visual")
+	FBowArrowData Arrow;
+public:
+	
 };

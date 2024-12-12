@@ -2,6 +2,8 @@
 
 
 #include "Data/MeleeWeaponAnimDataAsset.h"
+
+#include "Actors/ArrowVisual.h"
 #include "Components/AdvancedWeaponManager.h"
 
 const FAttackAnimMontageData& FMeleeAttackAnimData::Get(EWeaponDirection InDir) const
@@ -52,6 +54,12 @@ const FAnimMontageFullData& FMeleeBlockRuinAnimData::Get(EWeaponDirection InDir)
 		return Left;
 	default: return Forward;
 	}
+}
+
+FBowArrowData::FBowArrowData()
+{
+	VisualActorClass = AArrowVisual::StaticClass();
+	HandSocket = TEXT("SOCK_");
 }
 
 UMeleeWeaponAnimDataAsset::UMeleeWeaponAnimDataAsset(): Shield()

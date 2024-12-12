@@ -672,3 +672,20 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	UAimOffsetBlendSpace1D* AimOffset;
 };
+
+USTRUCT(Blueprintable, BlueprintType)
+struct MELEEMASTER_API FBowArrowData
+{
+	GENERATED_BODY()
+public:
+	FBowArrowData();
+public:
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, NoClear)
+	TSubclassOf<AActor> VisualActorClass;
+	
+	// UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	// TSoftObjectPtr<USkeletalMesh> Mesh;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FName HandSocket;
+};
