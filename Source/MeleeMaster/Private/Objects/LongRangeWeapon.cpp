@@ -42,10 +42,14 @@ void ULongRangeWeapon::ShowOrCreateArrowVisual(USkeletalMeshComponent* ParentCom
 		LocalArrowVisual = world->SpawnActor<AArrowVisual>(rangeData->Arrow.VisualActorClass, loc, rot, spawnParams);
 		if (IsValid(LocalArrowVisual))
 		{
+			const ENetRole role = ParentComponent->GetOwner()->GetLocalRole();
+			const bool bIsLocallyControlled = (role == ROLE_AutonomousProxy);
 			//LocalArrowVisual->SetSkeletal(rangeData->Arrow.Mesh.LoadSynchronous());
 			LocalArrowVisual->AttachToComponent(ParentComponent,
 			                                    FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-			                                    rangeData->Arrow.HandSocket);
+			                                    bIsLocallyControlled
+				                                    ? rangeData->Arrow.HandSocketFP
+				                                    : rangeData->Arrow.HandSocketTP);
 		}
 	}
 	if (IsValid(LocalArrowVisual))

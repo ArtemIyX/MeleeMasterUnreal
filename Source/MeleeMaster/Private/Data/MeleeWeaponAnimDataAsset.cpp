@@ -59,7 +59,8 @@ const FAnimMontageFullData& FMeleeBlockRuinAnimData::Get(EWeaponDirection InDir)
 FBowArrowData::FBowArrowData()
 {
 	VisualActorClass = AArrowVisual::StaticClass();
-	HandSocket = TEXT("SOCK_");
+	HandSocketFP = TEXT("SOCK_");
+	HandSocketTP = TEXT("SOCK_");
 }
 
 UMeleeWeaponAnimDataAsset::UMeleeWeaponAnimDataAsset(): Shield()

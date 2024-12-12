@@ -684,8 +684,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, NoClear)
 	TSubclassOf<AActor> VisualActorClass;
 	
-	// UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	// TSoftObjectPtr<USkeletalMesh> Mesh;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FName HandSocket;
+	FName HandSocketTP;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FName HandSocketFP;
 };
