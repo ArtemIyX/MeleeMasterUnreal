@@ -362,6 +362,11 @@ void UAdvancedWeaponManager::CreateVisuals(UAbstractWeapon* InAbstractWeapon)
 		spawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		spawnParameters.ObjectFlags = RF_Transient;
 		AWeaponVisual* visualActor = GetWorld()->SpawnActor<AWeaponVisual>(visualClass, loc, rot, spawnParameters);
+
+		if (GetOwner()->GetLocalRole() == ROLE_AutonomousProxy)
+		{
+			visualActor->HideShadow();
+		}
 		if (IsValid(visualActor))
 		{
 			visualActor->SetGuidString(weaponGuid);

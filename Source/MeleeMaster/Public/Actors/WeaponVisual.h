@@ -130,4 +130,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ActivatePhysics();
 
+	UFUNCTION(BlueprintCallable)
+	void HideShadow();
 };
