@@ -375,7 +375,7 @@ enum class EWeaponFightingStatus : uint8
 	HighStunned, // Faced with a maximally charged enemy attack
 	BlockStunned, // Blocked, but partially. That's why the block is down
 	AttackStunned, // Hit but was blocked, temporarily stunned
-	SuccessfullyPaired, // Successfully sparred and ready to counter-attack
+	//SuccessfullyPaired, // Successfully sparred and ready to counter-attack
 	ParryStunned, // Was sparred, causing him to be slowed and stunned
 	Busy, // Jumping, Dashing, Stunned etc..
 };

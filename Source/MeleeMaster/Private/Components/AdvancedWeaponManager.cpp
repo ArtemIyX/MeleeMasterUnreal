@@ -28,6 +28,7 @@
 
 #include "Math/UnrealMathUtility.h"
 #include "Objects/LongRangeWeapon.h"
+#include "Objects/WeaponModifierManager.h"
 
 
 FAnimPlayData::FAnimPlayData(): bUseSection(false)
@@ -151,6 +152,7 @@ void UAdvancedWeaponManager::OnRep_FightingStatus(EWeaponFightingStatus Previous
 	OnClientFightingStatusChanged.Broadcast(PreviousState, FightingStatus);
 }
 
+
 void UAdvancedWeaponManager::OnRep_CurrentDirection()
 {
 	OnClientDirectionChanged.Broadcast(CurrentDirection);
@@ -175,7 +177,10 @@ void UAdvancedWeaponManager::TickComponent(float DeltaTime, ELevelTick TickType,
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// ...
+	if (!GetOwner()->HasAuthority() && GetOwner()->GetLocalRole() == ROLE_AutonomousProxy)
+	{
+		UpdateModifierCharging();
+	}
 }
 
 bool UAdvancedWeaponManager::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
@@ -580,6 +585,8 @@ void UAdvancedWeaponManager::HitFinished()
 		          FNotThreadSafeNotCheckedDelegateUserPolicy> delegate = FTimerDelegate::CreateUObject(
 			this, &UAdvancedWeaponManager::PostAttackFinished);
 		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, delegate, postAttackTime, false);
+
+		Client_HitFinished();
 	}
 	else
 	{
@@ -601,6 +608,13 @@ void UAdvancedWeaponManager::PostBlockFinished()
 	SetManagingStatus(EWeaponManagingStatus::Idle);
 }
 
+void UAdvancedWeaponManager::EquipFinished()
+{
+	SetManagingStatus(EWeaponManagingStatus::Idle);
+	SetFightingStatus(EWeaponFightingStatus::Idle);
+
+	Client_UpdateWeaponModifier();
+}
 
 void UAdvancedWeaponManager::MeleeHitProcedure()
 {
@@ -776,6 +790,7 @@ void UAdvancedWeaponManager::AttackMelee_Internal(UMeleeWeapon* InMeleeWeapon)
 
 	Multi_PlayAnim(InMeleeWeapon, attackAnim, attackData.HittingTime, true,
 	               attackAnim.AttackSection);
+	Client_MeleeChargeFinished();
 }
 
 void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapon)
@@ -794,7 +809,7 @@ void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapo
 	}
 
 	UWeaponDataAsset* data = weapon->GetData();
-	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
+	/*if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
 	{
 		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
 		if (!IsValid(meleeWeaponData))
@@ -810,7 +825,8 @@ void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapo
 			this, &UAdvancedWeaponManager::PostAttackFinished);
 		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, delegate, postAttackTime, false);
 	}
-	else if (ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
+	else */
+	if (ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
 	{
 		URangeWeaponDataAsset* rangeData = InRangeWeapon->GetRangeData();
 		if (!IsValid(rangeData))
@@ -837,6 +853,7 @@ void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapo
 		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, delegate, postAttackTime, false);
 
 		Multi_PlayAnim(rangeWeapon, rangeAnimData->Pull, postAttackTime, true, rangeAnimData->Pull.AttackSection);
+		Client_RangeChargingFinished();
 	}
 	else
 	{
@@ -985,6 +1002,7 @@ void UAdvancedWeaponManager::Server_UnBlock_Implementation()
 		auto delegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::PostBlockFinished);
 		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, delegate, blockData.PostBlockLen, false);
 		Multi_CancelCurrentAnim();
+		Client_BlockChargingFinished();
 	}
 	else
 	{
@@ -1216,12 +1234,7 @@ void UAdvancedWeaponManager::Equip_Internal(int32 InIndex)
 	UWeaponDataAsset* data = weapon->GetData();
 	UWeaponAnimationDataAsset* anims = data->Animations;
 
-	auto delegate = FTimerDelegate::CreateLambda([this]()
-	{
-		SetManagingStatus(EWeaponManagingStatus::Idle);
-		SetFightingStatus(EWeaponFightingStatus::Idle);
-		//Multi_AttachBack(GetCurrentWeapon()->GetGUIDString());
-	});
+	auto delegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::EquipFinished);
 	GetWorld()->GetTimerManager().SetTimer(EquippingTimerHandle, delegate, data->EquipTime, false);
 
 	if (!IsValid(anims))
@@ -1518,6 +1531,82 @@ void UAdvancedWeaponManager::Client_ParryStun_Implementation(EWeaponDirection In
 }
 
 
+void UAdvancedWeaponManager::Client_UpdateWeaponModifier_Implementation()
+{
+	if (ClientWeaponModifierManager.IsValid())
+	{
+		ClientWeaponModifierManager->Destroy();
+		ClientWeaponModifierManager.Reset();
+	}
+	if (IsValid(CurrentWeapon))
+	{
+		if (UWeaponDataAsset* data = CurrentWeapon->GetData())
+		{
+			TSubclassOf<AWeaponModifierManager> modifierManagerClass = data->VisualModifier;
+			if (modifierManagerClass)
+			{
+				FActorSpawnParameters SpawnParams;
+				SpawnParams.Owner = GetOwner();
+				SpawnParams.Instigator = GetOwner()->GetInstigator();
+
+				AWeaponModifierManager* modifier = GetWorld()->SpawnActor<AWeaponModifierManager>(
+					modifierManagerClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+				modifier->SetWeaponManager(this);
+				ClientWeaponModifierManager = modifier;
+			}
+		}
+	}
+}
+
+void UAdvancedWeaponManager::Client_HitFinished_Implementation()
+{
+}
+
+void UAdvancedWeaponManager::Client_MeleeChargeFinished_Implementation()
+{
+	if (IsValid(CurrentWeapon) && ClientWeaponModifierManager.IsValid())
+	{
+		ClientWeaponModifierManager->MeleeAttack(CurrentWeapon);
+	}
+}
+
+void UAdvancedWeaponManager::Client_RangeChargingFinished_Implementation()
+{
+	if (IsValid(CurrentWeapon) && ClientWeaponModifierManager.IsValid())
+	{
+		ClientWeaponModifierManager->RangeAttack(CurrentWeapon);
+	}
+}
+
+void UAdvancedWeaponManager::Client_BlockChargingFinished_Implementation()
+{
+}
+
+void UAdvancedWeaponManager::UpdateModifierCharging()
+{
+	if (IsValid(CurrentWeapon) && ClientWeaponModifierManager.IsValid())
+	{
+		EWeaponFightingStatus fightStatus = GetFightingStatus();
+		if (fightStatus == EWeaponFightingStatus::PreAttack)
+		{
+			ClientWeaponModifierManager->AttackCharging(CurrentWeapon, MinimalCurveValue);
+		}
+		else if (fightStatus == EWeaponFightingStatus::AttackCharging
+			|| fightStatus == EWeaponFightingStatus::RangeCharging)
+		{
+			ClientWeaponModifierManager->AttackCharging(CurrentWeapon, EvaluateCurrentCurve());
+		}
+		else if (fightStatus == EWeaponFightingStatus::BlockCharging)
+		{
+			ClientWeaponModifierManager->BlockCharging(CurrentWeapon, EvaluateCurrentCurve());
+		}
+		else
+		{
+			ClientWeaponModifierManager->IdleState(CurrentWeapon);
+		}
+	}
+}
+
 void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InVisual)
 {
 	// Skip server, it is already attached to actor
@@ -1808,7 +1897,7 @@ bool UAdvancedWeaponManager::RemoveWeapon(int32 InIndex)
 	{
 		return false;
 	}
-	// TODO: Remove weapon imlementation
+	// TODO: Remove and destroy weapon 
 	return true;
 }
 

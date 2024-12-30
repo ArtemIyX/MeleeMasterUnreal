@@ -16,7 +16,6 @@ class AWeaponVisual;
 class UAbstractWeapon;
 class UWeaponDataAsset;
 
-
 USTRUCT(Blueprintable, BlueprintType)
 struct MELEEMASTER_API FAnimPlayData
 {
@@ -129,7 +128,6 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	FString SavedGuid;
 	
-
 	UPROPERTY(Transient)
 	TWeakObjectPtr<UAbstractWeapon> NextEquip;
 
@@ -138,6 +136,9 @@ public:
 	
 	UPROPERTY(BlueprintReadOnly)
 	float HitPower{1.0f}; // Server only
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<class AWeaponModifierManager> ClientWeaponModifierManager; // Client only
 #pragma endregion
 
 #pragma region Defaults
@@ -154,6 +155,7 @@ protected:
 
 
 #pragma endregion
+
 
 protected:
 #pragma region Replicated
@@ -260,14 +262,13 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
+	
 public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
-
 
 #pragma endregion
 
@@ -319,8 +320,10 @@ protected:
 
 	virtual void EquipNextWeapon_Internal();
 	virtual void DeEquip_Internal(int32 InIndex);
+
 	virtual void Equip_Internal(int32 InIndex);
 	virtual void AddDefaultWeapon_Internal();
+
 	virtual void AttackMelee_Internal(class UMeleeWeapon* InMeleeWeapon);
 	virtual void AttackRange_Internal(class ULongRangeWeapon* InRangeWeapon);
 #pragma endregion
@@ -347,7 +350,7 @@ protected:
 
 	UFUNCTION()
 	virtual void RangePreAttackFinished();
-
+	
 	UFUNCTION()
 	virtual void HitFinished();
 
@@ -359,7 +362,10 @@ protected:
 
 	UFUNCTION()
 	virtual void PostBlockFinished();
-
+	
+	UFUNCTION()
+	virtual void EquipFinished();
+	
 	UFUNCTION()
 	virtual void DeEquipFinished();
 
@@ -492,6 +498,33 @@ protected:
 
 #pragma endregion
 
+#pragma region Client
+
+	UFUNCTION(Client, Reliable)
+	void Client_UpdateWeaponModifier();
+
+	UFUNCTION(Client, Reliable)
+	void Client_BlockRuinStun(EWeaponDirection InDirection, const FMeleeBlockData& InBlockData);
+
+	UFUNCTION(Client, Reliable)
+	void Client_ParryStun(EWeaponDirection InDirection, const FMeleeAttackData& InAttackData);
+	
+	UFUNCTION(Client, Reliable)
+	void Client_HitFinished();
+
+	UFUNCTION(Client, Reliable)
+	void Client_MeleeChargeFinished();
+
+	UFUNCTION(Client, Reliable)
+	void Client_RangeChargingFinished();
+
+	UFUNCTION(Client, Reliable)
+	void Client_BlockChargingFinished();
+	
+	UFUNCTION()
+	void UpdateModifierCharging();
+#pragma endregion 
+
 #pragma region Multi
 
 	UFUNCTION(NetMulticast, Unreliable)
@@ -544,12 +577,7 @@ protected:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multi_DropWeaponVisual(const FString& InWeaponGuid);
-	
-	UFUNCTION(Client, Unreliable)
-	void Client_BlockRuinStun(EWeaponDirection InDirection, const FMeleeBlockData& InBlockData);
 
-	UFUNCTION(Client, Unreliable)
-	void Client_ParryStun(EWeaponDirection InDirection, const FMeleeAttackData& InAttackData);
 #pragma endregion
 
 #pragma region Attach
@@ -845,3 +873,5 @@ public:
 	FWeaponManagerAttackRuinDelegate OnClientParryStunned;
 #pragma endregion
 };
+
+

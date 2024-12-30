@@ -5,6 +5,7 @@
 
 #include "Actors/WeaponVisual.h"
 #include "Objects/AbstractWeapon.h"
+#include "Objects/WeaponModifierManager.h"
 
 UWeaponDataAsset::UWeaponDataAsset(): Animations(nullptr), EquipTime(2), DeEquipTime(2), WeaponTier(EWeaponTier::Medium)
 {
@@ -13,6 +14,7 @@ UWeaponDataAsset::UWeaponDataAsset(): Animations(nullptr), EquipTime(2), DeEquip
 	bAttackDirected = true;
 	bBlockAllowed = true;
 	bBlockDirected = true;
+	VisualModifier = AWeaponModifierManager::StaticClass();
 }
 
 bool UWeaponDataAsset::IsValidToCreate() const

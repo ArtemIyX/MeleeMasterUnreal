@@ -7,6 +7,7 @@
 #include "Data/AdvancedDataAsset.h"
 #include "WeaponDataAsset.generated.h"
 
+class UWeaponModifierManager;
 class UWeaponAnimationDataAsset;
 class AWeaponVisual;
 class UAbstractWeapon;
@@ -33,6 +34,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Main")
 	TSubclassOf<UAbstractWeapon> WeaponClass;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Main")
+	TSubclassOf<class AWeaponModifierManager> VisualModifier;
+	
 	/**
 	 * @brief A list of visual representations (meshes) of the weapon.
 	 */
