@@ -499,10 +499,6 @@ protected:
 #pragma endregion
 
 #pragma region Client
-
-	UFUNCTION(Client, Reliable)
-	void Client_UpdateWeaponModifier();
-
 	UFUNCTION(Client, Reliable)
 	void Client_BlockRuinStun(EWeaponDirection InDirection, const FMeleeBlockData& InBlockData);
 
@@ -513,12 +509,6 @@ protected:
 	void Client_HitFinished();
 
 	UFUNCTION(Client, Reliable)
-	void Client_MeleeChargeFinished();
-
-	UFUNCTION(Client, Reliable)
-	void Client_RangeChargingFinished();
-
-	UFUNCTION(Client, Reliable)
 	void Client_BlockChargingFinished();
 	
 	UFUNCTION()
@@ -527,6 +517,16 @@ protected:
 
 #pragma region Multi
 
+	UFUNCTION(NetMulticast, Reliable)
+	void Multi_UpdateWeaponModifier();
+
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multi_MeleeChargeFinished();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multi_RangeChargingFinished();
+	
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multi_DebugHit(const TArray<FMeleeHitDebugData>& InData);
 

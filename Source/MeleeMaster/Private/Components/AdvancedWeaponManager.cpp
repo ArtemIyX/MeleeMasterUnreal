@@ -177,7 +177,7 @@ void UAdvancedWeaponManager::TickComponent(float DeltaTime, ELevelTick TickType,
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (!GetOwner()->HasAuthority() && GetOwner()->GetLocalRole() == ROLE_AutonomousProxy)
+	if (!GetOwner()->HasAuthority() && GetOwner()->GetLocalRole() != ROLE_Authority)
 	{
 		UpdateModifierCharging();
 	}
@@ -613,7 +613,7 @@ void UAdvancedWeaponManager::EquipFinished()
 	SetManagingStatus(EWeaponManagingStatus::Idle);
 	SetFightingStatus(EWeaponFightingStatus::Idle);
 
-	Client_UpdateWeaponModifier();
+	Multi_UpdateWeaponModifier();
 }
 
 void UAdvancedWeaponManager::MeleeHitProcedure()
@@ -790,7 +790,7 @@ void UAdvancedWeaponManager::AttackMelee_Internal(UMeleeWeapon* InMeleeWeapon)
 
 	Multi_PlayAnim(InMeleeWeapon, attackAnim, attackData.HittingTime, true,
 	               attackAnim.AttackSection);
-	Client_MeleeChargeFinished();
+	Multi_MeleeChargeFinished();
 }
 
 void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapon)
@@ -853,7 +853,7 @@ void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapo
 		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, delegate, postAttackTime, false);
 
 		Multi_PlayAnim(rangeWeapon, rangeAnimData->Pull, postAttackTime, true, rangeAnimData->Pull.AttackSection);
-		Client_RangeChargingFinished();
+		Multi_RangeChargingFinished();
 	}
 	else
 	{
@@ -1531,38 +1531,11 @@ void UAdvancedWeaponManager::Client_ParryStun_Implementation(EWeaponDirection In
 }
 
 
-void UAdvancedWeaponManager::Client_UpdateWeaponModifier_Implementation()
-{
-	if (ClientWeaponModifierManager.IsValid())
-	{
-		ClientWeaponModifierManager->Destroy();
-		ClientWeaponModifierManager.Reset();
-	}
-	if (IsValid(CurrentWeapon))
-	{
-		if (UWeaponDataAsset* data = CurrentWeapon->GetData())
-		{
-			TSubclassOf<AWeaponModifierManager> modifierManagerClass = data->VisualModifier;
-			if (modifierManagerClass)
-			{
-				FActorSpawnParameters SpawnParams;
-				SpawnParams.Owner = GetOwner();
-				SpawnParams.Instigator = GetOwner()->GetInstigator();
-
-				AWeaponModifierManager* modifier = GetWorld()->SpawnActor<AWeaponModifierManager>(
-					modifierManagerClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
-				modifier->SetWeaponManager(this);
-				ClientWeaponModifierManager = modifier;
-			}
-		}
-	}
-}
-
 void UAdvancedWeaponManager::Client_HitFinished_Implementation()
 {
 }
 
-void UAdvancedWeaponManager::Client_MeleeChargeFinished_Implementation()
+void UAdvancedWeaponManager::Multi_MeleeChargeFinished_Implementation()
 {
 	if (IsValid(CurrentWeapon) && ClientWeaponModifierManager.IsValid())
 	{
@@ -1570,7 +1543,7 @@ void UAdvancedWeaponManager::Client_MeleeChargeFinished_Implementation()
 	}
 }
 
-void UAdvancedWeaponManager::Client_RangeChargingFinished_Implementation()
+void UAdvancedWeaponManager::Multi_RangeChargingFinished_Implementation()
 {
 	if (IsValid(CurrentWeapon) && ClientWeaponModifierManager.IsValid())
 	{
@@ -1603,6 +1576,35 @@ void UAdvancedWeaponManager::UpdateModifierCharging()
 		else
 		{
 			ClientWeaponModifierManager->IdleState(CurrentWeapon);
+		}
+	}
+}
+
+void UAdvancedWeaponManager::Multi_UpdateWeaponModifier_Implementation()
+{
+	if (GetOwnerRole() == ROLE_Authority)
+		return;
+	if (ClientWeaponModifierManager.IsValid())
+	{
+		ClientWeaponModifierManager->Destroy();
+		ClientWeaponModifierManager.Reset();
+	}
+	if (IsValid(CurrentWeapon))
+	{
+		if (UWeaponDataAsset* data = CurrentWeapon->GetData())
+		{
+			TSubclassOf<AWeaponModifierManager> modifierManagerClass = data->VisualModifier;
+			if (modifierManagerClass)
+			{
+				FActorSpawnParameters SpawnParams;
+				SpawnParams.Owner = GetOwner();
+				SpawnParams.Instigator = GetOwner()->GetInstigator();
+
+				AWeaponModifierManager* modifier = GetWorld()->SpawnActor<AWeaponModifierManager>(
+					modifierManagerClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+				modifier->SetWeaponManager(this);
+				ClientWeaponModifierManager = modifier;
+			}
 		}
 	}
 }

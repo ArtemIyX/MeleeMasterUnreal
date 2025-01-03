@@ -29,12 +29,28 @@ void AWeaponModifierManager::SetWeaponManager(UAdvancedWeaponManager* InWeaponMa
 
 void AWeaponModifierManager::MeleeAttack_Implementation(UAbstractWeapon* InWeapon)
 {
-	
 }
 
 void AWeaponModifierManager::RangeAttack_Implementation(UAbstractWeapon* InWeapon)
 {
-	
+}
+
+bool AWeaponModifierManager::IsLocalClient() const
+{
+	if (WeaponManagerPtr.IsValid())
+	{
+		return WeaponManagerPtr->GetOwnerRole() == ROLE_AutonomousProxy;
+	}
+	return false;
+}
+
+bool AWeaponModifierManager::IsThirdClient() const
+{
+	if (WeaponManagerPtr.IsValid())
+	{
+		return WeaponManagerPtr->GetOwnerRole() == ROLE_SimulatedProxy;
+	}
+	return false;
 }
 
 void AWeaponModifierManager::EndPlay(const EEndPlayReason::Type EndPlayReason)

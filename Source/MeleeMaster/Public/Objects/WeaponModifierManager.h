@@ -20,6 +20,12 @@ protected:
 	UPROPERTY(Transient, BlueprintReadOnly)
 	TWeakObjectPtr<UAdvancedWeaponManager> WeaponManagerPtr;
 
+protected:
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	bool IsLocalClient() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	bool IsThirdClient() const;
 public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void AttackCharging(UAbstractWeapon* InWeapon, float InPower);
