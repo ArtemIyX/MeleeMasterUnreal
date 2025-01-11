@@ -27,7 +27,9 @@ public:
 	USkeletalMeshComponent* GetAttachComponent() const;
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="WeaponManagerOwner")
-	EDamageReturn ApplyDamage(AActor* Causer, float Amount,
+	void ApplyDamage(AActor* Causer, float Amount,
 	                          const FHitResult& HitResult,
-	                          TSubclassOf<UDamageType> DamageType);
+	                          TSubclassOf<UDamageType> DamageType,
+	                          EDamageReturn& OutDamageReturn,
+	                          float& OutDamage);
 };

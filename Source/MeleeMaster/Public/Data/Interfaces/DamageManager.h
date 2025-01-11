@@ -23,7 +23,12 @@ class MELEEMASTER_API IDamageManager
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
-	EDamageReturn RequestDamage(AActor* Causer, AActor* Damaged, float Amount, const FHitResult& HitResult, TSubclassOf<UDamageType> DamageType);
+	void RequestDamage(AActor* Causer,
+	                   AActor* Damaged,
+	                   float Amount,
+	                   const FHitResult& HitResult,
+	                   TSubclassOf<UDamageType> DamageType,
+	                   EDamageReturn& OutDamageReturn,
+	                   float& OutDamage);
 };

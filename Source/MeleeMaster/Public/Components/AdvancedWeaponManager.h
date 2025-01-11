@@ -92,18 +92,19 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAdvancedWeaponManagerFightingStatu
                                              EWeaponFightingStatus, Previous, EWeaponFightingStatus, Current);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAdvancedWeaponManagerDamageDelegate,
-		AActor*, Causer,
-		float, Dmg);
+                                             AActor*, Causer,
+                                             float, Dmg);
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWeaponManagerDirectionDelegate, EWeaponDirection, Direction);
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWeaponManagerBlockRuinDelegate, EWeaponDirection, Direction,
-	const FMeleeBlockData&, BlockData);
+                                             const FMeleeBlockData&, BlockData);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWeaponManagerAttackRuinDelegate, EWeaponDirection, Direction,
-	const FMeleeAttackData&, BlockData);
+                                             const FMeleeAttackData&, BlockData);
+
 /**
  * @class UAdvancedWeaponManager
  * @brief Manages advanced weapon systems for characters.
@@ -127,13 +128,13 @@ public:
 	 */
 	UPROPERTY(BlueprintReadWrite)
 	FString SavedGuid;
-	
+
 	UPROPERTY(Transient)
 	TWeakObjectPtr<UAbstractWeapon> NextEquip;
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 HitNum{0};
-	
+
 	UPROPERTY(BlueprintReadOnly)
 	float HitPower{1.0f}; // Server only
 
@@ -155,7 +156,6 @@ protected:
 
 
 #pragma endregion
-
 
 protected:
 #pragma region Replicated
@@ -244,7 +244,7 @@ protected:
 	 * @param Value The new GUID value.
 	 */
 	virtual void SetSavedGuid(FString Value);
-	
+
 
 	virtual void SetChargingCurve(UCurveFloat* InCurve);
 
@@ -262,7 +262,6 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	
 public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
@@ -350,7 +349,7 @@ protected:
 
 	UFUNCTION()
 	virtual void RangePreAttackFinished();
-	
+
 	UFUNCTION()
 	virtual void HitFinished();
 
@@ -362,10 +361,10 @@ protected:
 
 	UFUNCTION()
 	virtual void PostBlockFinished();
-	
+
 	UFUNCTION()
 	virtual void EquipFinished();
-	
+
 	UFUNCTION()
 	virtual void DeEquipFinished();
 
@@ -455,7 +454,7 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void Server_StartAttackSimple();
-	
+
 	/**
 	 * @brief Initiates an attack on the server.
 	 */
@@ -504,29 +503,29 @@ protected:
 
 	UFUNCTION(Client, Reliable)
 	void Client_ParryStun(EWeaponDirection InDirection, const FMeleeAttackData& InAttackData);
-	
+
 	UFUNCTION(Client, Reliable)
 	void Client_HitFinished();
 
 	UFUNCTION(Client, Reliable)
 	void Client_BlockChargingFinished();
-	
+
 	UFUNCTION()
 	void UpdateModifierCharging();
-#pragma endregion 
+#pragma endregion
 
 #pragma region Multi
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multi_UpdateWeaponModifier();
 
-	
+
 	UFUNCTION(NetMulticast, Reliable)
 	void Multi_MeleeChargeFinished();
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multi_RangeChargingFinished();
-	
+
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multi_DebugHit(const TArray<FMeleeHitDebugData>& InData);
 
@@ -553,9 +552,9 @@ protected:
 	 */
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multi_PlayVisualAnim(UAbstractWeapon* InWeapon, const FAnimMontageFullData& InMontageData, float MontageTime,
-						int32 VisualIndex = 0,
-						bool bUseSection = false,
-						const FName& Section = "Section");
+	                          int32 VisualIndex = 0,
+	                          bool bUseSection = false,
+	                          const FName& Section = "Section");
 
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multi_CancelCurrentAnim();
@@ -611,26 +610,27 @@ public:
 #pragma endregion
 
 #pragma region Exposed
-	
+
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Anim")
-	virtual void NotifyPlayWeaponAnim(UAbstractWeapon* InWeapon, const FAnimMontageFullData& InMontageData, float MontageTime,
-						int32 VisualIndex = 0,
-						bool bUseSection = false,
-						const FName& Section = "Section");
-	
+	virtual void NotifyPlayWeaponAnim(UAbstractWeapon* InWeapon, const FAnimMontageFullData& InMontageData,
+	                                  float MontageTime,
+	                                  int32 VisualIndex = 0,
+	                                  bool bUseSection = false,
+	                                  const FName& Section = "Section");
+
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
 	virtual void StartParry(EWeaponDirection InDirection);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
-	virtual void NotifyEnemyBlocked();
+	virtual void NotifyEnemyMeleeBlocked();
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
 	virtual void ApplyBlockStun();
-	
+
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
 	virtual void ApplyParryStun();
-	
+
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
 	virtual void ClearBeforeDestroy();
 
@@ -709,12 +709,19 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual bool CanRemoveShield() const;
-	
-	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
-	virtual EDamageReturn ProcessWeaponDamage(AActor* Causer, float Amount,
-																	  const FHitResult& HitResult,
-																	  TSubclassOf<UDamageType> DamageType);
 
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
+	virtual void ProcessWeaponDamage(AActor* Causer, float Amount,
+	                                 const FHitResult& HitResult,
+	                                 TSubclassOf<UDamageType> DamageType,
+	                                 EDamageReturn& OutDamageReturn, float& OutDamage);
+
+
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
+	virtual void ProcessProjectileDamage(AActor* Causer, float Amount,
+	                                     const FHitResult& HitResult,
+	                                     TSubclassOf<UDamageType> DamageType,
+	                                     EDamageReturn& OutDamageReturn, float& OutDamage);
 #pragma endregion
 
 #pragma region Getters
@@ -734,6 +741,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Block")
 	EBlockResult CanBlockIncomingDamage(UAdvancedWeaponManager* Causer);
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Block")
+	EBlockResult CanBlockIncomingProjectileDamage(UAdvancedWeaponManager* Causer);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Block")
 	float BlockIncomingDamage(float InDmg, UAdvancedWeaponManager* Causer);
@@ -782,7 +792,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Weapon")
 	virtual bool IsCurrentWeaponBlockDirected() const;
-	
+
 	/**
 	 * @brief Retrieves the currently equipped weapon.
 	 * @return The currently equipped weapon.
@@ -866,12 +876,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FAdvancedWeaponManagerDamageDelegate OnDamageRequested;
 
-	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")	
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FWeaponManagerBlockRuinDelegate OnClientBlockRuined;
 
-	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")	
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FWeaponManagerAttackRuinDelegate OnClientParryStunned;
 #pragma endregion
 };
-
-

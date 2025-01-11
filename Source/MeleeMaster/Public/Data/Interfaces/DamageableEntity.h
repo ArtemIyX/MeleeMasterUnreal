@@ -25,11 +25,14 @@ class MELEEMASTER_API IDamageableEntity
 public:
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
-	EDamageReturn ReceiveWeaponDamage(AActor* Causer, float Amount, const FHitResult& HitResult,
-		TSubclassOf<UDamageType> DamageType);
+	void ReceiveWeaponDamage(AActor* Causer, float Amount, const FHitResult& HitResult,
+		TSubclassOf<UDamageType> DamageType,
+		EDamageReturn& OutDamageReturn,
+		float& OutDamage);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
-	void InflictedDamage(AActor* Damaged, EDamageReturn DamageReturn);
+	void InflictedDamage(AActor* Damaged, EDamageReturn DamageReturn,
+		float InTotalDamage);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	bool IsAlive() const;

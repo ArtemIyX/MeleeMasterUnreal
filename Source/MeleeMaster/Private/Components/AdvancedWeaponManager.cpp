@@ -453,7 +453,9 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 				debugArr.Add(FMeleeHitDebugData(el.Value.Location, attackData.BasicDamage, HitPower));
 			}
 			TSubclassOf<UDamageType> dmgType = attackData.DamageType;
-			IDamageManager::Execute_RequestDamage(gm, GetOwner(), el.Key, dmg, el.Value, dmgType);
+			EDamageReturn dmgReturn;
+			float totalDmg;
+			IDamageManager::Execute_RequestDamage(gm, GetOwner(), el.Key, dmg, el.Value, dmgType, dmgReturn, totalDmg);
 		}
 		else
 		{
@@ -1717,7 +1719,7 @@ void UAdvancedWeaponManager::NotifyPlayWeaponAnim(UAbstractWeapon* InWeapon, con
 	Multi_PlayVisualAnim(InWeapon, InMontageData, MontageTime, VisualIndex, bUseSection, Section);
 }
 
-void UAdvancedWeaponManager::NotifyEnemyBlocked()
+void UAdvancedWeaponManager::NotifyEnemyMeleeBlocked()
 {
 	SetManagingStatus(EWeaponManagingStatus::Busy);
 	SetFightingStatus(EWeaponFightingStatus::AttackStunned);
@@ -1914,21 +1916,6 @@ EBlockResult UAdvancedWeaponManager::CanBlockIncomingDamage(UAdvancedWeaponManag
 	if (!IsValid(Causer))
 		return EBlockResult::Invalid;
 
-	UAbstractWeapon* causerWpn = Causer->GetCurrentWeapon();
-
-	// Target weapon must be valid
-	if (!IsValid(causerWpn))
-		return EBlockResult::Invalid;
-
-	// Target weapon must be melee class
-	UMeleeWeapon* meleeCauserWeapon = Cast<UMeleeWeapon>(causerWpn);
-	if (!IsValid(meleeCauserWeapon))
-		return EBlockResult::Invalid;
-
-	// Causer must be in state 'Attacking'
-	if (Causer->GetFightingStatus() != EWeaponFightingStatus::Attacking)
-		return EBlockResult::Invalid;
-
 	// No weapon, no block :D
 	UAbstractWeapon* wpn = GetCurrentWeapon();
 	if (!IsValid(wpn))
@@ -1978,6 +1965,21 @@ EBlockResult UAdvancedWeaponManager::CanBlockIncomingDamage(UAdvancedWeaponManag
 			return EBlockResult::FullDamage;
 		}
 	}
+
+	UAbstractWeapon* causerWpn = Causer->GetCurrentWeapon();
+
+	// Target weapon must be valid
+	if (!IsValid(causerWpn))
+		return EBlockResult::Invalid;
+	// Target weapon must be melee class
+	UMeleeWeapon* meleeCauserWeapon = Cast<UMeleeWeapon>(causerWpn);
+	if (!IsValid(meleeCauserWeapon))
+		return EBlockResult::Invalid;
+
+	// Causer must be in state 'Attacking'
+	if (Causer->GetFightingStatus() != EWeaponFightingStatus::Attacking)
+		return EBlockResult::Invalid;
+
 
 	const float blockValue = EvaluateCurrentCurve();
 	const float attackValue = Causer->GetCurrentHitPower();
@@ -2029,6 +2031,32 @@ EBlockResult UAdvancedWeaponManager::CanBlockIncomingDamage(UAdvancedWeaponManag
 		return EBlockResult::PartialDamage;
 	}
 
+	return EBlockResult::FullDamage;
+}
+
+EBlockResult UAdvancedWeaponManager::CanBlockIncomingProjectileDamage(UAdvancedWeaponManager* Causer)
+{
+	if (!IsValid(Causer))
+		return EBlockResult::Invalid;
+
+	// No weapon, no block :D
+	UAbstractWeapon* wpn = GetCurrentWeapon();
+	if (!IsValid(wpn))
+		return EBlockResult::FullDamage;
+
+	// Only melee weapon is able to block
+	UMeleeWeapon* meleeWpn = Cast<UMeleeWeapon>(wpn);
+	if (!IsValid(meleeWpn))
+		return EBlockResult::FullDamage;
+
+	// No block, no reduction :D
+	if (!IsBlocking())
+		return EBlockResult::FullDamage;
+
+	if (meleeWpn->IsShieldEquipped())
+	{
+		return EBlockResult::FullShieldBlock;
+	}
 	return EBlockResult::FullDamage;
 }
 
@@ -2336,17 +2364,21 @@ bool UAdvancedWeaponManager::CanRemoveShield() const
 	return bIdle;
 }
 
-EDamageReturn UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float Amount,
-                                                          const FHitResult& HitResult,
-                                                          TSubclassOf<UDamageType> DamageType)
+void UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float Amount,
+                                                 const FHitResult& HitResult,
+                                                 TSubclassOf<UDamageType> DamageType,
+                                                 EDamageReturn& OutDamageReturn, float& OutDamage)
 {
+	OutDamageReturn = EDamageReturn::Failed;
+	OutDamage = 0.0f;
+
 	UAdvancedWeaponManager* causerWpnManager = Causer->FindComponentByClass<UAdvancedWeaponManager>();
 	EBlockResult blockResult = this->CanBlockIncomingDamage(causerWpnManager);
 
 	if (blockResult == EBlockResult::Invalid)
 	{
 		TRACEERROR(LogWeapon, "Failed to block incoming damage (%s)", *UEnum::GetValueAsString(blockResult))
-		return EDamageReturn::Failed;
+		return;
 	}
 
 	// So we are ready to parry or block something
@@ -2360,7 +2392,7 @@ EDamageReturn UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float 
 	}
 
 	float realDmg = Amount;
-	EDamageReturn dmgReturnResult = EDamageReturn::Failed;
+	//EDamageReturn dmgReturnResult = EDamageReturn::Failed;
 	// Apply damage
 	if (blockResult == EBlockResult::FullDamage ||
 		blockResult == EBlockResult::PartialDamage)
@@ -2378,28 +2410,75 @@ EDamageReturn UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float 
 
 		if (GetOwner()->Implements<UWeaponManagerOwner>())
 		{
-			dmgReturnResult = IWeaponManagerOwner::Execute_ApplyDamage(GetOwner(), Causer, realDmg, HitResult,
-			                                                           DamageType);
+			IWeaponManagerOwner::Execute_ApplyDamage(GetOwner(), Causer, realDmg, HitResult,
+			                                         DamageType,
+			                                         OutDamageReturn, OutDamage);
 		}
 
 		if (blockResult == EBlockResult::PartialDamage)
 		{
 			this->ApplyBlockStun();
-			causerWpnManager->NotifyEnemyBlocked();
+			causerWpnManager->NotifyEnemyMeleeBlocked();
 		}
+		return;
 	}
 	else if (blockResult == EBlockResult::FullShieldBlock)
 	{
-		causerWpnManager->NotifyEnemyBlocked();
+		causerWpnManager->NotifyEnemyMeleeBlocked();
 		//TODO: Event to remove stamina and maybe destroy shield
+		OutDamageReturn = EDamageReturn::Alive;
+		OutDamage = 0.0f;
+		return;
+
 	}
 	else if (blockResult == EBlockResult::Parry)
 	{
 		causerWpnManager->ApplyParryStun();
 		this->StartParry(CurrentDirection);
+		OutDamageReturn = EDamageReturn::Alive;
+		OutDamage = 0.0f;
+		return;
 	}
+	
+}
 
-	return dmgReturnResult;
+void UAdvancedWeaponManager::ProcessProjectileDamage(AActor* Causer, float Amount, const FHitResult& HitResult,
+                                                     TSubclassOf<UDamageType> DamageType,
+                                                     EDamageReturn& OutDamageReturn, float& OutDamage)
+{
+	OutDamageReturn = EDamageReturn::Failed;
+	OutDamage = 0.0f;
+	UAdvancedWeaponManager* causerWpnManager = Causer->FindComponentByClass<UAdvancedWeaponManager>();
+	EBlockResult blockResult = EBlockResult::FullDamage;
+	if (!this->CanBlockSide(HitResult.TraceStart))
+	{
+		blockResult = EBlockResult::FullDamage;
+	}
+	else
+	{
+		blockResult = CanBlockIncomingProjectileDamage(causerWpnManager);
+	}
+	
+	if (blockResult == EBlockResult::FullShieldBlock)
+	{
+		OutDamageReturn = EDamageReturn::Alive;
+		OutDamage = 0.0f;
+		return;
+		//TODO: Event to remove stamina and maybe destroy shield
+	}
+	// Full damage
+	else
+	{
+		OutDamageReturn = EDamageReturn::Failed;
+		OutDamage = 0.0f;
+		if (GetOwner()->Implements<UWeaponManagerOwner>())
+		{
+			IWeaponManagerOwner::Execute_ApplyDamage(GetOwner(), Causer, Amount, HitResult,
+			                                         DamageType,
+			                                         OutDamageReturn, OutDamage);
+		}
+		return;
+	}
 }
 
 
