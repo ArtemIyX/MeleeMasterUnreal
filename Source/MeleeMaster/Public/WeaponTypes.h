@@ -670,7 +670,7 @@ public:
 	 * @brief Aim offset blend space used for weapon aiming.
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	UAimOffsetBlendSpace1D* AimOffset;
+	UAimOffsetBlendSpace1D* AimOffset { nullptr};
 };
 
 USTRUCT(Blueprintable, BlueprintType)
