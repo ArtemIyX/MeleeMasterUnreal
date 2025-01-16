@@ -5,6 +5,7 @@
 
 #include "MathUtil.h"
 #include "MeleeMaster.h"
+#include "GameFramework/PlayerState.h"
 #include "Actors/WeaponVisual.h"
 #include "Data/MeleeWeaponAnimDataAsset.h"
 #include "Data/MeleeWeaponDataAsset.h"
@@ -455,7 +456,9 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 			TSubclassOf<UDamageType> dmgType = attackData.DamageType;
 			EDamageReturn dmgReturn;
 			float totalDmg;
-			IDamageManager::Execute_RequestDamage(gm, GetOwner(), el.Key, dmg, el.Value, dmgType, dmgReturn, totalDmg);
+			APawn* pawn = Cast<APawn>(GetOwner());
+			APlayerState* ps = pawn->GetController()->GetPlayerState<APlayerState>();
+			IDamageManager::Execute_RequestDamage(gm, pawn, ps, el.Key, dmg, el.Value, dmgType, dmgReturn, totalDmg);
 		}
 		else
 		{
@@ -2034,11 +2037,8 @@ EBlockResult UAdvancedWeaponManager::CanBlockIncomingDamage(UAdvancedWeaponManag
 	return EBlockResult::FullDamage;
 }
 
-EBlockResult UAdvancedWeaponManager::CanBlockIncomingProjectileDamage(UAdvancedWeaponManager* Causer)
+EBlockResult UAdvancedWeaponManager::CanBlockIncomingProjectileDamage()
 {
-	if (!IsValid(Causer))
-		return EBlockResult::Invalid;
-
 	// No weapon, no block :D
 	UAbstractWeapon* wpn = GetCurrentWeapon();
 	if (!IsValid(wpn))
@@ -2429,7 +2429,6 @@ void UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float Amount,
 		OutDamageReturn = EDamageReturn::Alive;
 		OutDamage = 0.0f;
 		return;
-
 	}
 	else if (blockResult == EBlockResult::Parry)
 	{
@@ -2439,7 +2438,6 @@ void UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float Amount,
 		OutDamage = 0.0f;
 		return;
 	}
-	
 }
 
 void UAdvancedWeaponManager::ProcessProjectileDamage(AActor* Causer, float Amount, const FHitResult& HitResult,
@@ -2448,7 +2446,6 @@ void UAdvancedWeaponManager::ProcessProjectileDamage(AActor* Causer, float Amoun
 {
 	OutDamageReturn = EDamageReturn::Failed;
 	OutDamage = 0.0f;
-	UAdvancedWeaponManager* causerWpnManager = Causer->FindComponentByClass<UAdvancedWeaponManager>();
 	EBlockResult blockResult = EBlockResult::FullDamage;
 	if (!this->CanBlockSide(HitResult.TraceStart))
 	{
@@ -2456,9 +2453,9 @@ void UAdvancedWeaponManager::ProcessProjectileDamage(AActor* Causer, float Amoun
 	}
 	else
 	{
-		blockResult = CanBlockIncomingProjectileDamage(causerWpnManager);
+		blockResult = CanBlockIncomingProjectileDamage();
 	}
-	
+
 	if (blockResult == EBlockResult::FullShieldBlock)
 	{
 		OutDamageReturn = EDamageReturn::Alive;

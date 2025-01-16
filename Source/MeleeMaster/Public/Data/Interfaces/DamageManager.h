@@ -4,8 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "WeaponTypes.h"
+#include "GameFramework/PlayerState.h"
 #include "UObject/Interface.h"
 #include "DamageManager.generated.h"
+
 
 // This class does not need to be modified.
 UINTERFACE()
@@ -25,6 +27,7 @@ class MELEEMASTER_API IDamageManager
 public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	void RequestDamage(AActor* Causer,
+	                   APlayerState* PlayerInstigator,
 	                   AActor* Damaged,
 	                   float Amount,
 	                   const FHitResult& HitResult,

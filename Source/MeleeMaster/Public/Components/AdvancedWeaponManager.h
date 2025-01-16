@@ -743,7 +743,7 @@ public:
 	EBlockResult CanBlockIncomingDamage(UAdvancedWeaponManager* Causer);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Block")
-	EBlockResult CanBlockIncomingProjectileDamage(UAdvancedWeaponManager* Causer);
+	EBlockResult CanBlockIncomingProjectileDamage();
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Block")
 	float BlockIncomingDamage(float InDmg, UAdvancedWeaponManager* Causer);
