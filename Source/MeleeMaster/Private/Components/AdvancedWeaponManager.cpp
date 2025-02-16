@@ -682,7 +682,11 @@ void UAdvancedWeaponManager::MeleeHitProcedure()
 		actorsToIgnore.Append(visual);
 
 		// Calculate offsets
-		FRotator controlRot = pawnOwner->GetControlRotation();
+		FRotator controlRot = FRotator::ZeroRotator;
+		if(IsValid(pawnOwner))
+		{	
+			controlRot = pawnOwner->GetControlRotation();
+		}
 		controlRot.Pitch = 0.0f;
 		controlRot.Add(0.0f, -90.0f, 0.0f);
 		FVector ownerLoc = pawnOwner->GetActorLocation();
