@@ -394,8 +394,10 @@ enum class EBlockResult : uint8
 {
 	Parry,
 	FullShieldBlock,
+	PartialShieldDamage,
 	PartialDamage,
 	FullDamage,
+	FullDamageBlockRuin,
 	Invalid
 };
 

@@ -1733,7 +1733,7 @@ void UAdvancedWeaponManager::NotifyEnemyMeleeBlocked()
 
 	UAbstractWeapon* weapon = GetCurrentWeapon();
 	UWeaponDataAsset* data = weapon->GetData();
-	//UWeaponAnimationDataAsset* anims = data->Animations;
+	UWeaponAnimationDataAsset* anims = data->Animations;
 	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
 	{
 		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
@@ -1747,9 +1747,17 @@ void UAdvancedWeaponManager::NotifyEnemyMeleeBlocked()
 		timerManager.SetTimer(FightTimerHandle,
 		                      FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::AttackStunFinished),
 		                      attackStunLen, false);
-		Multi_CancelCurrentAnim();
 
-		//TODO: Visual effects
+		//Multi_CancelCurrentAnim();
+		UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(anims);
+		if (!IsValid(meleeAnims))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s )to apply attack stun",
+			           *data->GetClass()->GetFName().ToString());
+			return;
+		}
+		FAnimMontageFullData animPack = meleeAnims->BlockRuin.Get(GetCurrentDirection());
+		Multi_PlayAnim(weapon, animPack, attackStunLen);
 	}
 	else
 	{
@@ -2003,7 +2011,8 @@ EBlockResult UAdvancedWeaponManager::CanBlockIncomingDamage(UAdvancedWeaponManag
 	{
 		if (bShield)
 		{
-			return EBlockResult::FullShieldBlock;
+			// Very strong shield attack - you both get stunned
+			return EBlockResult::PartialDamage;
 		}
 		return EBlockResult::PartialDamage;
 	}
@@ -2023,7 +2032,7 @@ EBlockResult UAdvancedWeaponManager::CanBlockIncomingDamage(UAdvancedWeaponManag
 	{
 		if (bShield)
 		{
-			return EBlockResult::FullShieldBlock;
+			return EBlockResult::PartialShieldDamage;
 		}
 		return bIsAbleToParry ? EBlockResult::Parry : EBlockResult::PartialDamage;
 	}
@@ -2031,7 +2040,11 @@ EBlockResult UAdvancedWeaponManager::CanBlockIncomingDamage(UAdvancedWeaponManag
 	// The attack is stronger than the block, so it breaks through the block.
 	if (attackValue > blockValue)
 	{
-		return EBlockResult::PartialDamage;
+		if (bShield)
+		{
+			return EBlockResult::PartialShieldDamage;
+		}
+		return EBlockResult::FullDamageBlockRuin;
 	}
 
 	return EBlockResult::FullDamage;
@@ -2055,7 +2068,7 @@ EBlockResult UAdvancedWeaponManager::CanBlockIncomingProjectileDamage()
 
 	if (meleeWpn->IsShieldEquipped())
 	{
-		return EBlockResult::FullShieldBlock;
+		return EBlockResult::PartialShieldDamage;
 	}
 	return EBlockResult::FullDamage;
 }
@@ -2071,10 +2084,6 @@ float UAdvancedWeaponManager::BlockIncomingDamage(float InDmg, UAdvancedWeaponMa
 	if (!IsValid(causerWpn))
 		return InDmg;
 
-	// Target weapon must be melee class
-	UMeleeWeapon* meleeCauserWeapon = Cast<UMeleeWeapon>(causerWpn);
-	if (!IsValid(meleeCauserWeapon))
-		return InDmg;
 
 	// Causer must be in state 'Attacking'
 	if (Causer->GetFightingStatus() != EWeaponFightingStatus::Attacking)
@@ -2090,13 +2099,17 @@ float UAdvancedWeaponManager::BlockIncomingDamage(float InDmg, UAdvancedWeaponMa
 	if (!IsValid(meleeWpn))
 		return InDmg;
 
-	const EWeaponTier causerTier = meleeCauserWeapon->GetData()->WeaponTier;
 	const FMeleeCombinedData& meleeData = meleeWpn->GetCurrentMeleeCombinedData();
+
+	// Target weapon must be melee class
+	const EWeaponTier causerTier = causerWpn->GetData()->WeaponTier;
+
 	if (meleeData.BlockPercent.Contains(causerTier))
 	{
 		// reducedAmount = Amount * (1.0f - blockPercent);
 		return InDmg * (1.0f - FMath::Clamp(meleeData.BlockPercent[causerTier], 0.0f, 1.0f));
 	}
+
 	return InDmg;
 }
 
@@ -2395,10 +2408,14 @@ void UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float Amount,
 	//EDamageReturn dmgReturnResult = EDamageReturn::Failed;
 	// Apply damage
 	if (blockResult == EBlockResult::FullDamage ||
-		blockResult == EBlockResult::PartialDamage)
+		blockResult == EBlockResult::PartialDamage ||
+		blockResult == EBlockResult::PartialShieldDamage ||
+		blockResult == EBlockResult::FullDamageBlockRuin)
 	{
 		// Block some of the damage
-		if (blockResult == EBlockResult::PartialDamage)
+		if (blockResult == EBlockResult::PartialDamage ||
+			blockResult == EBlockResult::PartialShieldDamage ||
+			blockResult == EBlockResult::FullDamageBlockRuin)
 		{
 			realDmg = this->BlockIncomingDamage(Amount, causerWpnManager);
 			TRACE(LogWeapon, "%s Blocked some damage from %s. Incoming: %.1f. After block: %.1f",
@@ -2414,8 +2431,18 @@ void UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float Amount,
 			                                         DamageType,
 			                                         OutDamageReturn, OutDamage);
 		}
-
-		if (blockResult == EBlockResult::PartialDamage)
+		// nothing, just keep blocking by shield
+		if (blockResult == EBlockResult::PartialShieldDamage)
+		{
+			//TODO: Remove shield if zero stamina
+		}
+		// Remove block
+		else if (blockResult == EBlockResult::FullDamageBlockRuin)
+		{
+			this->ApplyBlockStun();
+		}
+		// Both get stunned
+		else if (blockResult == EBlockResult::PartialDamage)
 		{
 			this->ApplyBlockStun();
 			causerWpnManager->NotifyEnemyMeleeBlocked();
@@ -2466,6 +2493,17 @@ void UAdvancedWeaponManager::ProcessProjectileDamage(AActor* Causer, float Amoun
 	// Full damage
 	else
 	{
+		//TODO: Extract method
+		if (blockResult == EBlockResult::PartialShieldDamage)
+		{
+			if (UMeleeWeapon* melee = Cast<UMeleeWeapon>(GetCurrentWeapon()))
+			{
+				if (UMeleeWeaponDataAsset* meleeData = melee->GetMeleeData())
+				{
+					Amount = Amount * (1.0f - FMath::Clamp(meleeData->ShieldProjectileBlockPercent, 0.0f, 1.0f));
+				}
+			}
+		}
 		OutDamageReturn = EDamageReturn::Failed;
 		OutDamage = 0.0f;
 		if (GetOwner()->Implements<UWeaponManagerOwner>())

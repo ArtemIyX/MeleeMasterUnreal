@@ -37,11 +37,14 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Shield")
 	float ShieldGetTime{1.0f};
-	
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Shield")
 	float ShieldRemoveTime{1.0f};
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Shield",
 		meta=(EditCondition="bHasShield", EditConditionHides="bHasShield"))
 	FMeleeCombinedData Shield;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Shield")
+	float ShieldProjectileBlockPercent{0.5f};
 };
