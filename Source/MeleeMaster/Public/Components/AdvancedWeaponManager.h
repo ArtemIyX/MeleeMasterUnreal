@@ -105,6 +105,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWeaponManagerBlockRuinDelegate, EW
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWeaponManagerAttackRuinDelegate, EWeaponDirection, Direction,
                                              const FMeleeAttackData&, BlockData);
 
+
 /**
  * @class UAdvancedWeaponManager
  * @brief Manages advanced weapon systems for characters.

@@ -31,7 +31,7 @@ public:
 		float& OutDamage);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
-	void InflictedDamage(AActor* Damaged, EDamageReturn DamageReturn,
+	void InflictedDamage(AActor* Damaged, const FHitResult& HitResult, EDamageReturn DamageReturn,
 		float InTotalDamage);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
