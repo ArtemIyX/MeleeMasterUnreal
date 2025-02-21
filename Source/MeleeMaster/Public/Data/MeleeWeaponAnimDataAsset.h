@@ -50,4 +50,7 @@ public:
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Shield", meta=(ShowOnlyInnerProperties))
 	FMeleeShieldAnimData Shield;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Sounds")
+	FMeleeSounds SoundPack;
 };

@@ -433,9 +433,11 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 	UWeaponDataAsset* data = InWeapon->GetData();
 
 	TArray<FMeleeHitDebugData> debugArr;
-	for (TTuple<AActor*, FHitResult> el : hitMap)
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(InWeapon))
 	{
-		if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(InWeapon))
+		UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(meleeWeapon->GetData()->Animations);
+
+		for (TTuple<AActor*, FHitResult> el : hitMap)
 		{
 			UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
 			if (!IsValid(meleeWeaponData))
@@ -459,13 +461,24 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 			APawn* pawn = Cast<APawn>(GetOwner());
 			APlayerState* ps = pawn->GetController()->GetPlayerState<APlayerState>();
 			IDamageManager::Execute_RequestDamage(gm, pawn, ps, el.Key, dmg, el.Value, dmgType, dmgReturn, totalDmg);
+
+			if (meleeAnims)
+			{
+				if (dmgReturn == EDamageReturn::Failed)
+				{
+					OnMeleeWallHitSound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.WallHit);
+				}
+				else
+				{
+					OnMeleeFleshHitSound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.FleshHit);
+				}
+			}
 		}
-		else
-		{
-			TRACEERROR(LogWeapon, "Invalid weapon class (%s) to process hit",
-			           *InWeapon->GetClass()->GetFName().ToString());
-			continue;
-		}
+	}
+	else
+	{
+		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to process hit",
+		           *InWeapon->GetClass()->GetFName().ToString());
 	}
 	if (bDebugMeleeHits && debugArr.Num() > 0)
 	{
@@ -507,6 +520,15 @@ void UAdvancedWeaponManager::PreAttackFinished()
 			           *data->GetClass()->GetFName().ToString());
 			return;
 		}
+
+		/*UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(weapon->GetData()->Animations);
+
+		if (!IsValid(meleeAnims))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon animation data class (%s) to start charging attack",
+			           *data->GetClass()->GetFName().ToString());
+			return;
+		}*/
 
 		const FMeleeAttackCurveData& attack = meleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(CurrentDirection);
 		float currentTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
@@ -683,8 +705,8 @@ void UAdvancedWeaponManager::MeleeHitProcedure()
 
 		// Calculate offsets
 		FRotator controlRot = FRotator::ZeroRotator;
-		if(IsValid(pawnOwner))
-		{	
+		if (IsValid(pawnOwner))
+		{
 			controlRot = pawnOwner->GetControlRotation();
 		}
 		controlRot.Pitch = 0.0f;
@@ -800,6 +822,8 @@ void UAdvancedWeaponManager::AttackMelee_Internal(UMeleeWeapon* InMeleeWeapon)
 	Multi_PlayAnim(InMeleeWeapon, attackAnim, attackData.HittingTime, true,
 	               attackAnim.AttackSection);
 	Multi_MeleeChargeFinished();
+
+	OnMeleeWhooshSound.Broadcast(InMeleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.Whoosh);
 }
 
 void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapon)
@@ -922,6 +946,8 @@ void UAdvancedWeaponManager::StartParry(EWeaponDirection InDirection)
 			                                        : meleeAnims->Parry;
 		auto dirParryData = parryData.Get(InDirection);
 		Multi_PlayAnim(weapon, dirParryData, parry.PreAttackLen);
+
+		OnMeleeParrySound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.Equip);
 	}
 	else
 	{
@@ -1259,6 +1285,8 @@ void UAdvancedWeaponManager::Equip_Internal(int32 InIndex)
 				                                        ? meleeAnims->Shield.Equip
 				                                        : anims->Equip;
 			Multi_PlayAnim(weapon, equipData, data->DeEquipTime);
+
+			OnEquipSound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.Equip);
 			return;
 		}
 	}
@@ -1816,6 +1844,8 @@ void UAdvancedWeaponManager::ApplyBlockStun()
 
 		Multi_PlayAnim(meleeWeapon, dirBlockData, stunLen);
 		Client_BlockRuinStun(CurrentDirection, currentData.Block);
+
+		OnMeleeParrySound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.Block);
 	}
 	else
 	{

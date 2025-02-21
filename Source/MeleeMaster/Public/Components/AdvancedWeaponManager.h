@@ -105,6 +105,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWeaponManagerBlockRuinDelegate, EW
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWeaponManagerAttackRuinDelegate, EWeaponDirection, Direction,
                                              const FMeleeAttackData&, BlockData);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FWeaponManagerMeleeSound, UMeleeWeapon*, MeleeWeapon, const FMeleeSounds&, SoundPack,
+	const FGameplayTag&, SelectedSound);
 
 /**
  * @class UAdvancedWeaponManager
@@ -882,5 +884,23 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FWeaponManagerAttackRuinDelegate OnClientParryStunned;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Sounds")
+	FWeaponManagerMeleeSound OnEquipSound;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Sounds")
+	FWeaponManagerMeleeSound OnMeleeWhooshSound;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Sounds")
+	FWeaponManagerMeleeSound OnMeleeFleshHitSound;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Sounds")
+	FWeaponManagerMeleeSound OnMeleeWallHitSound;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Sounds")
+	FWeaponManagerMeleeSound OnMeleeParrySound;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Sounds")
+	FWeaponManagerMeleeSound OnMeleeBlockSound;
 #pragma endregion
 };

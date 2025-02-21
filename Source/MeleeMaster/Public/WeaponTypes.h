@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "WeaponTypes.generated.h"
 
 class UWeaponHitPathAsset;
@@ -402,6 +403,7 @@ enum class EBlockResult : uint8
 };
 
 
+
 class UAimOffsetBlendSpace1D;
 
 /**
@@ -445,7 +447,6 @@ struct MELEEMASTER_API FAnimMontageFullData
 	GENERATED_BODY()
 
 public:
-
 	/**
 	 * @brief Animation montage data for first-person view.
 	 */
@@ -467,6 +468,7 @@ USTRUCT(Blueprintable, BlueprintType)
 struct MELEEMASTER_API FSequenceData
 {
 	GENERATED_BODY()
+
 public:
 	FSequenceData(): FirstPerson(nullptr), ThirdPerson(nullptr)
 	{
@@ -478,7 +480,7 @@ public:
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	UAnimSequence* FirstPerson;
-	
+
 	/**
 	 * @brief Animation sequence for third-person view.
 	 */
@@ -595,8 +597,8 @@ USTRUCT(Blueprintable, BlueprintType)
 struct MELEEMASTER_API FMeleeBlockRuinAnimData
 {
 	GENERATED_BODY()
-public:
 
+public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FAnimMontageFullData Forward;
 
@@ -606,7 +608,7 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FAnimMontageFullData Right;
-	
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FAnimMontageFullData Left;
 
@@ -672,23 +674,44 @@ public:
 	 * @brief Aim offset blend space used for weapon aiming.
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	UAimOffsetBlendSpace1D* AimOffset { nullptr};
+	UAimOffsetBlendSpace1D* AimOffset{nullptr};
 };
 
 USTRUCT(Blueprintable, BlueprintType)
 struct MELEEMASTER_API FBowArrowData
 {
 	GENERATED_BODY()
+
 public:
 	FBowArrowData();
-public:
 
+public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, NoClear)
 	TSubclassOf<AActor> VisualActorClass;
-	
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FName HandSocketTP;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FName HandSocketFP;
+};
+
+USTRUCT(Blueprintable, BlueprintType)
+struct MELEEMASTER_API FMeleeSounds
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FGameplayTag Equip;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FGameplayTag Whoosh;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FGameplayTag FleshHit;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FGameplayTag WallHit;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FGameplayTag Parry;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FGameplayTag Block;
 };
