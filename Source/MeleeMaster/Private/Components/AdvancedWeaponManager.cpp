@@ -409,6 +409,8 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 	TMap<AActor*, FHitResult> hitMap;
 
 	// Make hitmap
+
+	bool bWasWallHit = false;
 	for (const FHitResult& hit : InHits)
 	{
 		if (AActor* hitActor = hit.GetActor())
@@ -424,6 +426,10 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 							hitMap.Add(hitActor, hit);
 						}
 					}
+					else
+					{
+						bWasWallHit = true;
+					}
 				}
 			}
 		}
@@ -433,6 +439,7 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 	UWeaponDataAsset* data = InWeapon->GetData();
 
 	TArray<FMeleeHitDebugData> debugArr;
+	
 	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(InWeapon))
 	{
 		UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(meleeWeapon->GetData()->Animations);
@@ -464,15 +471,12 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 
 			if (meleeAnims)
 			{
-				if (dmgReturn == EDamageReturn::Failed)
-				{
-					OnMeleeWallHitSound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.WallHit);
-				}
-				else
-				{
-					OnMeleeFleshHitSound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.FleshHit);
-				}
+				OnMeleeFleshHitSound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.FleshHit);
 			}
+		}
+		if (bWasWallHit)
+		{
+			OnMeleeWallHitSound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.WallHit);
 		}
 	}
 	else
@@ -947,7 +951,7 @@ void UAdvancedWeaponManager::StartParry(EWeaponDirection InDirection)
 		auto dirParryData = parryData.Get(InDirection);
 		Multi_PlayAnim(weapon, dirParryData, parry.PreAttackLen);
 
-		OnMeleeParrySound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.Equip);
+		OnMeleeParrySound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.Parry);
 	}
 	else
 	{
