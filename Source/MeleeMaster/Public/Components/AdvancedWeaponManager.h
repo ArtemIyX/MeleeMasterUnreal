@@ -108,6 +108,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWeaponManagerAttackRuinDelegate, E
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FWeaponManagerMeleeSound, UMeleeWeapon*, MeleeWeapon, const FMeleeSounds&, SoundPack,
 	const FGameplayTag&, SelectedSound);
 
+
+
 /**
  * @class UAdvancedWeaponManager
  * @brief Manages advanced weapon systems for characters.
@@ -902,5 +904,8 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Sounds")
 	FWeaponManagerMeleeSound OnMeleeBlockSound;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FWeaponManagerDelegate OnParry;
 #pragma endregion
 };

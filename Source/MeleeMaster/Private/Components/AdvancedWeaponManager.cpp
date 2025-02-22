@@ -944,7 +944,7 @@ void UAdvancedWeaponManager::StartParry(EWeaponDirection InDirection)
 		UCurveFloat* curve = parry.Curve.LoadSynchronous();
 		SetChargingCurve(curve);
 		OnStartedCharging.Broadcast(meleeWeapon, GetChargingCurve(), GetChargingFinishTime());
-
+		OnParry.Broadcast(meleeWeapon);
 		const FMeleeAttackAnimData& parryData = meleeWeapon->IsShieldEquipped()
 			                                        ? meleeAnims->Shield.Parry
 			                                        : meleeAnims->Parry;
@@ -2497,6 +2497,7 @@ void UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float Amount,
 	}
 	else if (blockResult == EBlockResult::Parry)
 	{
+
 		causerWpnManager->ApplyParryStun();
 		this->StartParry(CurrentDirection);
 		OutDamageReturn = EDamageReturn::Alive;
