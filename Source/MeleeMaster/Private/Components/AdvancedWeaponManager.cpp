@@ -251,7 +251,7 @@ bool UAdvancedWeaponManager::IsCurrentWeaponBlockAllowed() const
 {
 	if (UAbstractWeapon* wpn = GetCurrentWeapon())
 	{
-		return wpn->IsAttackDirected();
+		return wpn->IsBlockAllowed();
 	}
 	return false;
 }
@@ -260,7 +260,7 @@ bool UAdvancedWeaponManager::IsCurrentWeaponBlockDirected() const
 {
 	if (UAbstractWeapon* wpn = GetCurrentWeapon())
 	{
-		return wpn->IsAttackDirected();
+		return wpn->IsBlockDirected();
 	}
 	return false;
 }
@@ -965,12 +965,11 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 {
 	if (!CanBlock())
 		return;
-
 	GetWorld()->GetTimerManager().ClearTimer(FightTimerHandle);
 	GetWorld()->GetTimerManager().ClearTimer(HittingTimerHandle);
 
-	SetManagingStatus(EWeaponManagingStatus::Busy);
-	SetFightingStatus(EWeaponFightingStatus::BlockCharging);
+	// SetManagingStatus(EWeaponManagingStatus::Busy);
+	// SetFightingStatus(EWeaponFightingStatus::BlockCharging);
 	SetDirection(InDirection);
 
 	UAbstractWeapon* weapon = GetCurrentWeapon();
@@ -978,6 +977,9 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 	UWeaponAnimationDataAsset* anims = data->Animations;
 	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
 	{
+		SetManagingStatus(EWeaponManagingStatus::Busy);
+		SetFightingStatus(EWeaponFightingStatus::BlockCharging);
+		
 		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
 		if (!IsValid(meleeWeaponData))
 		{
@@ -1008,6 +1010,14 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 		const FMeleeBlockAnimMontageData& blockAnim = blockAnimData.Get(CurrentDirection);
 
 		Multi_PlayAnim(meleeWeapon, blockAnim, blockAnim.LiftingTime);
+	}
+	else if(ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
+	{
+		TRACE(LogWeapon, "Range weapon block");
+		SetManagingStatus(EWeaponManagingStatus::Idle);
+		SetFightingStatus(EWeaponFightingStatus::Idle);
+		Multi_CancelCurrentAnim();
+		Multi_RangeCanceled();
 	}
 	else
 	{
@@ -1592,6 +1602,14 @@ void UAdvancedWeaponManager::Multi_RangeChargingFinished_Implementation()
 	}
 }
 
+void UAdvancedWeaponManager::Multi_RangeCanceled_Implementation()
+{
+	if (IsValid(CurrentWeapon) && ClientWeaponModifierManager.IsValid())
+	{
+		ClientWeaponModifierManager->RangeCanceledAttack(CurrentWeapon);
+	}
+}
+
 void UAdvancedWeaponManager::Client_BlockChargingFinished_Implementation()
 {
 }
@@ -1620,6 +1638,8 @@ void UAdvancedWeaponManager::UpdateModifierCharging()
 		}
 	}
 }
+
+
 
 void UAdvancedWeaponManager::Multi_UpdateWeaponModifier_Implementation()
 {
@@ -2341,7 +2361,7 @@ bool UAdvancedWeaponManager::CanBlock() const
 
 	const EWeaponFightingStatus status = GetFightingStatus();
 	const bool bIdle = status == EWeaponFightingStatus::Idle;
-	const bool bAttackCharge = status == EWeaponFightingStatus::AttackCharging;
+	const bool bAttackCharge = status == EWeaponFightingStatus::AttackCharging || status == EWeaponFightingStatus::RangeCharging;
 
 	return bIdle || bAttackCharge;
 }

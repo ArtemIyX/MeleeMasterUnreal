@@ -53,6 +53,11 @@ bool AWeaponModifierManager::IsThirdClient() const
 	return false;
 }
 
+void AWeaponModifierManager::RangeCanceledAttack_Implementation(UAbstractWeapon* CurrentWeapon)
+{
+	
+}
+
 void AWeaponModifierManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Clear();

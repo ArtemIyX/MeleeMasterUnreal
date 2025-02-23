@@ -274,6 +274,7 @@ public:
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+
 #pragma endregion
 
 #pragma region OnRep
@@ -523,13 +524,15 @@ protected:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multi_UpdateWeaponModifier();
-
-
+	
 	UFUNCTION(NetMulticast, Reliable)
 	void Multi_MeleeChargeFinished();
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multi_RangeChargingFinished();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multi_RangeCanceled();
 
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multi_DebugHit(const TArray<FMeleeHitDebugData>& InData);

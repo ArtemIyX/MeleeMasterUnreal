@@ -44,6 +44,9 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void IdleState(UAbstractWeapon* CurrentWeapon);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void RangeCanceledAttack(UAbstractWeapon* CurrentWeapon);
 	
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
