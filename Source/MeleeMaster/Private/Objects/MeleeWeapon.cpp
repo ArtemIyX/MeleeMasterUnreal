@@ -9,7 +9,7 @@
 #include "Net/Core/PushModel/PushModel.h"
 
 UMeleeWeapon::UMeleeWeapon(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer),
-                                                                          bShieldEquipped(false)
+                                                                          bShieldEquipped(true)
 {
 }
 
