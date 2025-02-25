@@ -1013,7 +1013,7 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 	}
 	else if(ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
 	{
-		TRACE(LogWeapon, "Range weapon block");
+		//TRACE(LogWeapon, "Range weapon block");
 		SetManagingStatus(EWeaponManagingStatus::Idle);
 		SetFightingStatus(EWeaponFightingStatus::Idle);
 		Multi_CancelCurrentAnim();
@@ -2201,7 +2201,7 @@ bool UAdvancedWeaponManager::CanBlockSide(const FVector& DamageSourceLocation)
 
 	const float blockAngle = meleeWpn->GetCurrentMeleeCombinedData().BlockAngle;
 
-	TRACE(LogWeapon, "Block angle: %.1f", angleDegrees);
+	//TRACE(LogWeapon, "Block angle: %.1f", angleDegrees);
 
 	return angleDegrees <= blockAngle / 2.0f;
 }
@@ -2476,11 +2476,11 @@ void UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float Amount,
 			blockResult == EBlockResult::FullDamageBlockRuin)
 		{
 			realDmg = this->BlockIncomingDamage(Amount, causerWpnManager);
-			TRACE(LogWeapon, "%s Blocked some damage from %s. Incoming: %.1f. After block: %.1f",
+			/*TRACE(LogWeapon, "%s Blocked some damage from %s. Incoming: %.1f. After block: %.1f",
 			      *this->GetFName().ToString(),
 			      *Causer->GetFName().ToString(),
 			      Amount,
-			      realDmg);
+			      realDmg);*/
 		}
 
 		if (GetOwner()->Implements<UWeaponManagerOwner>())
