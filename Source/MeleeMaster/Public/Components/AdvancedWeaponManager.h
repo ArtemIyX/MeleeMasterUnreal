@@ -505,7 +505,7 @@ protected:
 
 #pragma region Client
 	UFUNCTION(Client, Reliable)
-	void Client_BlockRuinStun(EWeaponDirection InDirection, const FMeleeBlockData& InBlockData);
+	void Client_Blocked(EWeaponDirection InDirection, const FMeleeBlockData& InBlockData);
 
 	UFUNCTION(Client, Reliable)
 	void Client_ParryStun(EWeaponDirection InDirection, const FMeleeAttackData& InAttackData);
@@ -634,7 +634,10 @@ public:
 	virtual void NotifyEnemyMeleeBlocked();
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
-	virtual void ApplyBlockStun();
+	virtual void NotifyBlocked();
+	
+	/*UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
+	virtual void ApplyBlockStun();*/
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
 	virtual void ApplyParryStun();
@@ -885,7 +888,7 @@ public:
 	FAdvancedWeaponManagerDamageDelegate OnDamageRequested;
 
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
-	FWeaponManagerBlockRuinDelegate OnClientBlockRuined;
+	FWeaponManagerBlockRuinDelegate OnClientBlocked;
 
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FWeaponManagerAttackRuinDelegate OnClientParryStunned;

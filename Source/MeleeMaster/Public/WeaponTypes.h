@@ -394,11 +394,10 @@ UENUM(Blueprintable, BlueprintType)
 enum class EBlockResult : uint8
 {
 	Parry,
-	FullShieldBlock,
-	PartialShieldDamage,
-	PartialDamage,
+	Block,
+	ShieldBlock,
+	ShieldProjectileBlock,
 	FullDamage,
-	FullDamageBlockRuin,
 	Invalid
 };
 

@@ -439,7 +439,7 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 	UWeaponDataAsset* data = InWeapon->GetData();
 
 	TArray<FMeleeHitDebugData> debugArr;
-	
+
 	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(InWeapon))
 	{
 		UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(meleeWeapon->GetData()->Animations);
@@ -979,7 +979,7 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 	{
 		SetManagingStatus(EWeaponManagingStatus::Busy);
 		SetFightingStatus(EWeaponFightingStatus::BlockCharging);
-		
+
 		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
 		if (!IsValid(meleeWeaponData))
 		{
@@ -1011,7 +1011,7 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 
 		Multi_PlayAnim(meleeWeapon, blockAnim, blockAnim.LiftingTime);
 	}
-	else if(ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
+	else if (ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
 	{
 		//TRACE(LogWeapon, "Range weapon block");
 		SetManagingStatus(EWeaponManagingStatus::Idle);
@@ -1569,10 +1569,10 @@ void UAdvancedWeaponManager::Multi_DropWeaponVisual_Implementation(const FString
 }
 
 
-void UAdvancedWeaponManager::Client_BlockRuinStun_Implementation(EWeaponDirection InDirection,
-                                                                 const FMeleeBlockData& InBlockData)
+void UAdvancedWeaponManager::Client_Blocked_Implementation(EWeaponDirection InDirection,
+                                                           const FMeleeBlockData& InBlockData)
 {
-	OnClientBlockRuined.Broadcast(InDirection, InBlockData);
+	OnClientBlocked.Broadcast(InDirection, InBlockData);
 }
 
 void UAdvancedWeaponManager::Client_ParryStun_Implementation(EWeaponDirection InDirection,
@@ -1638,7 +1638,6 @@ void UAdvancedWeaponManager::UpdateModifierCharging()
 		}
 	}
 }
-
 
 
 void UAdvancedWeaponManager::Multi_UpdateWeaponModifier_Implementation()
@@ -1823,7 +1822,54 @@ void UAdvancedWeaponManager::NotifyEnemyMeleeBlocked()
 	}
 }
 
-void UAdvancedWeaponManager::ApplyBlockStun()
+void UAdvancedWeaponManager::NotifyBlocked()
+{
+	UAbstractWeapon* weapon = GetCurrentWeapon();
+	UWeaponDataAsset* data = weapon->GetData();
+	UWeaponAnimationDataAsset* anims = data->Animations;
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
+	{
+		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s)to apply block",
+			           *data->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(anims);
+		if (!IsValid(meleeAnims))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s)to apply block",
+			           *data->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		const FMeleeCombinedData& currentData = meleeWeapon->GetCurrentMeleeCombinedData();
+		/*float stunLen = currentData.Block.BlockStunLen;
+
+		const FMeleeBlockRuinAnimData& blockRuinAnimData = meleeWeapon->IsShieldEquipped()
+															   ? meleeAnims->Shield.BlockRuin
+															   : meleeAnims->BlockRuin;
+		const FAnimMontageFullData& dirBlockData = blockRuinAnimData.Get(CurrentDirection);
+		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle,
+											   FTimerDelegate::CreateUObject(
+												   this, &UAdvancedWeaponManager::BlockStunFinished),
+											   stunLen, false);*/
+
+		//Multi_PlayAnim(meleeWeapon, dirBlockData, stunLen);
+		OnMeleeBlockSound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.Block);
+		Client_Blocked(CurrentDirection, currentData.Block);
+	}
+	else
+	{
+		TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to apply block",
+		           *data->GetClass()->GetFName().ToString());
+		return;
+	}
+}
+
+/*void UAdvancedWeaponManager::ApplyBlockStun()
 {
 	SetManagingStatus(EWeaponManagingStatus::Busy);
 	SetFightingStatus(EWeaponFightingStatus::BlockStunned);
@@ -1867,9 +1913,9 @@ void UAdvancedWeaponManager::ApplyBlockStun()
 		                                       stunLen, false);
 
 		Multi_PlayAnim(meleeWeapon, dirBlockData, stunLen);
-		Client_BlockRuinStun(CurrentDirection, currentData.Block);
+		Client_Blocked(CurrentDirection, currentData.Block);
 
-		OnMeleeParrySound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.Block);
+		OnMeleeBlockSound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.Block);
 	}
 	else
 	{
@@ -1877,7 +1923,7 @@ void UAdvancedWeaponManager::ApplyBlockStun()
 		           *data->GetClass()->GetFName().ToString());
 		return;
 	}
-}
+}*/
 
 void UAdvancedWeaponManager::ApplyParryStun()
 {
@@ -2049,7 +2095,6 @@ EBlockResult UAdvancedWeaponManager::CanBlockIncomingDamage(UAdvancedWeaponManag
 	if (Causer->GetFightingStatus() != EWeaponFightingStatus::Attacking)
 		return EBlockResult::Invalid;
 
-
 	const float blockValue = EvaluateCurrentCurve();
 	const float attackValue = Causer->GetCurrentHitPower();
 
@@ -2064,47 +2109,25 @@ EBlockResult UAdvancedWeaponManager::CanBlockIncomingDamage(UAdvancedWeaponManag
 	 */
 	const bool bIsAbleToParry = blockTier >= attackTier;
 
-	// Full attack and full block = Block penetration
-	if (attackValue >= 1.0f && blockValue >= 1.0f)
+	if (bShield)
 	{
-		if (bShield)
-		{
-			// Very strong shield attack - you both get stunned
-			return EBlockResult::PartialDamage;
-		}
-		return EBlockResult::PartialDamage;
+		return EBlockResult::ShieldBlock;
 	}
 
-	// Full block, but not full attack = parry/partial damage
-	if (attackValue < 1.0f && blockValue >= 1.0f)
+	if (attackValue >= 1.0)
 	{
-		if (bShield)
-		{
-			return EBlockResult::FullShieldBlock;
-		}
-		return bIsAbleToParry ? EBlockResult::Parry : EBlockResult::PartialDamage;
+		return EBlockResult::Block;
 	}
 
-	// The attack is weaker than the block
+	if (attackValue >= blockValue)
+	{
+		return EBlockResult::Block;
+	}
+
 	if (attackValue < blockValue)
 	{
-		if (bShield)
-		{
-			return EBlockResult::PartialShieldDamage;
-		}
-		return bIsAbleToParry ? EBlockResult::Parry : EBlockResult::PartialDamage;
+		return bIsAbleToParry ? EBlockResult::Parry : EBlockResult::Block;
 	}
-
-	// The attack is stronger than the block, so it breaks through the block.
-	if (attackValue > blockValue)
-	{
-		if (bShield)
-		{
-			return EBlockResult::PartialShieldDamage;
-		}
-		return EBlockResult::FullDamageBlockRuin;
-	}
-
 	return EBlockResult::FullDamage;
 }
 
@@ -2126,7 +2149,7 @@ EBlockResult UAdvancedWeaponManager::CanBlockIncomingProjectileDamage()
 
 	if (meleeWpn->IsShieldEquipped())
 	{
-		return EBlockResult::PartialShieldDamage;
+		return EBlockResult::ShieldProjectileBlock;
 	}
 	return EBlockResult::FullDamage;
 }
@@ -2361,7 +2384,8 @@ bool UAdvancedWeaponManager::CanBlock() const
 
 	const EWeaponFightingStatus status = GetFightingStatus();
 	const bool bIdle = status == EWeaponFightingStatus::Idle;
-	const bool bAttackCharge = status == EWeaponFightingStatus::AttackCharging || status == EWeaponFightingStatus::RangeCharging;
+	const bool bAttackCharge = status == EWeaponFightingStatus::AttackCharging || status ==
+		EWeaponFightingStatus::RangeCharging;
 
 	return bIdle || bAttackCharge;
 }
@@ -2463,9 +2487,37 @@ void UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float Amount,
 	}
 
 	float realDmg = Amount;
+	if (blockResult == EBlockResult::Invalid)
+	{
+		return;
+	}
+	if (blockResult == EBlockResult::Parry)
+	{
+		causerWpnManager->ApplyParryStun();
+		this->StartParry(CurrentDirection);
+		OutDamageReturn = EDamageReturn::Alive;
+		OutDamage = 0.01 * realDmg;
+		return;
+	}
+
+	if (blockResult != EBlockResult::FullDamage)
+	{
+		realDmg = this->BlockIncomingDamage(Amount, causerWpnManager);
+	}
+
+	IWeaponManagerOwner::Execute_ApplyDamage(GetOwner(), Causer, realDmg, HitResult,
+	                                         DamageType,
+	                                         OutDamageReturn, OutDamage);
+
+	if (blockResult == EBlockResult::Block)
+	{
+		// Sound, effect, etc
+		this->NotifyBlocked();
+	}
+
 	//EDamageReturn dmgReturnResult = EDamageReturn::Failed;
 	// Apply damage
-	if (blockResult == EBlockResult::FullDamage ||
+	/*if (blockResult == EBlockResult::FullDamage ||
 		blockResult == EBlockResult::PartialDamage ||
 		blockResult == EBlockResult::PartialShieldDamage ||
 		blockResult == EBlockResult::FullDamageBlockRuin)
@@ -2480,7 +2532,7 @@ void UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float Amount,
 			      *this->GetFName().ToString(),
 			      *Causer->GetFName().ToString(),
 			      Amount,
-			      realDmg);*/
+			      realDmg);#1#
 		}
 
 		if (GetOwner()->Implements<UWeaponManagerOwner>())
@@ -2517,13 +2569,12 @@ void UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float Amount,
 	}
 	else if (blockResult == EBlockResult::Parry)
 	{
-
 		causerWpnManager->ApplyParryStun();
 		this->StartParry(CurrentDirection);
 		OutDamageReturn = EDamageReturn::Alive;
 		OutDamage = 0.0f;
 		return;
-	}
+	}*/
 }
 
 void UAdvancedWeaponManager::ProcessProjectileDamage(AActor* Causer, float Amount, const FHitResult& HitResult,
@@ -2542,7 +2593,25 @@ void UAdvancedWeaponManager::ProcessProjectileDamage(AActor* Causer, float Amoun
 		blockResult = CanBlockIncomingProjectileDamage();
 	}
 
-	if (blockResult == EBlockResult::FullShieldBlock)
+	if (blockResult == EBlockResult::ShieldProjectileBlock)
+	{
+		if (UMeleeWeapon* melee = Cast<UMeleeWeapon>(GetCurrentWeapon()))
+		{
+			if (UMeleeWeaponDataAsset* meleeData = melee->GetMeleeData())
+			{
+				Amount = Amount * (1.0f - FMath::Clamp(meleeData->ShieldProjectileBlockPercent, 0.0f, 1.0f));
+			}
+		}
+	}
+
+	if (GetOwner()->Implements<UWeaponManagerOwner>())
+	{
+		IWeaponManagerOwner::Execute_ApplyDamage(GetOwner(), Causer, Amount, HitResult,
+		                                         DamageType,
+		                                         OutDamageReturn, OutDamage);
+	}
+
+	/*if (blockResult == EBlockResult::FullShieldBlock)
 	{
 		OutDamageReturn = EDamageReturn::Alive;
 		OutDamage = 0.0f;
@@ -2572,7 +2641,7 @@ void UAdvancedWeaponManager::ProcessProjectileDamage(AActor* Causer, float Amoun
 			                                         OutDamageReturn, OutDamage);
 		}
 		return;
-	}
+	}*/
 }
 
 
