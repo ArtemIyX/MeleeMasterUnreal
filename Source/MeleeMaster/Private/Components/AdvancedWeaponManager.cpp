@@ -1964,6 +1964,7 @@ void UAdvancedWeaponManager::ApplyParryStun()
 			                                       this, &UAdvancedWeaponManager::ParryStunFinished),
 		                                       stunLen, false);
 
+		OnParryStunned.Broadcast(CurrentDirection, currentData.Attack);
 		Multi_CancelCurrentAnim();
 		Client_ParryStun(CurrentDirection, currentData.Attack);
 	}

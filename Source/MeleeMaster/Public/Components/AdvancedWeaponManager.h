@@ -893,6 +893,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FWeaponManagerAttackRuinDelegate OnClientParryStunned;
 
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FWeaponManagerAttackRuinDelegate OnParryStunned;
+	
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Sounds")
 	FWeaponManagerMeleeSound OnEquipSound;
 
