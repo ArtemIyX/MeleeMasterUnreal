@@ -132,4 +132,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void HideShadow();
+
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent)
+	void PlayPower();
+
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent)
+	void StopPower();
 };

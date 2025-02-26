@@ -2027,6 +2027,11 @@ bool UAdvancedWeaponManager::IsBlocking() const
 		EWeaponFightingStatus::BlockCharging;
 }
 
+bool UAdvancedWeaponManager::IsChargingMeleeAttack() const
+{
+	return GetFightingStatus() == EWeaponFightingStatus::AttackCharging;
+}
+
 EBlockResult UAdvancedWeaponManager::CanBlockIncomingDamage(UAdvancedWeaponManager* Causer)
 {
 	if (!IsValid(Causer))

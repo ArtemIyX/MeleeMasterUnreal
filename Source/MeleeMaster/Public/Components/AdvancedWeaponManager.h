@@ -750,6 +750,9 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Weapon")
 	bool IsBlocking() const;
 
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Weapon")
+	bool IsChargingMeleeAttack() const;
+
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Block")
 	EBlockResult CanBlockIncomingDamage(UAdvancedWeaponManager* Causer);
 
