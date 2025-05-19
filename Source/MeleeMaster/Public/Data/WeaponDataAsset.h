@@ -11,6 +11,7 @@ class UWeaponModifierManager;
 class UWeaponAnimationDataAsset;
 class AWeaponVisual;
 class UAbstractWeapon;
+
 /**
  * @class UWeaponDataAsset
  * @brief Asset class that contains data for weapon configuration.

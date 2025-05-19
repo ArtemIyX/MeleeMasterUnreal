@@ -863,12 +863,6 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FAdvancedWeaponManagerAnimationDelegate OnTpAnim;
 
-	/*UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
-	FAdvancedWeaponManagerAnimationVisualDelegate OnFpVisualAnim;
-
-	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
-	FAdvancedWeaponManagerAnimationVisualDelegate OnTpVisualAnim;*/
-
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FWeaponManagerChargingDelegate OnStartedCharging;
 
