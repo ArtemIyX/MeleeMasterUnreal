@@ -123,11 +123,11 @@ void UAdvancedWeaponManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (GetOwner()->HasAuthority())
+	if (GetWorld()->GetNetMode() == NM_DedicatedServer || GetWorld()->GetNetMode() == NM_Standalone)
 	{
-		AddDefaultWeapon_Internal();
+		SetFightingStatus(EWeaponFightingStatus::Idle);
+		SetManagingStatus(EWeaponManagingStatus::Idle);
 	}
-	// ...
 }
 
 void UAdvancedWeaponManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -178,7 +178,7 @@ void UAdvancedWeaponManager::TickComponent(float DeltaTime, ELevelTick TickType,
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (!GetOwner()->HasAuthority() && GetOwner()->GetLocalRole() != ROLE_Authority)
+	if (GetWorld()->GetNetMode() != NM_DedicatedServer)
 	{
 		UpdateModifierCharging();
 	}
@@ -381,10 +381,13 @@ void UAdvancedWeaponManager::CreateVisuals(UAbstractWeapon* InAbstractWeapon)
 	}
 	InAbstractWeapon->SetVisual(actors);
 
-	// Attach to owner (on server)
-	for (int32 i = 0; i < actors.Num(); ++i)
+	if (GetWorld()->GetNetMode() != NM_Standalone)
 	{
-		actors[i]->AttachToActor(GetOwner(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+		// Attach to owner (on server)
+		for (int32 i = 0; i < actors.Num(); ++i)
+		{
+			actors[i]->AttachToActor(GetOwner(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+		}
 	}
 }
 
@@ -493,7 +496,7 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 
 void UAdvancedWeaponManager::Multi_DebugHit_Implementation(const TArray<FMeleeHitDebugData>& InData)
 {
-	if (GetOwner()->HasAuthority())
+	if (GetWorld()->GetNetMode() != NM_DedicatedServer)
 		return;
 	if (bDebugMeleeHits)
 	{
@@ -524,15 +527,6 @@ void UAdvancedWeaponManager::PreAttackFinished()
 			           *data->GetClass()->GetFName().ToString());
 			return;
 		}
-
-		/*UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(weapon->GetData()->Animations);
-
-		if (!IsValid(meleeAnims))
-		{
-			TRACEERROR(LogWeapon, "Invalid weapon animation data class (%s) to start charging attack",
-			           *data->GetClass()->GetFName().ToString());
-			return;
-		}*/
 
 		const FMeleeAttackCurveData& attack = meleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(CurrentDirection);
 		float currentTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
@@ -898,6 +892,24 @@ void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapo
 		           *weapon->GetClass()->GetFName().ToString());
 		return;
 	}
+}
+
+bool UAdvancedWeaponManager::IsLocalCustomPlayer()
+{
+	if (APawn* ownerPawn = GetOwner<APawn>())
+	{
+		// For single player
+		if (GetWorld()->GetNetMode() == NM_Standalone)
+		{
+			// Only player should control local pawn
+			return ownerPawn->IsPlayerControlled();
+		}
+		// For multiplayer only client, only locally controlled and only player controlled
+		return ownerPawn->GetLocalRole() == ROLE_AutonomousProxy
+			&& ownerPawn->IsLocallyControlled()
+			&& ownerPawn->IsPlayerControlled();
+	}
+	return false;
 }
 
 
@@ -1307,7 +1319,7 @@ void UAdvancedWeaponManager::Equip_Internal(int32 InIndex)
 	Multi_PlayAnim(weapon, anims->Equip, data->EquipTime);
 }
 
-void UAdvancedWeaponManager::AddDefaultWeapon_Internal()
+void UAdvancedWeaponManager::AddDefaultWeapons()
 {
 	if (DefaultWeapons.Num() <= 0)
 		return;
@@ -1493,7 +1505,8 @@ void UAdvancedWeaponManager::Multi_PlayVisualAnim_Implementation(UAbstractWeapon
 void UAdvancedWeaponManager::Multi_AttachHand_Implementation()
 {
 	// Skip servers, it is already attached to actor
-	if (GetOwner()->HasAuthority())
+	// Do not skip NM_Standalone
+	if (GetWorld()->GetNetMode() == NM_DedicatedServer)
 		return;
 
 	UAbstractWeapon* current = GetCurrentWeapon();
@@ -1512,7 +1525,7 @@ void UAdvancedWeaponManager::Multi_AttachHand_Implementation()
 void UAdvancedWeaponManager::Multi_AttachBack_Implementation(const FString& InWeaponGuid)
 {
 	// Skip servers, it is already attached to actor
-	if (GetOwner()->HasAuthority())
+	if (GetWorld()->GetNetMode() == NM_DedicatedServer)
 		return;
 
 	UAbstractWeapon* wpn = WeaponByGuid(InWeaponGuid);
@@ -1530,7 +1543,7 @@ void UAdvancedWeaponManager::Multi_AttachBack_Implementation(const FString& InWe
 
 void UAdvancedWeaponManager::Multi_CancelCurrentAnim_Implementation()
 {
-	if (GetOwnerRole() == ROLE_AutonomousProxy)
+	if (IsLocalCustomPlayer())
 	{
 		OnCancelCurrentFpAnim.Broadcast();
 	}
@@ -1544,11 +1557,9 @@ void UAdvancedWeaponManager::Multi_CancelCurrentAnim_Implementation()
 void UAdvancedWeaponManager::Multi_DropWeaponVisual_Implementation(const FString& InWeaponGuid)
 {
 	// Skip server
-	if (GetOwner()->HasAuthority())
+	if (GetWorld()->GetNetMode() == NM_DedicatedServer)
 		return;
-	AActor* owner = GetOwner();
-	const ENetRole role = owner->GetLocalRole();
-	const bool bIsLocallyControlled = (role == ROLE_AutonomousProxy);
+
 	if (UAbstractWeapon* weapon = WeaponByGuid(InWeaponGuid))
 	{
 		TArray<AWeaponVisual*> weaponVisuals;
@@ -1557,7 +1568,8 @@ void UAdvancedWeaponManager::Multi_DropWeaponVisual_Implementation(const FString
 		{
 			if (IsValid(visual))
 			{
-				if (bIsLocallyControlled)
+				// Manipulate visibility only for local player (camera case)
+				if (IsLocalCustomPlayer())
 				{
 					visual->Show();
 				}
@@ -1642,8 +1654,10 @@ void UAdvancedWeaponManager::UpdateModifierCharging()
 
 void UAdvancedWeaponManager::Multi_UpdateWeaponModifier_Implementation()
 {
-	if (GetOwnerRole() == ROLE_Authority)
+	// Skip server
+	if (GetWorld()->GetNetMode() == NM_DedicatedServer)
 		return;
+
 	if (ClientWeaponModifierManager.IsValid())
 	{
 		ClientWeaponModifierManager->Destroy();
@@ -1672,9 +1686,8 @@ void UAdvancedWeaponManager::Multi_UpdateWeaponModifier_Implementation()
 void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InVisual)
 {
 	// Skip server, it is already attached to actor
-	if (GetOwner()->HasAuthority())
+	if (GetWorld()->GetNetMode() == NM_DedicatedServer)
 		return;
-
 
 	if (!IsValid(InVisual))
 		return;
@@ -1693,13 +1706,14 @@ void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InVisual)
 	}
 
 	ENetRole role = owner->GetLocalRole();
-	bool bIsLocallyControlled = (role == ROLE_AutonomousProxy);
+	FString res = UEnum::GetValueAsString(role);
+
 
 	FName backSocket = InVisual->GetBackSocket();
 	InVisual->AttachToComponent(attachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale,
 	                            backSocket);
 
-	if (bIsLocallyControlled)
+	if (IsLocalCustomPlayer())
 	{
 		InVisual->Hide();
 	}
@@ -1708,7 +1722,7 @@ void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InVisual)
 void UAdvancedWeaponManager::AttachHand(AWeaponVisual* InVisual)
 {
 	// Skip servers, it is already attached to actor
-	if (GetOwner()->HasAuthority())
+	if (GetWorld()->GetNetMode() == NM_DedicatedServer)
 		return;
 
 	if (!IsValid(InVisual))
@@ -1727,15 +1741,14 @@ void UAdvancedWeaponManager::AttachHand(AWeaponVisual* InVisual)
 		attachComponent = owner->FindComponentByClass<USkeletalMeshComponent>();
 	}
 
-	const ENetRole role = owner->GetLocalRole();
-	const bool bIsLocallyControlled = (role == ROLE_AutonomousProxy);
-
 	const FName handSocket = InVisual->GetHandSocket();
 	InVisual->AttachToComponent(attachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale,
 	                            handSocket);
 	FString wpn = InVisual->GetGUIDString();
 	//TRACE(LogWeapon, "Visual '%s' was attached to hand. Saved Guid: '%s'", *wpn, *SavedGuid);
-	if (bIsLocallyControlled)
+
+	// Manipulate visibility for local player (camera case)
+	if (IsLocalCustomPlayer())
 	{
 		InVisual->Show();
 	}
@@ -2005,10 +2018,9 @@ void UAdvancedWeaponManager::StopWork()
 
 void UAdvancedWeaponManager::DropWeaponVisual(const FString& InWeaponGuid)
 {
-	if (GetOwner()->HasAuthority())
-	{
-		Multi_DropWeaponVisual(InWeaponGuid);
-	}
+	// Should be server side call or single player 
+	Multi_DropWeaponVisual(InWeaponGuid);
+	
 }
 
 bool UAdvancedWeaponManager::RemoveWeapon(int32 InIndex)
@@ -2362,10 +2374,7 @@ bool UAdvancedWeaponManager::CanAttack() const
 	if (!cur->IsValidData())
 		return false;
 	EWeaponFightingStatus fightingStatus = GetFightingStatus();
-	if (!GetOwner()->HasAuthority())
-	{
-		//TRACEWARN(LogWeapon, "Fighting status was: %s", *UEnum::GetValueAsString(fightingStatus));
-	}
+
 
 	bool bCharging = fightingStatus == EWeaponFightingStatus::AttackCharging || fightingStatus ==
 		EWeaponFightingStatus::RangeCharging;

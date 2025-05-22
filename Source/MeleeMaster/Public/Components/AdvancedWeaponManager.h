@@ -225,18 +225,7 @@ protected:
 	 * @param InNewWeapon The new weapon to equip.
 	 */
 	virtual void SetCurrentWeaponPtr(UAbstractWeapon* InNewWeapon);
-
-	/**
-	 * @brief Sets the current managing status of the weapon.
-	 * @param InStatus The new managing status.
-	 */
-	virtual void SetManagingStatus(EWeaponManagingStatus InStatus);
-
-	/**
-	 * @brief Sets the current fighting status of the weapon.
-	 * @param InStatus The new fighting status.
-	 */
-	virtual void SetFightingStatus(EWeaponFightingStatus InStatus);
+	
 
 	/**
 	 * @brief Sets the current direction of weapon interaction.
@@ -327,10 +316,12 @@ protected:
 	virtual void DeEquip_Internal(int32 InIndex);
 
 	virtual void Equip_Internal(int32 InIndex);
-	virtual void AddDefaultWeapon_Internal();
+
 
 	virtual void AttackMelee_Internal(class UMeleeWeapon* InMeleeWeapon);
 	virtual void AttackRange_Internal(class ULongRangeWeapon* InRangeWeapon);
+
+	virtual bool IsLocalCustomPlayer();
 #pragma endregion
 
 #pragma region Utils
@@ -619,6 +610,21 @@ public:
 
 #pragma region Exposed
 
+	/**
+	 * @brief Sets the current managing status of the weapon.
+	 * @param InStatus The new managing status.
+	 */
+	virtual void SetManagingStatus(EWeaponManagingStatus InStatus);
+
+	/**
+	 * @brief Sets the current fighting status of the weapon.
+	 * @param InStatus The new fighting status.
+	 */
+	virtual void SetFightingStatus(EWeaponFightingStatus InStatus);
+	
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Weapon")
+	virtual void AddDefaultWeapons();
+	
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Anim")
 	virtual void NotifyPlayWeaponAnim(UAbstractWeapon* InWeapon, const FAnimMontageFullData& InMontageData,
