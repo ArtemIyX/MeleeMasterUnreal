@@ -74,24 +74,44 @@ void UAdvancedWeaponManager::SetCurrentWeaponPtr(UAbstractWeapon* InNewWeapon)
 {
 	this->CurrentWeapon = InNewWeapon;
 	MARK_PROPERTY_DIRTY_FROM_NAME(UAdvancedWeaponManager, CurrentWeapon, this);
+
+	if (GetWorld()->GetNetMode() == NM_Standalone)
+	{
+		OnRep_CurrentWeapon();
+	}
 }
 
 void UAdvancedWeaponManager::SetManagingStatus(EWeaponManagingStatus InStatus)
 {
 	this->ManagingStatus = InStatus;
 	MARK_PROPERTY_DIRTY_FROM_NAME(UAdvancedWeaponManager, ManagingStatus, this);
+	if (GetWorld()->GetNetMode() == NM_Standalone)
+	{
+		OnRep_ManagingStatus();
+	}
 }
 
 void UAdvancedWeaponManager::SetFightingStatus(EWeaponFightingStatus InStatus)
 {
+	EWeaponFightingStatus previous = this->FightingStatus;
 	this->FightingStatus = InStatus;
 	MARK_PROPERTY_DIRTY_FROM_NAME(UAdvancedWeaponManager, FightingStatus, this);
+
+	if (GetWorld()->GetNetMode() == NM_Standalone)
+	{
+		OnRep_FightingStatus(previous);
+	}
 }
 
 void UAdvancedWeaponManager::SetDirection(EWeaponDirection InDirection)
 {
 	this->CurrentDirection = InDirection;
 	MARK_PROPERTY_DIRTY_FROM_NAME(UAdvancedWeaponManager, CurrentDirection, this);
+
+	if (GetWorld()->GetNetMode() == NM_Standalone)
+	{
+		OnRep_CurrentDirection();
+	}
 }
 
 void UAdvancedWeaponManager::SetSavedGuid(FString Value)
@@ -103,18 +123,33 @@ void UAdvancedWeaponManager::SetChargingCurve(UCurveFloat* InCurve)
 {
 	this->CurrentCurve = InCurve;
 	MARK_PROPERTY_DIRTY_FROM_NAME(UAdvancedWeaponManager, CurrentCurve, this);
+
+	if (GetWorld()->GetNetMode() == NM_Standalone)
+	{
+		OnRep_CurrentCurve();
+	}
 }
 
 void UAdvancedWeaponManager::SetChargeFinished(float InFinishTime)
 {
 	this->ChargeWillBeFinished = InFinishTime;
 	MARK_PROPERTY_DIRTY_FROM_NAME(UAdvancedWeaponManager, ChargeWillBeFinished, this);
+
+	if (GetWorld()->GetNetMode() == NM_Standalone)
+	{
+		OnRep_Charge();
+	}
 }
 
 void UAdvancedWeaponManager::SetChargeStarted(float InStartTime)
 {
 	this->ChargeStarted = InStartTime;
 	MARK_PROPERTY_DIRTY_FROM_NAME(UAdvancedWeaponManager, ChargeStarted, this);
+
+	if (GetWorld()->GetNetMode() == NM_Standalone)
+	{
+		OnRep_ChargeStarted();
+	}
 }
 
 
@@ -753,8 +788,7 @@ void UAdvancedWeaponManager::Server_Attack_Implementation()
 	HitPower = EvaluateCurrentCurve();
 	SetFightingStatus(EWeaponFightingStatus::Attacking);
 	UAbstractWeapon* weapon = GetCurrentWeapon();
-	//UWeaponDataAsset* data = weapon->GetData();
-	//UWeaponAnimationDataAsset* anims = data->Animations;
+
 	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
 	{
 		AttackMelee_Internal(meleeWeapon);
@@ -1466,9 +1500,8 @@ void UAdvancedWeaponManager::Multi_PlayAnim_Implementation(
 	{
 		data = FAnimPlayData(InWeapon, InAnimSet, InTimeLen);
 	}
-	// TRACE(LogWeapon, "Saved guid now is: '%s'. Anim to play: %s", *SavedGuid,
-	//       *data.AnimSet.ThirdPerson.Value.LoadSynchronous()->GetFName().ToString());
-	if (GetOwnerRole() == ROLE_AutonomousProxy)
+
+	if (IsLocalCustomPlayer())
 	{
 		OnFpAnim.Broadcast(data);
 	}
@@ -1497,7 +1530,7 @@ void UAdvancedWeaponManager::Multi_PlayVisualAnim_Implementation(UAbstractWeapon
 	bool bVisual = InWeapon->GetVisualActor(VisualIndex, wpnVisual);
 	if (bVisual && IsValid(wpnVisual))
 	{
-		wpnVisual->PlayAnim(data, GetOwnerRole() == ROLE_AutonomousProxy);
+		wpnVisual->PlayAnim(data, IsLocalCustomPlayer());
 	}
 }
 
@@ -1704,10 +1737,6 @@ void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InVisual)
 		// Do not call this
 		attachComponent = owner->FindComponentByClass<USkeletalMeshComponent>();
 	}
-
-	ENetRole role = owner->GetLocalRole();
-	FString res = UEnum::GetValueAsString(role);
-
 
 	FName backSocket = InVisual->GetBackSocket();
 	InVisual->AttachToComponent(attachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale,
@@ -2020,7 +2049,6 @@ void UAdvancedWeaponManager::DropWeaponVisual(const FString& InWeaponGuid)
 {
 	// Should be server side call or single player 
 	Multi_DropWeaponVisual(InWeaponGuid);
-	
 }
 
 bool UAdvancedWeaponManager::RemoveWeapon(int32 InIndex)
