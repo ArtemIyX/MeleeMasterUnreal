@@ -15,7 +15,7 @@
 #include "Data/WeaponDataAsset.h"
 #include "Data/WeaponHitPathAsset.h"
 #include "Data/Interfaces/DamageableEntity.h"
-#include "Data/Interfaces/DamageManager.h"
+#include "Data/Interfaces/DamageManagerInterface.h"
 #include "Data/Interfaces/WeaponManagerOwner.h"
 #include "Engine/ActorChannel.h"
 #include "GameFramework/GameStateBase.h"

@@ -6,7 +6,7 @@
 #include "WeaponTypes.h"
 #include "GameFramework/PlayerState.h"
 #include "UObject/Interface.h"
-#include "DamageManager.generated.h"
+#include "DamageManagerInterface.generated.h"
 
 
 // This class does not need to be modified.
