@@ -108,7 +108,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWeaponManagerAttackRuinDelegate, E
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FWeaponManagerMeleeSound, UMeleeWeapon*, MeleeWeapon, const FMeleeSounds&, SoundPack,
 	const FGameplayTag&, SelectedSound);
 
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FWeaponManagerMeleeCameraShake,
+	UMeleeWeapon*, MeleeWeapon,
+	const FDirectionCameraShakes&, CameraShakePack,
+	EWeaponDirection, RequireddDirection);
 
 /**
  * @class UAdvancedWeaponManager
@@ -262,6 +265,7 @@ public:
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
 
 
 #pragma endregion
@@ -919,5 +923,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FWeaponManagerDelegate OnParry;
+
+	/* Executed on server */
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FWeaponManagerMeleeCameraShake OnMeleeCameraShake;
 #pragma endregion
 };

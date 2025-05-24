@@ -59,6 +59,7 @@ struct MELEEMASTER_API FDirectionCameraShakes
 {
 	GENERATED_BODY()
 
+public:
 	/**
 	* @brief Camera shake for forward direction.
 	*/
@@ -82,6 +83,9 @@ struct MELEEMASTER_API FDirectionCameraShakes
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TSubclassOf<UCameraShakeBase> Left;
+
+public:
+	TSubclassOf<UCameraShakeBase> Get(EWeaponDirection InWeaponDirection) const;
 };
 
 /**
@@ -198,13 +202,10 @@ public:
 	float PostBlockLen{0.2f};
 };
 
-/**
- * @struct FMeleeAttackData
- * @brief Struct containing directional attack curve data for different melee attack directions.
- */
 USTRUCT(Blueprintable, BlueprintType)
-struct MELEEMASTER_API FMeleeAttackData
+struct MELEEMASTER_API FMeleeAttackDataBase
 {
+public:
 	GENERATED_BODY()
 
 public:
@@ -237,19 +238,41 @@ public:
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float AttackStunLen{0.3f};
-
-	/**
-	 * @brief Camera shakes applied during the attack stun phase.
-	 */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FDirectionCameraShakes AttackStunCameraShakes;
-
 	/**
 	 * @brief Returns the attack curve data for a given direction.
 	 * @param InDir The direction of the attack.
 	 * @return The corresponding attack curve data.
 	 */
 	const FMeleeAttackCurveData& Get(EWeaponDirection InDir) const;
+};
+
+/**
+ * @struct FMeleeAttackData
+ * @brief Struct containing directional attack curve data for different melee attack directions.
+ */
+USTRUCT(Blueprintable, BlueprintType)
+struct MELEEMASTER_API FMeleeAttackData : public FMeleeAttackDataBase
+{
+	GENERATED_BODY()
+
+public:
+	/**
+	 * @brief Camera shakes applied during the starting of charging attack
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FDirectionCameraShakes ChargeCameraShakes;
+
+	/**
+	 * @brief Camera shakes applied during the first hit (wall, flesh etc)
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FDirectionCameraShakes HitCameraShakes;
+
+	/**
+	 * @brief Camera shakes applied during the starting of hitting process
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FDirectionCameraShakes PostChargeCameraShakes;
 };
 
 /**
@@ -329,7 +352,7 @@ public:
 	 * @brief Data for melee parry curves and timings.
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FMeleeAttackData Parry;
+	FMeleeAttackDataBase Parry;
 
 	/**
 	 * @brief Data for melee block curves and timings.
@@ -400,7 +423,6 @@ enum class EBlockResult : uint8
 	FullDamage,
 	Invalid
 };
-
 
 
 class UAimOffsetBlendSpace1D;

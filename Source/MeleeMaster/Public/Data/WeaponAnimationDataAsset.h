@@ -49,4 +49,5 @@ public:
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Misc")
 	UAimOffsetBlendSpace1D* AimOffset;
+
 };

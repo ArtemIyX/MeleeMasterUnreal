@@ -5,6 +5,19 @@
 #include "Components/AdvancedWeaponManager.h"
 #include "Data/WeaponHitPathAsset.h"
 
+TSubclassOf<UCameraShakeBase> FDirectionCameraShakes::Get(EWeaponDirection InWeaponDirection) const
+{
+	switch (InWeaponDirection)
+	{
+	case EWeaponDirection::Forward: return Forward;
+	case EWeaponDirection::Backward: return Backward;
+	case EWeaponDirection::Right: return Right;
+	case EWeaponDirection::Left: return Left;
+	default: ;
+	}
+	return Forward;
+}
+
 float FMeleeAttackCurveData::GetDamage() const
 {
 	if (bDamageForFullPath && HitPath)
@@ -17,7 +30,7 @@ float FMeleeAttackCurveData::GetDamage() const
 	return BasicDamage;
 }
 
-const FMeleeAttackCurveData& FMeleeAttackData::Get(EWeaponDirection InDir) const
+const FMeleeAttackCurveData& FMeleeAttackDataBase::Get(EWeaponDirection InDir) const
 {
 	switch (InDir)
 	{
@@ -36,7 +49,6 @@ const FMeleeAttackCurveData& FMeleeAttackData::Get(EWeaponDirection InDir) const
 
 FMeleeBlockData::FMeleeBlockData()
 {
-
 }
 
 const FMeleeBlockCurveData& FMeleeBlockData::Get(EWeaponDirection InDir) const

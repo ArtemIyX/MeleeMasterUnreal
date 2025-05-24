@@ -492,7 +492,8 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 				continue;
 			}
 
-			const FMeleeAttackCurveData& attackData = meleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(
+			const FMeleeCombinedData& meleeData = meleeWeapon->GetCurrentMeleeCombinedData();
+			const FMeleeAttackCurveData& attackData = meleeData.Attack.Get(
 				CurrentDirection);
 
 			float dmg = attackData.GetDamage() * HitPower;
@@ -510,6 +511,7 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 			if (meleeAnims)
 			{
 				OnMeleeFleshHitSound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.FleshHit);
+				OnMeleeCameraShake.Broadcast(meleeWeapon, meleeData.Attack.HitCameraShakes, CurrentDirection);
 			}
 		}
 		if (bWasWallHit)
@@ -822,7 +824,8 @@ void UAdvancedWeaponManager::AttackMelee_Internal(UMeleeWeapon* InMeleeWeapon)
 		           *InMeleeWeapon->GetData()->Animations->GetClass()->GetFName().ToString());
 		return;
 	}
-	const FMeleeAttackCurveData& attackData = InMeleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(
+	const FMeleeCombinedData& currentMeleeData = InMeleeWeapon->GetCurrentMeleeCombinedData();
+	const FMeleeAttackCurveData& attackData = currentMeleeData.Attack.Get(
 		CurrentDirection);
 
 	if (!attackData.HitPath)
@@ -856,6 +859,7 @@ void UAdvancedWeaponManager::AttackMelee_Internal(UMeleeWeapon* InMeleeWeapon)
 	Multi_MeleeChargeFinished();
 
 	OnMeleeWhooshSound.Broadcast(InMeleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.Whoosh);
+	OnMeleeCameraShake.Broadcast(InMeleeWeapon, currentMeleeData.Attack.PostChargeCameraShakes, CurrentDirection);
 }
 
 void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapon)
@@ -1422,6 +1426,7 @@ void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection 
 		const FAttackAnimMontageData& attackAnim = attackAnimData.Get(InDirection);
 		FAnimMontageFullData montageData = attackAnim;
 		Multi_PlayAnim(weapon, montageData, attackData.PreAttackLen);
+		OnMeleeCameraShake.Broadcast(meleeWeapon, currentData.Attack.ChargeCameraShakes, InDirection);
 	}
 	else
 	{
