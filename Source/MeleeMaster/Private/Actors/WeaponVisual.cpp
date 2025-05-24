@@ -66,6 +66,20 @@ void AWeaponVisual::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 	DOREPLIFETIME_WITH_PARAMS_FAST(AWeaponVisual, WeaponGuid, Params);
 }
 
+bool AWeaponVisual::IsLocalPlayer() const
+{
+	// For single player
+	if (GetWorld()->GetNetMode() == NM_Standalone)
+	{
+		if (auto pawn = GetOwner<APawn>())
+		{
+			return pawn->IsPlayerControlled();
+		}
+	}
+	// For multiplayer only ROLE_AutonomousProxy
+	return GetOwner()->GetLocalRole() == ROLE_AutonomousProxy;
+}
+
 void AWeaponVisual::PlayAnim_Implementation(const FAnimPlayData& InData, bool bFirstPerson)
 {
 	// Implemented in blueprints

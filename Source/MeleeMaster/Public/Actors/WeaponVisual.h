@@ -76,6 +76,9 @@ public:
 
 public:
 
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="WeaponVisual")
+	bool IsLocalPlayer() const;
+	
 	UFUNCTION(BlueprintNativeEvent)
 	void PlayAnim(const FAnimPlayData& InData, bool bFirstPerson);
 	
