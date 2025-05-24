@@ -273,6 +273,12 @@ public:
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FDirectionCameraShakes PostChargeCameraShakes;
+
+	/**
+	 * @brief Camera shakes applied during the parry stun
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FDirectionCameraShakes ParryStun;
 };
 
 /**

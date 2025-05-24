@@ -111,7 +111,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FWeaponManagerMeleeSound, UMeleeW
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FWeaponManagerMeleeCameraShake,
 	UMeleeWeapon*, MeleeWeapon,
 	const FDirectionCameraShakes&, CameraShakePack,
-	EWeaponDirection, RequireddDirection);
+	EWeaponDirection, RequiredDirection);
 
 /**
  * @class UAdvancedWeaponManager
@@ -926,6 +926,18 @@ public:
 
 	/* Executed on server */
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
-	FWeaponManagerMeleeCameraShake OnMeleeCameraShake;
+	FWeaponManagerMeleeCameraShake OnMeleeChargeCameraShake;
+
+	/* Executed on server */
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FWeaponManagerMeleeCameraShake OnMeleeAttackCameraShake;
+
+	/* Executed on server */
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FWeaponManagerMeleeCameraShake OnMeleeWallHitCameraShake;
+
+	/* Executed on server */
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FWeaponManagerMeleeCameraShake OnMeleeFleshHitCameraShake;
 #pragma endregion
 };

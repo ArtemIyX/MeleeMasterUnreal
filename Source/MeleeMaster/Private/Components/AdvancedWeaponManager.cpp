@@ -478,25 +478,26 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 
 	TArray<FMeleeHitDebugData> debugArr;
 
+	bool bWasHit = false;
+	bool bWasFleshHit = false;
 	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(InWeapon))
 	{
 		UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(meleeWeapon->GetData()->Animations);
 
+		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to process hit",
+			           *data->GetClass()->GetFName().ToString());
+			return;
+		}
+		const FMeleeCombinedData& meleeData = meleeWeapon->GetCurrentMeleeCombinedData();
+		const FMeleeAttackCurveData& attackData = meleeData.Attack.Get(
+			CurrentDirection);
+		float dmg = attackData.GetDamage() * HitPower;
+
 		for (TTuple<AActor*, FHitResult> el : hitMap)
 		{
-			UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
-			if (!IsValid(meleeWeaponData))
-			{
-				TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to process hit",
-				           *data->GetClass()->GetFName().ToString());
-				continue;
-			}
-
-			const FMeleeCombinedData& meleeData = meleeWeapon->GetCurrentMeleeCombinedData();
-			const FMeleeAttackCurveData& attackData = meleeData.Attack.Get(
-				CurrentDirection);
-
-			float dmg = attackData.GetDamage() * HitPower;
 			if (bDebugMeleeHits)
 			{
 				debugArr.Add(FMeleeHitDebugData(el.Value.Location, attackData.BasicDamage, HitPower));
@@ -511,12 +512,27 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 			if (meleeAnims)
 			{
 				OnMeleeFleshHitSound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.FleshHit);
-				OnMeleeCameraShake.Broadcast(meleeWeapon, meleeData.Attack.HitCameraShakes, CurrentDirection);
+				bWasHit = true;
+				bWasFleshHit = true;
 			}
 		}
 		if (bWasWallHit)
 		{
 			OnMeleeWallHitSound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.WallHit);
+			bWasHit = true;
+		}
+
+		if (bWasHit)
+		{
+			if (bWasFleshHit)
+			{
+				OnMeleeFleshHitCameraShake.Broadcast(meleeWeapon, meleeData.Attack.HitCameraShakes, CurrentDirection);
+			}
+			else
+			{
+				OnMeleeWallHitCameraShake.Broadcast(meleeWeapon, meleeData.Attack.HitCameraShakes, CurrentDirection);
+			}
+			
 		}
 	}
 	else
@@ -524,6 +540,8 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to process hit",
 		           *InWeapon->GetClass()->GetFName().ToString());
 	}
+
+
 	if (bDebugMeleeHits && debugArr.Num() > 0)
 	{
 		Multi_DebugHit(debugArr);
@@ -859,7 +877,7 @@ void UAdvancedWeaponManager::AttackMelee_Internal(UMeleeWeapon* InMeleeWeapon)
 	Multi_MeleeChargeFinished();
 
 	OnMeleeWhooshSound.Broadcast(InMeleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.Whoosh);
-	OnMeleeCameraShake.Broadcast(InMeleeWeapon, currentMeleeData.Attack.PostChargeCameraShakes, CurrentDirection);
+	OnMeleeAttackCameraShake.Broadcast(InMeleeWeapon, currentMeleeData.Attack.PostChargeCameraShakes, CurrentDirection);
 }
 
 void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapon)
@@ -1426,7 +1444,7 @@ void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection 
 		const FAttackAnimMontageData& attackAnim = attackAnimData.Get(InDirection);
 		FAnimMontageFullData montageData = attackAnim;
 		Multi_PlayAnim(weapon, montageData, attackData.PreAttackLen);
-		OnMeleeCameraShake.Broadcast(meleeWeapon, currentData.Attack.ChargeCameraShakes, InDirection);
+		OnMeleeChargeCameraShake.Broadcast(meleeWeapon, currentData.Attack.ChargeCameraShakes, InDirection);
 	}
 	else
 	{
