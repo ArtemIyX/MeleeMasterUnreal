@@ -74,6 +74,8 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void BP_PhysicsActivated();
 public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="WeaponVisual")
@@ -132,6 +134,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ActivatePhysics();
+	
 
 	UFUNCTION(BlueprintCallable)
 	void HideShadow();

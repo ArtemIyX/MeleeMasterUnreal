@@ -128,6 +128,7 @@ void AWeaponVisual::ActivatePhysics()
 {
 	SkeletalMeshComponent->SetCollisionEnabled(ECollisionEnabled::Type::PhysicsOnly);
 	SkeletalMeshComponent->SetSimulatePhysics(true);
+	BP_PhysicsActivated();
 }
 
 void AWeaponVisual::HideShadow()
