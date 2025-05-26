@@ -105,13 +105,14 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWeaponManagerBlockRuinDelegate, EW
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWeaponManagerAttackRuinDelegate, EWeaponDirection, Direction,
                                              const FMeleeAttackData&, BlockData);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FWeaponManagerMeleeSound, UMeleeWeapon*, MeleeWeapon, const FMeleeSounds&, SoundPack,
-	const FGameplayTag&, SelectedSound);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FWeaponManagerMeleeSound, UMeleeWeapon*, MeleeWeapon,
+                                               const FMeleeSounds&, SoundPack,
+                                               const FGameplayTag&, SelectedSound);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FWeaponManagerMeleeCameraShake,
-	UMeleeWeapon*, MeleeWeapon,
-	const FDirectionCameraShakes&, CameraShakePack,
-	EWeaponDirection, RequiredDirection);
+                                               UMeleeWeapon*, MeleeWeapon,
+                                               const FDirectionCameraShakes&, CameraShakePack,
+                                               EWeaponDirection, RequiredDirection);
 
 /**
  * @class UAdvancedWeaponManager
@@ -205,6 +206,9 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_Charge)
 	float ChargeWillBeFinished;
+
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_HasBlocked)
+	uint8 bHasBlocked : 1;
 #pragma endregion
 
 #pragma region TimerHandles
@@ -223,12 +227,16 @@ protected:
 #pragma region PrivateSet
 
 protected:
+
+	UFUNCTION()
+	virtual void SetHasBlocked(bool bInFlag);
+	
 	/**
 	 * @brief Sets the currently equipped weapon.
 	 * @param InNewWeapon The new weapon to equip.
 	 */
 	virtual void SetCurrentWeaponPtr(UAbstractWeapon* InNewWeapon);
-	
+
 
 	/**
 	 * @brief Sets the current direction of weapon interaction.
@@ -265,7 +273,6 @@ public:
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	
 
 
 #pragma endregion
@@ -311,6 +318,9 @@ protected:
 
 	UFUNCTION()
 	virtual void OnRep_ChargeStarted();
+
+	UFUNCTION()
+	virtual void OnRep_HasBlocked();
 
 #pragma endregion
 
@@ -519,7 +529,7 @@ protected:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multi_UpdateWeaponModifier();
-	
+
 	UFUNCTION(NetMulticast, Reliable)
 	void Multi_MeleeChargeFinished();
 
@@ -625,10 +635,10 @@ public:
 	 * @param InStatus The new fighting status.
 	 */
 	virtual void SetFightingStatus(EWeaponFightingStatus InStatus);
-	
+
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Weapon")
 	virtual void AddDefaultWeapons();
-	
+
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Anim")
 	virtual void NotifyPlayWeaponAnim(UAbstractWeapon* InWeapon, const FAnimMontageFullData& InMontageData,
@@ -645,7 +655,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
 	virtual void NotifyBlocked();
-	
+
 	/*UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
 	virtual void ApplyBlockStun();*/
 
@@ -858,6 +868,8 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Getters")
 	float GetCurrentHitPower() const;
 
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Getters")
+	bool HasBlocked() const { return bHasBlocked; }
 #pragma endregion
 
 #pragma region Events
@@ -902,7 +914,7 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FWeaponManagerAttackRuinDelegate OnParryStunned;
-	
+
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Sounds")
 	FWeaponManagerMeleeSound OnEquipSound;
 
@@ -941,3 +953,4 @@ public:
 	FWeaponManagerMeleeCameraShake OnMeleeFleshHitCameraShake;
 #pragma endregion
 };
+

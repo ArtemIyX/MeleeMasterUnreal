@@ -66,6 +66,7 @@ UAdvancedWeaponManager::UAdvancedWeaponManager()
 	ManagingStatus = EWeaponManagingStatus::NoWeapon;
 	FightingStatus = EWeaponFightingStatus::Idle;
 	CurrentDirection = EWeaponDirection::Forward;
+	bHasBlocked = false;
 	// ...
 }
 
@@ -80,6 +81,18 @@ void UAdvancedWeaponManager::SetCurrentWeaponPtr(UAbstractWeapon* InNewWeapon)
 		OnRep_CurrentWeapon();
 	}
 }
+
+void UAdvancedWeaponManager::SetHasBlocked(bool bInFlag)
+{
+	this->bHasBlocked = bInFlag;
+	MARK_PROPERTY_DIRTY_FROM_NAME(UAdvancedWeaponManager, bHasBlocked, this);
+
+	if (GetWorld()->GetNetMode() == NM_Standalone)
+	{
+		OnRep_HasBlocked();
+	}
+}
+
 
 void UAdvancedWeaponManager::SetManagingStatus(EWeaponManagingStatus InStatus)
 {
@@ -206,6 +219,10 @@ void UAdvancedWeaponManager::OnRep_ChargeStarted()
 {
 }
 
+void UAdvancedWeaponManager::OnRep_HasBlocked()
+{
+}
+
 
 // Called every frame
 void UAdvancedWeaponManager::TickComponent(float DeltaTime, ELevelTick TickType,
@@ -255,6 +272,7 @@ void UAdvancedWeaponManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, CurrentCurve, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, ChargeWillBeFinished, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, ChargeStarted, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, bHasBlocked, Params);
 }
 
 int32 UAdvancedWeaponManager::GetCurrentWeaponIndex() const
@@ -303,21 +321,30 @@ bool UAdvancedWeaponManager::IsCurrentWeaponBlockDirected() const
 float UAdvancedWeaponManager::EvaluateCurrentCurve() const
 {
 	EWeaponFightingStatus fightStatus = GetFightingStatus();
-	if (fightStatus == EWeaponFightingStatus::AttackCharging || fightStatus == EWeaponFightingStatus::BlockCharging
+
+	if (fightStatus == EWeaponFightingStatus::BlockCharging
+		&& bHasBlocked)
+	{
+		return MinimalCurveValue;
+	}
+
+	if (fightStatus == EWeaponFightingStatus::AttackCharging
+		|| fightStatus == EWeaponFightingStatus::BlockCharging
 		|| fightStatus == EWeaponFightingStatus::RangeCharging)
 	{
 		if (!IsValid(CurrentCurve))
 			return MinimalCurveValue;
+
 		// Current time
 		UWorld* world = GetWorld();
 		if (!world)
 		{
-			return 0.0f;
+			return MinimalCurveValue;
 		}
 		AGameStateBase* gs = world->GetGameState();
 		if (!gs)
 		{
-			return 0.0f;
+			return MinimalCurveValue;
 		}
 
 		const float currentServerTime = gs->GetServerWorldTimeSeconds();
@@ -340,7 +367,7 @@ float UAdvancedWeaponManager::EvaluateCurrentCurve() const
 		// Eval last curve item
 		return GetChargingCurve()->GetFloatValue(GetChargingCurve()->FloatCurve.GetLastKey().Time);
 	}
-	return 0.0f;
+	return MinimalCurveValue;
 }
 
 float UAdvancedWeaponManager::GetCurrentHitPower() const
@@ -532,7 +559,6 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 			{
 				OnMeleeWallHitCameraShake.Broadcast(meleeWeapon, meleeData.Attack.HitCameraShakes, CurrentDirection);
 			}
-			
 		}
 	}
 	else
@@ -1036,8 +1062,8 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 	GetWorld()->GetTimerManager().ClearTimer(FightTimerHandle);
 	GetWorld()->GetTimerManager().ClearTimer(HittingTimerHandle);
 
-	// SetManagingStatus(EWeaponManagingStatus::Busy);
-	// SetFightingStatus(EWeaponFightingStatus::BlockCharging);
+	// Reset block flag, that curve value will be evaluated in right way
+	SetHasBlocked(false);
 	SetDirection(InDirection);
 
 	UAbstractWeapon* weapon = GetCurrentWeapon();
@@ -1081,7 +1107,6 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 	}
 	else if (ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
 	{
-		//TRACE(LogWeapon, "Range weapon block");
 		SetManagingStatus(EWeaponManagingStatus::Idle);
 		SetFightingStatus(EWeaponFightingStatus::Idle);
 		Multi_CancelCurrentAnim();
@@ -1889,6 +1914,7 @@ void UAdvancedWeaponManager::NotifyEnemyMeleeBlocked()
 
 void UAdvancedWeaponManager::NotifyBlocked()
 {
+	SetHasBlocked(true);
 	UAbstractWeapon* weapon = GetCurrentWeapon();
 	UWeaponDataAsset* data = weapon->GetData();
 	UWeaponAnimationDataAsset* anims = data->Animations;
@@ -1911,18 +1937,7 @@ void UAdvancedWeaponManager::NotifyBlocked()
 		}
 
 		const FMeleeCombinedData& currentData = meleeWeapon->GetCurrentMeleeCombinedData();
-		/*float stunLen = currentData.Block.BlockStunLen;
 
-		const FMeleeBlockRuinAnimData& blockRuinAnimData = meleeWeapon->IsShieldEquipped()
-															   ? meleeAnims->Shield.BlockRuin
-															   : meleeAnims->BlockRuin;
-		const FAnimMontageFullData& dirBlockData = blockRuinAnimData.Get(CurrentDirection);
-		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle,
-											   FTimerDelegate::CreateUObject(
-												   this, &UAdvancedWeaponManager::BlockStunFinished),
-											   stunLen, false);*/
-
-		//Multi_PlayAnim(meleeWeapon, dirBlockData, stunLen);
 		OnMeleeBlockSound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.Block);
 		Client_Blocked(CurrentDirection, currentData.Block);
 	}
