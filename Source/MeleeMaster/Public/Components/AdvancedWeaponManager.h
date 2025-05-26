@@ -95,7 +95,6 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAdvancedWeaponManagerDamageDelegat
                                              AActor*, Causer,
                                              float, Dmg);
 
-
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWeaponManagerDirectionDelegate, EWeaponDirection, Direction);
 
 
@@ -114,6 +113,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FWeaponManagerMeleeCameraShake,
                                                const FDirectionCameraShakes&, CameraShakePack,
                                                EWeaponDirection, RequiredDirection);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAdvancedWeaponFloatDelegate,
+											 float, InValue);
 /**
  * @class UAdvancedWeaponManager
  * @brief Manages advanced weapon systems for characters.
@@ -207,8 +208,32 @@ protected:
 	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_Charge)
 	float ChargeWillBeFinished;
 
+	/**
+	 * @brief Indicates whether blocking has occurred.
+	 * If true, EvaluateCurrentCurve will return the minimum possible value
+	 * @see EvaluateCurrentCurve
+	 */
 	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_HasBlocked)
 	uint8 bHasBlocked : 1;
+
+	/**
+	 * @brief Current value of attack combo
+	 */
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_CurrentAttackComboSum)
+	float CurrentAttackComboSum{0.0f};
+
+	/**
+	 * @brief The value that was accumulated during the last attack made
+	 */
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_LastAttackComboSavedSum)
+	float LastAttackComboSavedSum{0.0f};
+
+	/**
+	 * @brief Time for the attack combo to expire
+	 */
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_AttackComboExpireTime)
+	float AttackComboExpireTime{0.0f};
+
 #pragma endregion
 
 #pragma region TimerHandles
@@ -227,10 +252,17 @@ protected:
 #pragma region PrivateSet
 
 protected:
-
 	UFUNCTION()
 	virtual void SetHasBlocked(bool bInFlag);
-	
+
+	UFUNCTION()
+	virtual void SetCurrentAttackCombo(float InValue);
+
+	UFUNCTION()
+	virtual void SetLastAttackComboSavedSum(float InValue);
+
+	UFUNCTION()
+	virtual void SetAttackComboExpireTime(float InValue);
 	/**
 	 * @brief Sets the currently equipped weapon.
 	 * @param InNewWeapon The new weapon to equip.
@@ -322,6 +354,14 @@ protected:
 	UFUNCTION()
 	virtual void OnRep_HasBlocked();
 
+	UFUNCTION()
+	virtual void OnRep_CurrentAttackComboSum();
+
+	UFUNCTION()
+	virtual void OnRep_LastAttackComboSavedSum();
+
+	UFUNCTION()
+	virtual void OnRep_AttackComboExpireTime();
 #pragma endregion
 
 #pragma region Internal
@@ -869,7 +909,22 @@ public:
 	float GetCurrentHitPower() const;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Getters")
-	bool HasBlocked() const { return bHasBlocked; }
+	FORCEINLINE bool HasBlocked() const { return bHasBlocked; }
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Getters")
+	FORCEINLINE float GetCurrentAttackComboSum() const { return CurrentAttackComboSum; }
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Getters")
+	FORCEINLINE float GetLastComboSavedSum() const { return LastAttackComboSavedSum; }
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Getters")
+	FORCEINLINE float GetComboExpireTime() const { return AttackComboExpireTime; }
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Getters")
+	bool IsAttackComboValid() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Getters")
+	float EvaluateAttackComboDamage(float InActualDamage) const;
 #pragma endregion
 
 #pragma region Events
@@ -951,6 +1006,15 @@ public:
 	/* Executed on server */
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FWeaponManagerMeleeCameraShake OnMeleeFleshHitCameraShake;
+	
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FAdvancedWeaponFloatDelegate OnCurrentAttackComboSumChanged;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FAdvancedWeaponFloatDelegate OnLastAttackComboSavedSumChanged;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FAdvancedWeaponFloatDelegate OnAttackComboExpireTimeChanged;
+	
 #pragma endregion
 };
-

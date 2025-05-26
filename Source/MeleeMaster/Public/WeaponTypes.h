@@ -238,6 +238,7 @@ public:
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float AttackStunLen{0.3f};
+
 	/**
 	 * @brief Returns the attack curve data for a given direction.
 	 * @param InDir The direction of the attack.
@@ -279,6 +280,12 @@ public:
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FDirectionCameraShakes ParryStun;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float ComboAddAmount{0.01};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float ComboTimeOutSeconds{5.0f};
 };
 
 /**

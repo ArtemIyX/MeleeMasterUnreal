@@ -93,6 +93,39 @@ void UAdvancedWeaponManager::SetHasBlocked(bool bInFlag)
 	}
 }
 
+void UAdvancedWeaponManager::SetCurrentAttackCombo(float InValue)
+{
+	this->CurrentAttackComboSum = InValue;
+	MARK_PROPERTY_DIRTY_FROM_NAME(UAdvancedWeaponManager, CurrentAttackComboSum, this);
+
+	if (GetWorld()->GetNetMode() == NM_Standalone)
+	{
+		OnRep_CurrentAttackComboSum();
+	}
+}
+
+void UAdvancedWeaponManager::SetLastAttackComboSavedSum(float InValue)
+{
+	this->LastAttackComboSavedSum = InValue;
+	MARK_PROPERTY_DIRTY_FROM_NAME(UAdvancedWeaponManager, LastAttackComboSavedSum, this);
+
+	if (GetWorld()->GetNetMode() == NM_Standalone)
+	{
+		OnRep_LastAttackComboSavedSum();
+	}
+}
+
+void UAdvancedWeaponManager::SetAttackComboExpireTime(float InValue)
+{
+	this->AttackComboExpireTime = InValue;
+	MARK_PROPERTY_DIRTY_FROM_NAME(UAdvancedWeaponManager, AttackComboExpireTime, this);
+
+	if (GetWorld()->GetNetMode() == NM_Standalone)
+	{
+		OnRep_AttackComboExpireTime();
+	}
+}
+
 
 void UAdvancedWeaponManager::SetManagingStatus(EWeaponManagingStatus InStatus)
 {
@@ -223,6 +256,21 @@ void UAdvancedWeaponManager::OnRep_HasBlocked()
 {
 }
 
+void UAdvancedWeaponManager::OnRep_CurrentAttackComboSum()
+{
+	OnCurrentAttackComboSumChanged.Broadcast(GetCurrentAttackComboSum());
+}
+
+void UAdvancedWeaponManager::OnRep_LastAttackComboSavedSum()
+{
+	OnLastAttackComboSavedSumChanged.Broadcast(GetLastComboSavedSum());
+}
+
+void UAdvancedWeaponManager::OnRep_AttackComboExpireTime()
+{
+	OnAttackComboExpireTimeChanged.Broadcast(GetComboExpireTime());
+}
+
 
 // Called every frame
 void UAdvancedWeaponManager::TickComponent(float DeltaTime, ELevelTick TickType,
@@ -273,6 +321,9 @@ void UAdvancedWeaponManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, ChargeWillBeFinished, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, ChargeStarted, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, bHasBlocked, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, CurrentAttackComboSum, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, LastAttackComboSavedSum, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UAdvancedWeaponManager, AttackComboExpireTime, Params);
 }
 
 int32 UAdvancedWeaponManager::GetCurrentWeaponIndex() const
@@ -380,6 +431,27 @@ float UAdvancedWeaponManager::GetCurrentHitPower() const
 		}
 	}
 	return 0.0f;
+}
+
+bool UAdvancedWeaponManager::IsAttackComboValid() const
+{
+	if (UWorld* world = GetWorld())
+	{
+		if (AGameStateBase* gs = world->GetGameState())
+		{
+			return gs->GetServerWorldTimeSeconds() < AttackComboExpireTime;
+		}
+	}
+	return false;
+}
+
+float UAdvancedWeaponManager::EvaluateAttackComboDamage(float InActualDamage) const
+{
+	if (!IsAttackComboValid())
+	{
+		return InActualDamage;
+	}
+	return InActualDamage + CurrentAttackComboSum * InActualDamage;
 }
 
 int32 UAdvancedWeaponManager::AddNewWeapon(UWeaponDataAsset* InWeaponAsset)
@@ -521,20 +593,37 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 		const FMeleeCombinedData& meleeData = meleeWeapon->GetCurrentMeleeCombinedData();
 		const FMeleeAttackCurveData& attackData = meleeData.Attack.Get(
 			CurrentDirection);
-		float dmg = attackData.GetDamage() * HitPower;
+
+		// Calculate damage with current hit power
+		float hitDmg = attackData.GetDamage() * HitPower;
+		float estimatedDmg = EvaluateAttackComboDamage(hitDmg);
 
 		for (TTuple<AActor*, FHitResult> el : hitMap)
 		{
 			if (bDebugMeleeHits)
 			{
-				debugArr.Add(FMeleeHitDebugData(el.Value.Location, attackData.BasicDamage, HitPower));
+				debugArr.Add(FMeleeHitDebugData(el.Value.Location, estimatedDmg, HitPower));
 			}
 			TSubclassOf<UDamageType> dmgType = attackData.DamageType;
 			EDamageReturn dmgReturn;
 			float totalDmg;
 			APawn* pawn = Cast<APawn>(GetOwner());
 			APlayerState* ps = pawn->GetController()->GetPlayerState<APlayerState>();
-			IDamageManager::Execute_RequestDamage(gm, pawn, ps, el.Key, dmg, el.Value, dmgType, dmgReturn, totalDmg);
+
+			IDamageManager::Execute_RequestDamage(gm,
+			                                      /* AActor* Causer */ pawn,
+			                                      /* APlayerState* PlayerInstigator */ ps,
+			                                      /* AActor* Damaged */ el.Key,
+			                                      /* float Amount */ estimatedDmg,
+			                                      /* const FHitResult& HitResul*/ el.Value,
+			                                      /* TSubclassOf<UDamageType> DamageType */ dmgType,
+			                                      /* EDamageReturn& OutDamageReturn */ dmgReturn,
+			                                      /* float& OutDamage */ totalDmg);
+
+			// Update melee combo
+			{
+				SetLastAttackComboSavedSum(GetLastComboSavedSum() + meleeData.Attack.ComboAddAmount);
+			}
 
 			if (meleeAnims)
 			{
@@ -673,6 +762,19 @@ void UAdvancedWeaponManager::HitFinished()
 		SetManagingStatus(EWeaponManagingStatus::Idle);
 		return;
 	}
+
+	if (IsAttackComboValid())
+	{
+		float previousAttackCombo = GetLastComboSavedSum();
+		SetCurrentAttackCombo(GetCurrentAttackComboSum() + previousAttackCombo);
+		SetLastAttackComboSavedSum(0.0f);
+	}
+	else
+	{
+		SetCurrentAttackCombo(0.0f); // No combo
+		SetLastAttackComboSavedSum(0.0f); // No saved combo
+	}
+
 
 	UWeaponDataAsset* data = weapon->GetData();
 	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
@@ -884,6 +986,18 @@ void UAdvancedWeaponManager::AttackMelee_Internal(UMeleeWeapon* InMeleeWeapon)
 	// Will be called after all elements are line-traced
 	auto hitFinishDelegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::HitFinished);
 	GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, hitFinishDelegate, attackData.HittingTime, false);
+
+
+	if (!IsAttackComboValid())
+	{
+		SetCurrentAttackCombo(0.0f); // No combo
+	}
+	SetLastAttackComboSavedSum(0.0f); // No saved combo
+
+	float comboExpireTimeout = currentMeleeData.Attack.ComboTimeOutSeconds;
+	// Expire time for combo
+	SetAttackComboExpireTime(
+		GetWorld()->GetGameState()->GetServerWorldTimeSeconds() + comboExpireTimeout);
 
 	// Looped line-trace method
 	HitNum = 0;
