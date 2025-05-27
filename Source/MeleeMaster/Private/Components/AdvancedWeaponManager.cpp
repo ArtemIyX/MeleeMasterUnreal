@@ -2810,14 +2810,16 @@ void UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float Amount,
 	UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(GetCurrentWeapon());
 	if (meleeWeapon && blockResult == EBlockResult::ShieldBlock)
 	{
-		meleeWeapon->ProcessShieldDamage(Amount);
-
-
-		if (meleeWeapon->GetShieldDurability() <= 0.0)
+		if (meleeWeapon->GetShieldDurability() > 0.0)
 		{
-			UE_LOG(LogWeapon, Error, TEXT("%hs meleeWeapon->GetShieldDurability() <= 0.0 -> bHasLostDurability = true"),
-			       __FUNCTION__);
-			bHasLostDurability = true;
+			meleeWeapon->ProcessShieldDamage(Amount);
+
+			if (meleeWeapon->GetShieldDurability() <= 0.0)
+			{
+				/*UE_LOG(LogWeapon, Error, TEXT("%hs meleeWeapon->GetShieldDurability() <= 0.0 -> bHasLostDurability = true"),
+					   __FUNCTION__);*/
+				bHasLostDurability = true;
+			}
 		}
 	}
 
@@ -2863,6 +2865,7 @@ void UAdvancedWeaponManager::ProcessProjectileDamage(AActor* Causer, float Amoun
 		blockResult = CanBlockIncomingProjectileDamage();
 	}
 
+	bool bHasLostShieldDurability = false;
 	UMeleeWeapon* melee = Cast<UMeleeWeapon>(GetCurrentWeapon());
 	if (blockResult == EBlockResult::ShieldProjectileBlock)
 	{
@@ -2872,7 +2875,15 @@ void UAdvancedWeaponManager::ProcessProjectileDamage(AActor* Causer, float Amoun
 			{
 				Amount = Amount * (1.0f - FMath::Clamp(meleeData->ShieldProjectileBlockPercent, 0.0f, 1.0f));
 			}
-			melee->ProcessShieldDamage(Amount);
+			
+			if (melee->GetShieldDurability() > 0.0)
+			{
+				melee->ProcessShieldDamage(Amount);
+				if (melee->GetShieldDurability() <= 0.0)
+				{
+					bHasLostShieldDurability = true;
+				}
+			}
 		}
 	}
 
@@ -2883,16 +2894,14 @@ void UAdvancedWeaponManager::ProcessProjectileDamage(AActor* Causer, float Amoun
 		                                         OutDamageReturn, OutDamage);
 	}
 
-	if (melee && blockResult == EBlockResult::ShieldProjectileBlock)
+
+	if (bHasLostShieldDurability)
 	{
-		if (melee->GetShieldDurability() <= 0.0)
-		{
-			// Remove shield (unblock)
-			Server_UnBlock();
-			// Sound, effect, etc
-			this->NotifyShieldRuined();
-			return;
-		}
+		// Remove shield (unblock)
+		Server_UnBlock();
+		// Sound, effect, etc
+		this->NotifyShieldRuined();
+		return;
 	}
 }
 
