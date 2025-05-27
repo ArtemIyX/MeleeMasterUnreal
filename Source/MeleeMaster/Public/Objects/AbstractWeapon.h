@@ -54,6 +54,11 @@ protected:
 	 */
 	UPROPERTY(Transient, ReplicatedUsing=OnRep_Guid, BlueprintReadOnly, Category="AbstractWeapon|Variables")
 	FString Guid;
+	
+	UPROPERTY(Transient)
+	TWeakObjectPtr<class UAdvancedWeaponManager> WeaponManagerOwner;
+	
+	
 #pragma endregion Properties
 
 #pragma region Replication
@@ -179,6 +184,9 @@ public:
 
 #pragma region GUID
 public:
+	
+	virtual void SetWeaponManager(const TWeakObjectPtr<UAdvancedWeaponManager>& InValue);
+	
 	/**
 	 * @brief Gets the GUID string associated with this weapon.
 	 * @return The GUID string.

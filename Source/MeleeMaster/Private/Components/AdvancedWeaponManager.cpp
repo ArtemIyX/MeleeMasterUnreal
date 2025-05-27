@@ -369,6 +369,20 @@ bool UAdvancedWeaponManager::IsCurrentWeaponBlockDirected() const
 	return false;
 }
 
+
+bool UAdvancedWeaponManager::IsShieldEquipped() const
+{
+	EWeaponFightingStatus fightStatus = GetFightingStatus();
+	if (fightStatus == EWeaponFightingStatus::BlockCharging)
+	{
+		if (auto meleeWeapon = Cast<UMeleeWeapon>(GetCurrentWeapon()))
+		{
+			return meleeWeapon->IsShieldEquipped();
+		}
+	}
+	return false;
+}
+
 float UAdvancedWeaponManager::EvaluateCurrentCurve() const
 {
 	EWeaponFightingStatus fightStatus = GetFightingStatus();
@@ -378,6 +392,7 @@ float UAdvancedWeaponManager::EvaluateCurrentCurve() const
 	{
 		return MinimalCurveValue;
 	}
+
 
 	if (fightStatus == EWeaponFightingStatus::AttackCharging
 		|| fightStatus == EWeaponFightingStatus::BlockCharging
@@ -466,6 +481,7 @@ int32 UAdvancedWeaponManager::AddNewWeapon(UWeaponDataAsset* InWeaponAsset)
 	                                                             RF_Transient);
 	weaponInstance->SetData(InWeaponAsset);
 	weaponInstance->SetGuidString(weaponInstance->MakeRandomGuidString());
+	weaponInstance->SetWeaponManager(this);
 
 	const int32 index = WeaponList.Add(weaponInstance);
 	CreateVisuals(weaponInstance);
@@ -1173,6 +1189,7 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 {
 	if (!CanBlock())
 		return;
+
 	GetWorld()->GetTimerManager().ClearTimer(FightTimerHandle);
 	GetWorld()->GetTimerManager().ClearTimer(HittingTimerHandle);
 
@@ -1205,11 +1222,18 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 		}
 
 		const FMeleeBlockCurveData& blockData = meleeWeapon->GetCurrentMeleeCombinedData().Block.Get(CurrentDirection);
-		float currentTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
-		SetChargeStarted(currentTime);
-		SetChargeFinished(currentTime + blockData.CurveTime);
-		UCurveFloat* curve = blockData.Curve.LoadSynchronous();
-		SetChargingCurve(curve);
+		if (meleeWeapon->IsShieldEquipped())
+		{
+			meleeWeapon->StartDecreasingShield(GetWorld()->GetTimerManager());
+		}
+		else
+		{
+			float currentTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
+			SetChargeStarted(currentTime);
+			SetChargeFinished(currentTime + blockData.CurveTime);
+			UCurveFloat* curve = blockData.Curve.LoadSynchronous();
+			SetChargingCurve(curve);
+		}
 		OnStartedChargingBlock.Broadcast(meleeWeapon, GetChargingCurve(), GetChargingFinishTime());
 
 		const FMeleeBlockAnimData& blockAnimData = meleeWeapon->IsShieldEquipped()
@@ -1253,6 +1277,10 @@ void UAdvancedWeaponManager::Server_UnBlock_Implementation()
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start melee attack",
 			           *data->GetClass()->GetFName().ToString());
 			return;
+		}
+		if (meleeWeapon->IsShieldEquipped())
+		{
+			meleeWeapon->StartIncreasingShield(GetWorld()->GetTimerManager());
 		}
 		const FMeleeBlockCurveData& blockData = meleeWeapon->GetCurrentMeleeCombinedData().Block.Get(CurrentDirection);
 		auto delegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::PostBlockFinished);
@@ -1531,6 +1559,26 @@ void UAdvancedWeaponManager::AddDefaultWeapons()
 	}
 }
 
+bool UAdvancedWeaponManager::CanUpShield() const
+{
+	// We can restore the shield if it hasn't been dropped (i.e., if someone hit it and its durability reached 0.0).
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(GetCurrentWeapon()))
+	{
+		return !meleeWeapon->HasShieldDropped();
+	}
+	return false;
+}
+
+float UAdvancedWeaponManager::GetShieldDurability() const
+{
+	// We can restore the shield if it hasn't been dropped (i.e., if someone hit it and its durability reached 0.0).
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(GetCurrentWeapon()))
+	{
+		return meleeWeapon->GetShieldDurability();
+	}
+	return 0.0f;
+}
+
 
 void UAdvancedWeaponManager::Server_Equip_Implementation(int32 InIndex)
 {
@@ -1775,6 +1823,12 @@ void UAdvancedWeaponManager::Multi_DropWeaponVisual_Implementation(const FString
 	}
 }
 
+void UAdvancedWeaponManager::Client_BlockRuined_Implementation(const FMeleeBlockData& Block)
+{
+	UE_LOG(LogWeapon, Error, TEXT("%hs OnClientBlockRuined.Broadcast"),
+	       __FUNCTION__);
+	OnClientBlockRuined.Broadcast(EWeaponDirection::Forward, Block);
+}
 
 void UAdvancedWeaponManager::Client_Blocked_Implementation(EWeaponDirection InDirection,
                                                            const FMeleeBlockData& InBlockData)
@@ -1820,6 +1874,7 @@ void UAdvancedWeaponManager::Multi_RangeCanceled_Implementation()
 void UAdvancedWeaponManager::Client_BlockChargingFinished_Implementation()
 {
 }
+
 
 void UAdvancedWeaponManager::UpdateModifierCharging()
 {
@@ -2063,6 +2118,49 @@ void UAdvancedWeaponManager::NotifyBlocked()
 	}
 }
 
+void UAdvancedWeaponManager::NotifyShieldDurabilityLost()
+{
+	Server_UnBlock();
+}
+
+void UAdvancedWeaponManager::NotifyShieldRuined()
+{
+	UAbstractWeapon* weapon = GetCurrentWeapon();
+	UWeaponDataAsset* data = weapon->GetData();
+	UWeaponAnimationDataAsset* anims = data->Animations;
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
+	{
+		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
+		if (!IsValid(meleeWeaponData))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to ruin shield",
+			           *data->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(anims);
+		if (!IsValid(meleeAnims))
+		{
+			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to ruin shield",
+			           *data->GetClass()->GetFName().ToString());
+			return;
+		}
+
+		const FMeleeCombinedData& currentData = meleeWeapon->GetCurrentMeleeCombinedData();
+
+		OnMeleeBlockSound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.Block);
+		UE_LOG(LogWeapon, Error, TEXT("%hs Client_BlockRuined()"),
+		       __FUNCTION__);
+		Client_BlockRuined(currentData.Block);
+	}
+	else
+	{
+		TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to ruin shield",
+		           *data->GetClass()->GetFName().ToString());
+		return;
+	}
+}
+
 /*void UAdvancedWeaponManager::ApplyBlockStun()
 {
 	SetManagingStatus(EWeaponManagingStatus::Busy);
@@ -2118,6 +2216,7 @@ void UAdvancedWeaponManager::NotifyBlocked()
 		return;
 	}
 }*/
+
 
 void UAdvancedWeaponManager::ApplyParryStun()
 {
@@ -2577,6 +2676,19 @@ bool UAdvancedWeaponManager::CanBlock() const
 	if (!cur->IsBlockAllowed())
 		return false;
 
+
+	// Can not block with shield if it lost durability
+	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(GetCurrentWeapon()))
+	{
+		if (meleeWeapon->IsShieldEquipped())
+		{
+			if (meleeWeapon->HasShieldDropped())
+			{
+				return false;
+			}
+		}
+	}
+
 	const EWeaponFightingStatus status = GetFightingStatus();
 	const bool bIdle = status == EWeaponFightingStatus::Idle;
 	const bool bAttackCharge = status == EWeaponFightingStatus::AttackCharging || status ==
@@ -2694,82 +2806,45 @@ void UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float Amount,
 		OutDamage = 0.01 * realDmg;
 		return;
 	}
+	bool bHasLostDurability = false;
+	UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(GetCurrentWeapon());
+	if (meleeWeapon && blockResult == EBlockResult::ShieldBlock)
+	{
+		meleeWeapon->ProcessShieldDamage(Amount);
+
+
+		if (meleeWeapon->GetShieldDurability() <= 0.0)
+		{
+			UE_LOG(LogWeapon, Error, TEXT("%hs meleeWeapon->GetShieldDurability() <= 0.0 -> bHasLostDurability = true"),
+			       __FUNCTION__);
+			bHasLostDurability = true;
+		}
+	}
 
 	if (blockResult != EBlockResult::FullDamage)
 	{
 		realDmg = this->BlockIncomingDamage(Amount, causerWpnManager);
 	}
 
+
 	IWeaponManagerOwner::Execute_ApplyDamage(GetOwner(), Causer, realDmg, HitResult,
 	                                         DamageType,
 	                                         OutDamageReturn, OutDamage);
 
-	if (blockResult == EBlockResult::Block)
+	if (bHasLostDurability)
+	{
+		// Sound, effect, etc
+		this->NotifyShieldRuined();
+		// Remove shield (unblock)
+		Server_UnBlock();
+		return;
+	}
+	else if (blockResult == EBlockResult::Block
+		|| blockResult == EBlockResult::ShieldBlock)
 	{
 		// Sound, effect, etc
 		this->NotifyBlocked();
 	}
-
-	//EDamageReturn dmgReturnResult = EDamageReturn::Failed;
-	// Apply damage
-	/*if (blockResult == EBlockResult::FullDamage ||
-		blockResult == EBlockResult::PartialDamage ||
-		blockResult == EBlockResult::PartialShieldDamage ||
-		blockResult == EBlockResult::FullDamageBlockRuin)
-	{
-		// Block some of the damage
-		if (blockResult == EBlockResult::PartialDamage ||
-			blockResult == EBlockResult::PartialShieldDamage ||
-			blockResult == EBlockResult::FullDamageBlockRuin)
-		{
-			realDmg = this->BlockIncomingDamage(Amount, causerWpnManager);
-			/*TRACE(LogWeapon, "%s Blocked some damage from %s. Incoming: %.1f. After block: %.1f",
-			      *this->GetFName().ToString(),
-			      *Causer->GetFName().ToString(),
-			      Amount,
-			      realDmg);#1#
-		}
-
-		if (GetOwner()->Implements<UWeaponManagerOwner>())
-		{
-			IWeaponManagerOwner::Execute_ApplyDamage(GetOwner(), Causer, realDmg, HitResult,
-			                                         DamageType,
-			                                         OutDamageReturn, OutDamage);
-		}
-		// nothing, just keep blocking by shield
-		if (blockResult == EBlockResult::PartialShieldDamage)
-		{
-			//TODO: Remove shield if zero stamina
-		}
-		// Remove block
-		else if (blockResult == EBlockResult::FullDamageBlockRuin)
-		{
-			this->ApplyBlockStun();
-		}
-		// Both get stunned
-		else if (blockResult == EBlockResult::PartialDamage)
-		{
-			this->ApplyBlockStun();
-			causerWpnManager->NotifyEnemyMeleeBlocked();
-		}
-		return;
-	}
-	else if (blockResult == EBlockResult::FullShieldBlock)
-	{
-		causerWpnManager->NotifyEnemyMeleeBlocked();
-		//TODO: Event to remove stamina and maybe destroy shield
-		OutDamageReturn = EDamageReturn::Alive;
-		OutDamage = 0.0f;
-		return;
-	}
-	else if (blockResult == EBlockResult::Parry)
-	{
-		causerWpnManager->ApplyParryStun();
-		this->StartParry(CurrentDirection);
-		OutDamageReturn = EDamageReturn::Alive;
-		OutDamage = 0.0f;
-		return;
-	}*/
 }
 
 void UAdvancedWeaponManager::ProcessProjectileDamage(AActor* Causer, float Amount, const FHitResult& HitResult,
@@ -2788,14 +2863,16 @@ void UAdvancedWeaponManager::ProcessProjectileDamage(AActor* Causer, float Amoun
 		blockResult = CanBlockIncomingProjectileDamage();
 	}
 
+	UMeleeWeapon* melee = Cast<UMeleeWeapon>(GetCurrentWeapon());
 	if (blockResult == EBlockResult::ShieldProjectileBlock)
 	{
-		if (UMeleeWeapon* melee = Cast<UMeleeWeapon>(GetCurrentWeapon()))
+		if (melee)
 		{
 			if (UMeleeWeaponDataAsset* meleeData = melee->GetMeleeData())
 			{
 				Amount = Amount * (1.0f - FMath::Clamp(meleeData->ShieldProjectileBlockPercent, 0.0f, 1.0f));
 			}
+			melee->ProcessShieldDamage(Amount);
 		}
 	}
 
@@ -2806,37 +2883,17 @@ void UAdvancedWeaponManager::ProcessProjectileDamage(AActor* Causer, float Amoun
 		                                         OutDamageReturn, OutDamage);
 	}
 
-	/*if (blockResult == EBlockResult::FullShieldBlock)
+	if (melee && blockResult == EBlockResult::ShieldProjectileBlock)
 	{
-		OutDamageReturn = EDamageReturn::Alive;
-		OutDamage = 0.0f;
-		return;
-		//TODO: Event to remove stamina and maybe destroy shield
+		if (melee->GetShieldDurability() <= 0.0)
+		{
+			// Remove shield (unblock)
+			Server_UnBlock();
+			// Sound, effect, etc
+			this->NotifyShieldRuined();
+			return;
+		}
 	}
-	// Full damage
-	else
-	{
-		//TODO: Extract method
-		if (blockResult == EBlockResult::PartialShieldDamage)
-		{
-			if (UMeleeWeapon* melee = Cast<UMeleeWeapon>(GetCurrentWeapon()))
-			{
-				if (UMeleeWeaponDataAsset* meleeData = melee->GetMeleeData())
-				{
-					Amount = Amount * (1.0f - FMath::Clamp(meleeData->ShieldProjectileBlockPercent, 0.0f, 1.0f));
-				}
-			}
-		}
-		OutDamageReturn = EDamageReturn::Failed;
-		OutDamage = 0.0f;
-		if (GetOwner()->Implements<UWeaponManagerOwner>())
-		{
-			IWeaponManagerOwner::Execute_ApplyDamage(GetOwner(), Causer, Amount, HitResult,
-			                                         DamageType,
-			                                         OutDamageReturn, OutDamage);
-		}
-		return;
-	}*/
 }
 
 

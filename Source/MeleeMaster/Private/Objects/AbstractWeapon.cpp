@@ -188,3 +188,8 @@ int32 UAbstractWeapon::GetVisualIndex(const AWeaponVisual* InVisual) const
 	}
 	return INDEX_NONE;
 }
+
+void UAbstractWeapon::SetWeaponManager(const TWeakObjectPtr<UAdvancedWeaponManager>& InValue)
+{
+	WeaponManagerOwner = InValue;
+}

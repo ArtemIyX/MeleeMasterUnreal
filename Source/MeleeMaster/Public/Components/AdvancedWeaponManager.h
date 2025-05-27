@@ -307,6 +307,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 
+
 #pragma endregion
 
 #pragma region OnRep
@@ -481,6 +482,8 @@ public:
 #pragma region Server
 
 protected:
+
+
 	/**
 	 * @brief Equips a weapon based on index.
 	 * @param InIndex The index of the weapon to equip.
@@ -551,6 +554,9 @@ protected:
 #pragma region Client
 	UFUNCTION(Client, Reliable)
 	void Client_Blocked(EWeaponDirection InDirection, const FMeleeBlockData& InBlockData);
+
+	UFUNCTION(Client, Reliable)
+	void Client_BlockRuined(const FMeleeBlockData& Block);
 
 	UFUNCTION(Client, Reliable)
 	void Client_ParryStun(EWeaponDirection InDirection, const FMeleeAttackData& InAttackData);
@@ -679,6 +685,11 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Weapon")
 	virtual void AddDefaultWeapons();
 
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	virtual bool CanUpShield() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	virtual float GetShieldDurability() const;
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Anim")
 	virtual void NotifyPlayWeaponAnim(UAbstractWeapon* InWeapon, const FAnimMontageFullData& InMontageData,
@@ -696,6 +707,12 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
 	virtual void NotifyBlocked();
 
+	UFUNCTION()
+	void NotifyShieldDurabilityLost();
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
+	virtual void NotifyShieldRuined();
+	
 	/*UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Misc")
 	virtual void ApplyBlockStun();*/
 
@@ -711,6 +728,8 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AdvancedWeaponManager|Weapon")
 	virtual void DropWeaponVisual(const FString& InWeaponGuid);
 
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AdvancedWeaponManager|Weapon")
+	virtual bool IsShieldEquipped() const;
 	/**
 	 * @brief Adds a new weapon to the weapon list.
 	 * @param InWeaponAsset The asset data for the new weapon.
@@ -780,6 +799,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual bool CanRemoveShield() const;
+
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual void ProcessWeaponDamage(AActor* Causer, float Amount,
@@ -963,6 +983,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FWeaponManagerBlockRuinDelegate OnClientBlocked;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FWeaponManagerBlockRuinDelegate OnClientBlockRuined;
 
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FWeaponManagerAttackRuinDelegate OnClientParryStunned;

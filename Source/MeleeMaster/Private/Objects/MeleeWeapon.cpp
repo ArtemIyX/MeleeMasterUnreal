@@ -3,17 +3,26 @@
 
 #include "Objects/MeleeWeapon.h"
 
+#include "Components/AdvancedWeaponManager.h"
 #include "Data/MeleeWeaponDataAsset.h"
 #include "Data/WeaponDataAsset.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 
 UMeleeWeapon::UMeleeWeapon(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer),
-                                                                          bShieldEquipped(true)
+                                                                          bShieldEquipped(true), bShieldHasDropped(0)
 {
 }
 
 void UMeleeWeapon::OnRep_ShieldEquipped()
+{
+}
+
+void UMeleeWeapon::OnRep_ShieldDurability()
+{
+}
+
+void UMeleeWeapon::OnRep_ShieldDropped()
 {
 }
 
@@ -37,6 +46,75 @@ bool UMeleeWeapon::IsWeaponShieldSupported() const
 	}
 	return false;
 }
+
+void UMeleeWeapon::SetShieldDurability(float InValue)
+{
+	ShieldDurability = FMath::Clamp(InValue, 0.0f, 1.0f);
+	MARK_PROPERTY_DIRTY_FROM_NAME(UMeleeWeapon, ShieldDurability, this);
+
+	if (ShieldDurability <= 0.0f)
+	{
+		if (WeaponManagerOwner.IsValid())
+		{
+			WeaponManagerOwner->NotifyShieldDurabilityLost();
+		}
+		SetShieldDropFlag(true);
+	}
+	else if (ShieldDurability >= 1.0f)
+	{
+		SetShieldDropFlag(false);
+	}
+}
+
+void UMeleeWeapon::SetShieldDropFlag(bool InFlag)
+{
+	bShieldHasDropped = InFlag;
+	MARK_PROPERTY_DIRTY_FROM_NAME(UMeleeWeapon, bShieldHasDropped, this);
+}
+
+void UMeleeWeapon::IncreaseShieldDurability()
+{
+	SetShieldDurability(GetShieldDurability() + ShieldIncreaseValue);
+}
+
+void UMeleeWeapon::DecreaseShieldDurability()
+{
+	SetShieldDurability(GetShieldDurability() - ShieldDecreaseValue);
+}
+
+void UMeleeWeapon::ObjectEndPlay()
+{
+	Super::ObjectEndPlay();
+	if (UWorld* world = GetWorld())
+	{
+		world->GetTimerManager().ClearTimer(ShieldDurabilityTimerHandle);
+	}
+}
+
+float UMeleeWeapon::ConvertIncomingDamageToShieldDamage_Implementation(float InDamage)
+{
+	return FMath::Abs(InDamage) / 200.0;
+}
+
+void UMeleeWeapon::ProcessShieldDamage_Implementation(float InDamage)
+{
+	SetShieldDurability(GetShieldDurability() - ConvertIncomingDamageToShieldDamage(FMath::Abs(InDamage)));
+}
+
+void UMeleeWeapon::StartDecreasingShield(FTimerManager& InTimerManager)
+{
+	InTimerManager.ClearTimer(ShieldDurabilityTimerHandle);
+	InTimerManager.SetTimer(ShieldDurabilityTimerHandle, FTimerDelegate::CreateUObject(this,
+		                        &UMeleeWeapon::DecreaseShieldDurability), ShieldDecreaseRate, true);
+}
+
+void UMeleeWeapon::StartIncreasingShield(FTimerManager& InTimerManager)
+{
+	InTimerManager.ClearTimer(ShieldDurabilityTimerHandle);
+	InTimerManager.SetTimer(ShieldDurabilityTimerHandle, FTimerDelegate::CreateUObject(this,
+		                        &UMeleeWeapon::IncreaseShieldDurability), ShieldIncreaseRate, true);
+}
+
 
 bool UMeleeWeapon::IsShieldEquipped() const
 {
@@ -76,4 +154,6 @@ void UMeleeWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	FDoRepLifetimeParams params;
 	params.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UMeleeWeapon, bShieldEquipped, params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UMeleeWeapon, ShieldDurability, params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UMeleeWeapon, bShieldHasDropped, params);
 }
