@@ -144,4 +144,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent)
 	void StopPower();
+
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent)
+	void HideTrail();
+
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent)
+	void ShowTrail();
 };

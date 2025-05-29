@@ -17,15 +17,6 @@ void UAttachCurrentWeaponToHand::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 	{
 		if (UAdvancedWeaponManager* weaponManager = owner->FindComponentByClass<UAdvancedWeaponManager>())
 		{
-			// auto world = MeshComp->GetWorld();
-			// auto mode = (GEngine->GetNetMode(world) == NM_Client)
-			// 	            ? TEXT("[Client] ")
-			// 	            : (GEngine->GetNetMode(world) == NM_ListenServer)
-			// 	            ? TEXT("[ListenServer] ")
-			// 	            : (GEngine->GetNetMode(world) == NM_DedicatedServer)
-			// 	            ? TEXT("[DedicatedServer] ")
-			// 	            : TEXT("[Standalone]");
-			// TRACE(LogWeapon, "%s Attach to hand notify, saved guid: '%s'", mode, *weaponManager->SavedGuid);
 			weaponManager->AttachHand(weaponManager->SavedGuid, VisualIndex);
 		}
 	}

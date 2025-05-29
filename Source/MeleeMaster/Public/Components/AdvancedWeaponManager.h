@@ -670,6 +670,9 @@ public:
 
 #pragma region Exposed
 
+	virtual void ShowWeaponTrail(int32 InVisualIndex);
+	virtual void HideWeaponTrail(int32 InVisualIndex);
+	
 	/**
 	 * @brief Sets the current managing status of the weapon.
 	 * @param InStatus The new managing status.

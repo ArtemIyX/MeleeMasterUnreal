@@ -2029,6 +2029,52 @@ void UAdvancedWeaponManager::AttachHand(const FString& WeaponGuid, int32 InVisua
 	}
 }
 
+void UAdvancedWeaponManager::ShowWeaponTrail(int32 InVisualIndex)
+{
+	if (GetWorld()->GetNetMode() == NM_DedicatedServer)
+		return;
+	
+	if (IsLocalCustomPlayer())
+		return;
+	
+	UAbstractWeapon* wpn = GetCurrentWeapon();
+	if (!IsValid(wpn))
+		return;
+	
+	AWeaponVisual* wpnVisual;
+	bool bVisual = wpn->GetVisualActor(InVisualIndex, wpnVisual);
+	if (!bVisual)
+		return;
+
+	if (!IsValid(wpnVisual))
+		return;
+
+	wpnVisual->ShowTrail();
+}
+
+void UAdvancedWeaponManager::HideWeaponTrail(int32 InVisualIndex)
+{
+	if (GetWorld()->GetNetMode() == NM_DedicatedServer)
+		return;
+	
+	if (IsLocalCustomPlayer())
+		return;
+
+	UAbstractWeapon* wpn = GetCurrentWeapon();
+	if (!IsValid(wpn))
+		return;
+	
+	AWeaponVisual* wpnVisual;
+	bool bVisual = wpn->GetVisualActor(InVisualIndex, wpnVisual);
+	if (!bVisual)
+		return;
+	
+	if (!IsValid(wpnVisual))
+		return;
+
+	wpnVisual->HideTrail();
+}
+
 void UAdvancedWeaponManager::NotifyPlayWeaponAnim(UAbstractWeapon* InWeapon, const FAnimMontageFullData& InMontageData,
                                                   float MontageTime, int32 VisualIndex, bool bUseSection,
                                                   const FName& Section)

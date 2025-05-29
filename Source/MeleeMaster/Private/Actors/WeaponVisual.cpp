@@ -87,6 +87,7 @@ void AWeaponVisual::PlayAnim_Implementation(const FAnimPlayData& InData, bool bF
 
 void AWeaponVisual::Hide()
 {
+	HideTrail();
 	SkeletalMeshComponent->CastShadow = false;
 	SkeletalMeshComponent->bCastHiddenShadow = false;
 	SkeletalMeshComponent->SetVisibility(false);
