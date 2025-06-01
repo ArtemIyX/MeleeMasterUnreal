@@ -207,7 +207,7 @@ void UAdvancedWeaponManager::BeginPlay()
 	if (GetWorld()->GetNetMode() == NM_DedicatedServer || GetWorld()->GetNetMode() == NM_Standalone)
 	{
 		SetFightingStatus(EWeaponFightingStatus::Idle);
-		SetManagingStatus(EWeaponManagingStatus::Idle);
+		SetManagingStatus(EWeaponManagingStatus::NoWeapon);
 	}
 }
 
