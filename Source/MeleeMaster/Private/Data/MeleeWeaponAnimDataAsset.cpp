@@ -40,7 +40,7 @@ const FMeleeBlockAnimMontageData& FMeleeBlockAnimData::Get(EWeaponDirection InDi
 	//return Forward;
 }
 
-const FAnimMontageFullData& FMeleeBlockRuinAnimData::Get(EWeaponDirection InDir) const
+/*const FAnimMontageFullData& FMeleeBlockRuinAnimData::Get(EWeaponDirection InDir) const
 {
 	switch (InDir)
 	{
@@ -54,7 +54,7 @@ const FAnimMontageFullData& FMeleeBlockRuinAnimData::Get(EWeaponDirection InDir)
 		return Left;
 	default: return Forward;
 	}
-}
+}*/
 
 FBowArrowData::FBowArrowData()
 {

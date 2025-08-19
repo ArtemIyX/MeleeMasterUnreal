@@ -451,9 +451,9 @@ struct MELEEMASTER_API FAnimMontageSingleData
 
 public:
 	/**
-	 * @brief Default constructor initializing the montage to nullptr and length to 1.0.
+	 * @brief Default constructor initializing the montage to nullptr and length to 0.0.
 	 */
-	FAnimMontageSingleData() : Value(nullptr), Length(1.0f)
+	FAnimMontageSingleData() : Value(nullptr), Length(0.0f)
 	{
 	}
 
@@ -467,7 +467,7 @@ public:
 	/**
 	 * @brief Length of the montage. Minimum value is clamped to 0.01 seconds.
 	 */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta=(ClampMin="0.01"))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta=(ClampMin="0.00"))
 	float Length;
 };
 
@@ -523,6 +523,7 @@ public:
 };
 
 
+/*
 USTRUCT(Blueprintable, BlueprintType)
 struct MELEEMASTER_API FAttackAnimMontageData : public FAnimMontageFullData
 {
@@ -531,6 +532,20 @@ struct MELEEMASTER_API FAttackAnimMontageData : public FAnimMontageFullData
 public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, DisplayName="Attack Section")
 	FName AttackSection;
+};
+*/
+
+USTRUCT(Blueprintable, BlueprintType)
+struct MELEEMASTER_API FAttackAnimMontageData
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FAnimMontageFullData Charge;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FAnimMontageFullData Hit;
 };
 
 /**
@@ -627,7 +642,7 @@ public:
 	const FMeleeBlockAnimMontageData& Get(EWeaponDirection InDir) const;
 };
 
-USTRUCT(Blueprintable, BlueprintType)
+/*USTRUCT(Blueprintable, BlueprintType)
 struct MELEEMASTER_API FMeleeBlockRuinAnimData
 {
 	GENERATED_BODY()
@@ -647,7 +662,7 @@ public:
 	FAnimMontageFullData Left;
 
 	const FAnimMontageFullData& Get(EWeaponDirection InDir) const;
-};
+};*/
 
 
 /**
@@ -699,8 +714,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FMeleeBlockAnimData Block;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FMeleeBlockRuinAnimData BlockRuin;
+	/*UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FMeleeBlockRuinAnimData BlockRuin;*/
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FSequenceData Idle;

@@ -1028,8 +1028,7 @@ void UAdvancedWeaponManager::AttackMelee_Internal(UMeleeWeapon* InMeleeWeapon)
 		                                             : meleeAnims->Attack;
 	const FAttackAnimMontageData& attackAnim = attackAnimData.Get(CurrentDirection);
 
-	Multi_PlayAnim(InMeleeWeapon, attackAnim, attackData.HittingTime, true,
-	               attackAnim.AttackSection);
+	Multi_PlayAnim(InMeleeWeapon, attackAnim.Hit, attackData.HittingTime, false);
 	Multi_MeleeChargeFinished();
 
 	OnMeleeWhooshSound.Broadcast(InMeleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.Whoosh);
@@ -1095,7 +1094,7 @@ void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapo
 			this, &UAdvancedWeaponManager::PostAttackFinished);
 		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, delegate, postAttackTime, false);
 
-		Multi_PlayAnim(rangeWeapon, rangeAnimData->Pull, postAttackTime, true, rangeAnimData->Pull.AttackSection);
+		Multi_PlayAnim(rangeWeapon, rangeAnimData->Pull.Hit, postAttackTime, false);
 		Multi_RangeChargingFinished();
 	}
 	else
@@ -1172,8 +1171,8 @@ void UAdvancedWeaponManager::StartParry(EWeaponDirection InDirection)
 		const FMeleeAttackAnimData& parryData = meleeWeapon->IsShieldEquipped()
 			                                        ? meleeAnims->Shield.Parry
 			                                        : meleeAnims->Parry;
-		auto dirParryData = parryData.Get(InDirection);
-		Multi_PlayAnim(weapon, dirParryData, parry.PreAttackLen);
+		const FAttackAnimMontageData& dirParryData = parryData.Get(InDirection);
+		Multi_PlayAnim(weapon, dirParryData.Charge, parry.PreAttackLen);
 
 		OnMeleeParrySound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.Parry);
 	}
@@ -1629,8 +1628,8 @@ void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection 
 			                                             ? meleeAnims->Shield.Attack
 			                                             : meleeAnims->Attack;
 		const FAttackAnimMontageData& attackAnim = attackAnimData.Get(InDirection);
-		FAnimMontageFullData montageData = attackAnim;
-		Multi_PlayAnim(weapon, montageData, attackData.PreAttackLen);
+		auto montageData = attackAnim;
+		Multi_PlayAnim(weapon, montageData.Charge, attackData.PreAttackLen);
 		OnMeleeChargeCameraShake.Broadcast(meleeWeapon, currentData.Attack.ChargeCameraShakes, InDirection);
 	}
 	else
@@ -1683,7 +1682,7 @@ void UAdvancedWeaponManager::Server_StartAttackSimple_Implementation()
 
 		const FAttackAnimMontageData& attackAnimData = rangeAnims->Pull;
 
-		Multi_PlayAnim(weapon, attackAnimData, rangeData->PreAttackLen);
+		Multi_PlayAnim(weapon, attackAnimData.Charge, rangeData->PreAttackLen);
 	}
 	else
 	{
@@ -2082,7 +2081,7 @@ void UAdvancedWeaponManager::NotifyPlayWeaponAnim(UAbstractWeapon* InWeapon, con
 	Multi_PlayVisualAnim(InWeapon, InMontageData, MontageTime, VisualIndex, bUseSection, Section);
 }
 
-void UAdvancedWeaponManager::NotifyEnemyMeleeBlocked()
+/*void UAdvancedWeaponManager::NotifyEnemyMeleeBlocked()
 {
 	SetManagingStatus(EWeaponManagingStatus::Busy);
 	SetFightingStatus(EWeaponFightingStatus::AttackStunned);
@@ -2125,7 +2124,7 @@ void UAdvancedWeaponManager::NotifyEnemyMeleeBlocked()
 		           *data->GetClass()->GetFName().ToString());
 		return;
 	}
-}
+}*/
 
 void UAdvancedWeaponManager::NotifyBlocked()
 {

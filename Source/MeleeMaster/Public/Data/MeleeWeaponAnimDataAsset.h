@@ -40,8 +40,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Melee")
 	FMeleeBlockAnimData Block;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Melee")
+	/*UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Montages|Melee")
 	FMeleeBlockRuinAnimData BlockRuin;
+	*/
 	
 	/**
 	 * @brief Animation montage data for shield actions, including equip, de-equip, attack, and block.
