@@ -484,13 +484,13 @@ public:
 	/**
 	 * @brief Animation montage data for first-person view.
 	 */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, DisplayName="FP")
 	FAnimMontageSingleData FirstPerson;
 
 	/**
 	 * @brief Animation montage data for third-person view.
 	 */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, DisplayName="TP")
 	FAnimMontageSingleData ThirdPerson;
 };
 
