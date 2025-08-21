@@ -1710,14 +1710,18 @@ void UAdvancedWeaponManager::Multi_PlayAnim_Implementation(
 		data = FAnimPlayData(InWeapon, InAnimSet, InTimeLen);
 	}
 
+	// Always play third person animation for root motion
+	OnTpAnim.Broadcast(data);
+
 	if (IsLocalCustomPlayer())
 	{
+		// Play first person animation for client
 		OnFpAnim.Broadcast(data);
 	}
-	else
+	/*else
 	{
 		OnTpAnim.Broadcast(data);
-	}
+	}*/
 }
 
 void UAdvancedWeaponManager::Multi_PlayVisualAnim_Implementation(UAbstractWeapon* InWeapon,
