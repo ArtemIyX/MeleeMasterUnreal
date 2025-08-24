@@ -720,7 +720,7 @@ void UAdvancedWeaponManager::PreAttackFinished()
 		SetChargeFinished(currentTime + attack.CurveTime);
 		UCurveFloat* curve = attack.Curve.LoadSynchronous();
 		SetChargingCurve(curve);
-		OnStartedCharging.Broadcast(meleeWeapon, GetChargingCurve(), GetChargingFinishTime());
+		OnStartedMeleeCharging.Broadcast(meleeWeapon, GetChargingCurve(), GetChargingFinishTime());
 	}
 	else
 	{
@@ -753,7 +753,7 @@ void UAdvancedWeaponManager::RangePreAttackFinished()
 		SetChargeFinished(currentTime + curveData.CurveTime);
 		UCurveFloat* curve = curveData.Curve.LoadSynchronous();
 		SetChargingCurve(curve);
-		OnStartedCharging.Broadcast(rangeWeapon, GetChargingCurve(), GetChargingFinishTime());
+		OnStartedRangeCharging.Broadcast(rangeWeapon, GetChargingCurve(), GetChargingFinishTime());
 	}
 	else
 	{
@@ -1033,6 +1033,7 @@ void UAdvancedWeaponManager::AttackMelee_Internal(UMeleeWeapon* InMeleeWeapon)
 
 	OnMeleeWhooshSound.Broadcast(InMeleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.Whoosh);
 	OnMeleeAttackCameraShake.Broadcast(InMeleeWeapon, currentMeleeData.Attack.PostChargeCameraShakes, CurrentDirection);
+	OnMeleeAttack.Broadcast(InMeleeWeapon);
 }
 
 void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapon)
@@ -1049,25 +1050,7 @@ void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapo
 		SetManagingStatus(EWeaponManagingStatus::Idle);
 		return;
 	}
-
-	UWeaponDataAsset* data = weapon->GetData();
-	/*if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
-	{
-		UMeleeWeaponDataAsset* meleeWeaponData = Cast<UMeleeWeaponDataAsset>(data);
-		if (!IsValid(meleeWeaponData))
-		{
-			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start post attack",
-			           *data->GetClass()->GetFName().ToString());
-			return;
-		}
-
-		const FMeleeAttackCurveData& attack = meleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(CurrentDirection);
-		float postAttackTime = attack.PostAttackLen;
-		auto delegate = FTimerDelegate::CreateUObject(
-			this, &UAdvancedWeaponManager::PostAttackFinished);
-		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, delegate, postAttackTime, false);
-	}
-	else */
+	
 	if (ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
 	{
 		URangeWeaponDataAsset* rangeData = InRangeWeapon->GetRangeData();
@@ -1096,6 +1079,7 @@ void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapo
 
 		Multi_PlayAnim(rangeWeapon, rangeAnimData->Pull.Hit, postAttackTime, false);
 		Multi_RangeChargingFinished();
+		OnRangeAttack.Broadcast(rangeWeapon);
 	}
 	else
 	{
@@ -1166,7 +1150,7 @@ void UAdvancedWeaponManager::StartParry(EWeaponDirection InDirection)
 
 		UCurveFloat* curve = parry.Curve.LoadSynchronous();
 		SetChargingCurve(curve);
-		OnStartedCharging.Broadcast(meleeWeapon, GetChargingCurve(), GetChargingFinishTime());
+		OnStartedMeleeCharging.Broadcast(meleeWeapon, GetChargingCurve(), GetChargingFinishTime());
 		OnParry.Broadcast(meleeWeapon);
 		const FMeleeAttackAnimData& parryData = meleeWeapon->IsShieldEquipped()
 			                                        ? meleeAnims->Shield.Parry
@@ -1188,6 +1172,9 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 {
 	if (!CanBlock())
 		return;
+
+	const bool bWasMeleeCharging = GetFightingStatus() == EWeaponFightingStatus::AttackCharging;
+	const bool bWasRangeCharging = GetFightingStatus() == EWeaponFightingStatus::RangeCharging;
 
 	GetWorld()->GetTimerManager().ClearTimer(FightTimerHandle);
 	GetWorld()->GetTimerManager().ClearTimer(HittingTimerHandle);
@@ -1235,6 +1222,11 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 		}
 		OnStartedChargingBlock.Broadcast(meleeWeapon, GetChargingCurve(), GetChargingFinishTime());
 
+		if (bWasMeleeCharging)
+		{
+			OnCanceledMeleeCharging.Broadcast(meleeWeapon);
+		}
+
 		const FMeleeBlockAnimData& blockAnimData = meleeWeapon->IsShieldEquipped()
 			                                           ? meleeAnims->Shield.Block
 			                                           : meleeAnims->Block;
@@ -1244,6 +1236,10 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 	}
 	else if (ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
 	{
+		if (bWasRangeCharging)
+		{
+			OnCanceledRangeCharging.Broadcast(meleeWeapon);
+		}
 		SetManagingStatus(EWeaponManagingStatus::Idle);
 		SetFightingStatus(EWeaponFightingStatus::Idle);
 		Multi_CancelCurrentAnim();
@@ -2036,14 +2032,14 @@ void UAdvancedWeaponManager::ShowWeaponTrail(int32 InVisualIndex)
 {
 	if (GetWorld()->GetNetMode() == NM_DedicatedServer)
 		return;
-	
+
 	if (IsLocalCustomPlayer())
 		return;
-	
+
 	UAbstractWeapon* wpn = GetCurrentWeapon();
 	if (!IsValid(wpn))
 		return;
-	
+
 	AWeaponVisual* wpnVisual;
 	bool bVisual = wpn->GetVisualActor(InVisualIndex, wpnVisual);
 	if (!bVisual)
@@ -2059,19 +2055,19 @@ void UAdvancedWeaponManager::HideWeaponTrail(int32 InVisualIndex)
 {
 	if (GetWorld()->GetNetMode() == NM_DedicatedServer)
 		return;
-	
+
 	if (IsLocalCustomPlayer())
 		return;
 
 	UAbstractWeapon* wpn = GetCurrentWeapon();
 	if (!IsValid(wpn))
 		return;
-	
+
 	AWeaponVisual* wpnVisual;
 	bool bVisual = wpn->GetVisualActor(InVisualIndex, wpnVisual);
 	if (!bVisual)
 		return;
-	
+
 	if (!IsValid(wpnVisual))
 		return;
 
@@ -2924,7 +2920,7 @@ void UAdvancedWeaponManager::ProcessProjectileDamage(AActor* Causer, float Amoun
 			{
 				Amount = Amount * (1.0f - FMath::Clamp(meleeData->ShieldProjectileBlockPercent, 0.0f, 1.0f));
 			}
-			
+
 			if (melee->GetShieldDurability() > 0.0)
 			{
 				melee->ProcessShieldDamage(Amount);

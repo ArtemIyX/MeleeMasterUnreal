@@ -964,7 +964,22 @@ public:
 	FAdvancedWeaponManagerAnimationDelegate OnTpAnim;
 
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
-	FWeaponManagerChargingDelegate OnStartedCharging;
+	FWeaponManagerChargingDelegate OnStartedMeleeCharging;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FWeaponManagerChargingDelegate OnStartedRangeCharging;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FWeaponManagerDelegate OnCanceledMeleeCharging;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FWeaponManagerDelegate OnCanceledRangeCharging;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FWeaponManagerDelegate OnMeleeAttack;
+
+	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
+	FWeaponManagerDelegate OnRangeAttack;
 
 	UPROPERTY(BlueprintAssignable, Category="AdvancedWeaponManager|Events")
 	FWeaponManagerChargingDelegate OnStartedChargingBlock;
