@@ -636,16 +636,19 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 			                                      /* EDamageReturn& OutDamageReturn */ dmgReturn,
 			                                      /* float& OutDamage */ totalDmg);
 
-			// Update melee combo
+			if (dmgReturn != EDamageReturn::Failed)
 			{
-				SetLastAttackComboSavedSum(GetLastComboSavedSum() + meleeData.Attack.ComboAddAmount);
-			}
+				// Update melee combo
+				{
+					SetLastAttackComboSavedSum(GetLastComboSavedSum() + meleeData.Attack.ComboAddAmount);
+				}
 
-			if (meleeAnims)
-			{
-				OnMeleeFleshHitSound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.FleshHit);
-				bWasHit = true;
-				bWasFleshHit = true;
+				if (meleeAnims)
+				{
+					OnMeleeFleshHitSound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.FleshHit);
+					bWasHit = true;
+					bWasFleshHit = true;
+				}
 			}
 		}
 		if (bWasWallHit)
