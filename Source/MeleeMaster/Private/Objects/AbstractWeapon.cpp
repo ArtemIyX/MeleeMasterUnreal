@@ -43,6 +43,11 @@ bool UAbstractWeapon::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bun
 	return Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
 }
 
+float UAbstractWeapon::GetTotalDamagePerDirection(EWeaponDirection WeaponDirection) const
+{
+	return 0.0f;
+}
+
 bool UAbstractWeapon::IsLeftHandIkRequired_Implementation() const
 {
 	return false;

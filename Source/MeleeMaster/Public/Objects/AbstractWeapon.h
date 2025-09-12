@@ -89,6 +89,10 @@ public:
 
 #pragma region Data
 public:
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="AbstractWeapon|Data")
+	virtual float GetTotalDamagePerDirection(EWeaponDirection WeaponDirection) const;
+	
 	/**
 	 * @brief Retrieves the weapon data asset.
 	 * @return The weapon data asset.

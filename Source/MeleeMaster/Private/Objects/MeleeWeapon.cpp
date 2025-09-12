@@ -6,6 +6,7 @@
 #include "Components/AdvancedWeaponManager.h"
 #include "Data/MeleeWeaponDataAsset.h"
 #include "Data/WeaponDataAsset.h"
+#include "Data/WeaponHitPathAsset.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 
@@ -126,6 +127,25 @@ bool UMeleeWeapon::IsShieldEquipped() const
 		}
 	}
 	return false;
+}
+
+float UMeleeWeapon::GetTotalDamagePerDirection(EWeaponDirection InDir) const
+{
+	const FMeleeCombinedData& attackData = GetCurrentMeleeCombinedData();
+	const FMeleeAttackCurveData& dirData = attackData.Attack.Get(InDir);
+	if (dirData.bDamageForFullPath)
+	{
+		return dirData.BasicDamage;
+	}
+
+	const float basicDmg = dirData.BasicDamage;
+	if (UWeaponHitPathAsset* hitPath = dirData.HitPath)
+	{
+		int32 num = hitPath->Data.Elements.Num();
+		return basicDmg * num;
+	}
+
+	return basicDmg;
 }
 
 UMeleeWeaponDataAsset* UMeleeWeapon::GetMeleeData() const

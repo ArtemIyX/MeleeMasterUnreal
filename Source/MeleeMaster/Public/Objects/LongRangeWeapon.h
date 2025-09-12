@@ -57,6 +57,8 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	URangeWeaponDataAsset* GetRangeData() const;
+	
+	virtual float GetTotalDamagePerDirection(EWeaponDirection WeaponDirection) const override;
 #pragma endregion Data
 
 #pragma region Arrow Visual

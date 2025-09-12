@@ -155,6 +155,9 @@ public:
 #pragma region Data
 
 public:
+
+	virtual float GetTotalDamagePerDirection(EWeaponDirection InDir) const override;
+	
 	/**
 	 * @brief Retrieves the melee weapon data asset.
 	 * @return The melee weapon data asset.

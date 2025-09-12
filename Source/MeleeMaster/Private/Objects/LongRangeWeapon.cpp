@@ -19,6 +19,15 @@ URangeWeaponDataAsset* ULongRangeWeapon::GetRangeData() const
 	return Cast<URangeWeaponDataAsset>(this->GetData());
 }
 
+float ULongRangeWeapon::GetTotalDamagePerDirection(EWeaponDirection WeaponDirection) const
+{
+	if (URangeWeaponDataAsset* rangeData = GetRangeData())
+	{
+		return rangeData->BasicDamage;
+	}
+	return 0.0f;
+}
+
 void ULongRangeWeapon::ObjectEndPlay()
 {
 	if (IsValid(LocalArrowVisual))
