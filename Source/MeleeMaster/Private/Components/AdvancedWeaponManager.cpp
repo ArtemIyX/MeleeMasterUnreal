@@ -1378,6 +1378,26 @@ void UAdvancedWeaponManager::ParryStunFinished()
 	SetFightingStatus(EWeaponFightingStatus::Idle);
 }
 
+/*int32 UAdvancedWeaponManager::GetEquippedWeaponIndex() const
+{
+	if (CurrentWeapon == nullptr)
+		return INDEX_NONE;
+
+	for (int32 i = 0; i < WeaponList.Num(); ++i)
+	{
+		if (WeaponList[i] && CurrentWeapon == WeaponList[i])
+		{
+			return i;
+		}
+	}
+	return INDEX_NONE;
+}*/
+
+bool UAdvancedWeaponManager::HasEquippedWeapon() const
+{
+	return IsValid(CurrentWeapon);
+}
+
 void UAdvancedWeaponManager::Server_RemoveShield_Implementation()
 {
 	if (!CanRemoveShield())

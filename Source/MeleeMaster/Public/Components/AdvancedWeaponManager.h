@@ -439,6 +439,13 @@ protected:
 #pragma region TryProxy
 
 public:
+
+	/*UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
+	int32 GetEquippedWeaponIndex() const;*/
+	
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Manage")
+	bool HasEquippedWeapon() const;
+	
 	/**
 	 * @brief Tries to equip a weapon via a proxy method.
 	 * @param InIndex The index of the weapon to equip.
