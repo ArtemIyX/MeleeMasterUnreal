@@ -32,13 +32,12 @@
 #include "Objects/WeaponModifierManager.h"
 
 
-FAnimPlayData::FAnimPlayData(): bUseSection(false)
-{
-}
+FAnimPlayData::FAnimPlayData()
+	: bUseSection(false) {}
 
 FAnimPlayData::FAnimPlayData(UAbstractWeapon* InWeapon,
-                             const FAnimMontageFullData& InAnimSet,
-                             const float InTime)
+	const FAnimMontageFullData& InAnimSet,
+	const float InTime)
 {
 	this->Weapon = InWeapon;
 	this->AnimSet = InAnimSet;
@@ -47,9 +46,10 @@ FAnimPlayData::FAnimPlayData(UAbstractWeapon* InWeapon,
 }
 
 FAnimPlayData::FAnimPlayData(UAbstractWeapon* InWeapon,
-                             const FAnimMontageFullData& InAnimSet,
-                             const float InTime,
-                             const FName& InSectionName) : FAnimPlayData(InWeapon, InAnimSet, InTime)
+	const FAnimMontageFullData& InAnimSet,
+	const float InTime,
+	const FName& InSectionName)
+	: FAnimPlayData(InWeapon, InAnimSet, InTime)
 
 {
 	this->bUseSection = true;
@@ -217,17 +217,11 @@ void UAdvancedWeaponManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void UAdvancedWeaponManager::OnRep_CurrentWeapon()
-{
-}
+void UAdvancedWeaponManager::OnRep_CurrentWeapon() {}
 
-void UAdvancedWeaponManager::OnRep_WeaponList()
-{
-}
+void UAdvancedWeaponManager::OnRep_WeaponList() {}
 
-void UAdvancedWeaponManager::OnRep_ManagingStatus()
-{
-}
+void UAdvancedWeaponManager::OnRep_ManagingStatus() {}
 
 void UAdvancedWeaponManager::OnRep_FightingStatus(EWeaponFightingStatus PreviousState)
 {
@@ -240,21 +234,13 @@ void UAdvancedWeaponManager::OnRep_CurrentDirection()
 	OnClientDirectionChanged.Broadcast(CurrentDirection);
 }
 
-void UAdvancedWeaponManager::OnRep_CurrentCurve()
-{
-}
+void UAdvancedWeaponManager::OnRep_CurrentCurve() {}
 
-void UAdvancedWeaponManager::OnRep_Charge()
-{
-}
+void UAdvancedWeaponManager::OnRep_Charge() {}
 
-void UAdvancedWeaponManager::OnRep_ChargeStarted()
-{
-}
+void UAdvancedWeaponManager::OnRep_ChargeStarted() {}
 
-void UAdvancedWeaponManager::OnRep_HasBlocked()
-{
-}
+void UAdvancedWeaponManager::OnRep_HasBlocked() {}
 
 void UAdvancedWeaponManager::OnRep_CurrentAttackComboSum()
 {
@@ -274,7 +260,7 @@ void UAdvancedWeaponManager::OnRep_AttackComboExpireTime()
 
 // Called every frame
 void UAdvancedWeaponManager::TickComponent(float DeltaTime, ELevelTick TickType,
-                                           FActorComponentTickFunction* ThisTickFunction)
+	FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
@@ -393,7 +379,6 @@ float UAdvancedWeaponManager::EvaluateCurrentCurve() const
 		return MinimalCurveValue;
 	}
 
-
 	if (fightStatus == EWeaponFightingStatus::AttackCharging
 		|| fightStatus == EWeaponFightingStatus::BlockCharging
 		|| fightStatus == EWeaponFightingStatus::RangeCharging)
@@ -478,7 +463,7 @@ int32 UAdvancedWeaponManager::AddNewWeapon(UWeaponDataAsset* InWeaponAsset)
 		return INDEX_NONE;
 
 	UAbstractWeapon* weaponInstance = NewObject<UAbstractWeapon>(GetOwner(), InWeaponAsset->WeaponClass, NAME_None,
-	                                                             RF_Transient);
+		RF_Transient);
 	weaponInstance->SetData(InWeaponAsset);
 	weaponInstance->SetGuidString(weaponInstance->MakeRandomGuidString());
 	weaponInstance->SetWeaponManager(this);
@@ -556,7 +541,7 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 	if (!gm->Implements<UDamageManager>())
 	{
 		TRACEERROR(LogWeapon, "Gamemode %s must implement UDamageManager!",
-		           *gm->GetClass()->GetFName().ToString());
+			*gm->GetClass()->GetFName().ToString());
 		return;
 	}
 	TMap<AActor*, FHitResult> hitMap;
@@ -588,7 +573,6 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 		}
 	}
 
-
 	UWeaponDataAsset* data = InWeapon->GetData();
 
 	TArray<FMeleeHitDebugData> debugArr;
@@ -603,7 +587,7 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 		if (!IsValid(meleeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to process hit",
-			           *data->GetClass()->GetFName().ToString());
+				*data->GetClass()->GetFName().ToString());
 			return;
 		}
 		const FMeleeCombinedData& meleeData = meleeWeapon->GetCurrentMeleeCombinedData();
@@ -627,14 +611,14 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 			APlayerState* ps = pawn->GetController()->GetPlayerState<APlayerState>();
 
 			IDamageManager::Execute_RequestDamage(gm,
-			                                      /* AActor* Causer */ pawn,
-			                                      /* APlayerState* PlayerInstigator */ ps,
-			                                      /* AActor* Damaged */ el.Key,
-			                                      /* float Amount */ estimatedDmg,
-			                                      /* const FHitResult& HitResul*/ el.Value,
-			                                      /* TSubclassOf<UDamageType> DamageType */ dmgType,
-			                                      /* EDamageReturn& OutDamageReturn */ dmgReturn,
-			                                      /* float& OutDamage */ totalDmg);
+				/* AActor* Causer */ pawn,
+				/* APlayerState* PlayerInstigator */ ps,
+				/* AActor* Damaged */ el.Key,
+				/* float Amount */ estimatedDmg,
+				/* const FHitResult& HitResul*/ el.Value,
+				/* TSubclassOf<UDamageType> DamageType */ dmgType,
+				/* EDamageReturn& OutDamageReturn */ dmgReturn,
+				/* float& OutDamage */ totalDmg);
 
 			if (dmgReturn != EDamageReturn::Failed)
 			{
@@ -672,9 +656,8 @@ void UAdvancedWeaponManager::ProcessHits(UAbstractWeapon* InWeapon, const TArray
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to process hit",
-		           *InWeapon->GetClass()->GetFName().ToString());
+			*InWeapon->GetClass()->GetFName().ToString());
 	}
-
 
 	if (bDebugMeleeHits && debugArr.Num() > 0)
 	{
@@ -693,9 +676,9 @@ void UAdvancedWeaponManager::Multi_DebugHit_Implementation(const TArray<FMeleeHi
 		{
 			DrawDebugPoint(GetWorld(), el.Location, 2.0f, FColor::White, false, 4.0f, -1);
 			DrawDebugString(GetWorld(), el.Location,
-			                FString::Printf(TEXT("%1.f (%.1f x %.1f)"), el.BaseDamage * el.Multiplier, el.BaseDamage,
-			                                el.Multiplier),
-			                nullptr, FColor::White, 4.0f, true, 1);
+				FString::Printf(TEXT("%1.f (%.1f x %.1f)"), el.BaseDamage * el.Multiplier, el.BaseDamage,
+					el.Multiplier),
+				nullptr, FColor::White, 4.0f, true, 1);
 		}
 	}
 }
@@ -713,7 +696,7 @@ void UAdvancedWeaponManager::PreAttackFinished()
 		if (!IsValid(meleeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start charging attack",
-			           *data->GetClass()->GetFName().ToString());
+				*data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -728,7 +711,7 @@ void UAdvancedWeaponManager::PreAttackFinished()
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to finish pre  attack",
-		           *weapon->GetClass()->GetFName().ToString());
+			*weapon->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -746,7 +729,7 @@ void UAdvancedWeaponManager::RangePreAttackFinished()
 		if (!IsValid(rangeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start charging attack",
-			           *data->GetClass()->GetFName().ToString());
+				*data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -761,7 +744,7 @@ void UAdvancedWeaponManager::RangePreAttackFinished()
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to finish pre  attack",
-		           *weapon->GetClass()->GetFName().ToString());
+			*weapon->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -790,10 +773,9 @@ void UAdvancedWeaponManager::HitFinished()
 	}
 	else
 	{
-		SetCurrentAttackCombo(0.0f); // No combo
+		SetCurrentAttackCombo(0.0f);      // No combo
 		SetLastAttackComboSavedSum(0.0f); // No saved combo
 	}
-
 
 	UWeaponDataAsset* data = weapon->GetData();
 	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(weapon))
@@ -802,14 +784,14 @@ void UAdvancedWeaponManager::HitFinished()
 		if (!IsValid(meleeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start post attack",
-			           *data->GetClass()->GetFName().ToString());
+				*data->GetClass()->GetFName().ToString());
 			return;
 		}
 
 		const FMeleeAttackCurveData& attack = meleeWeapon->GetCurrentMeleeCombinedData().Attack.Get(CurrentDirection);
 		float postAttackTime = attack.PostAttackLen;
 		TDelegate<TDelegate<void(), FNotThreadSafeNotCheckedDelegateUserPolicy>::RetValType(),
-		          FNotThreadSafeNotCheckedDelegateUserPolicy> delegate = FTimerDelegate::CreateUObject(
+			FNotThreadSafeNotCheckedDelegateUserPolicy> delegate = FTimerDelegate::CreateUObject(
 			this, &UAdvancedWeaponManager::PostAttackFinished);
 		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, delegate, postAttackTime, false);
 
@@ -818,7 +800,7 @@ void UAdvancedWeaponManager::HitFinished()
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to start post attack",
-		           *weapon->GetClass()->GetFName().ToString());
+			*weapon->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -860,7 +842,7 @@ void UAdvancedWeaponManager::MeleeHitProcedure()
 		if (!IsValid(meleeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to melee attack",
-			           *data->GetClass()->GetFName().ToString());
+				*data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -874,7 +856,7 @@ void UAdvancedWeaponManager::MeleeHitProcedure()
 		if (!IsValid(pawnOwner))
 		{
 			TRACEERROR(LogWeapon, "Owner(%s) must be Pawn",
-			           *owner->GetClass()->GetFName().ToString());
+				*owner->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -883,17 +865,17 @@ void UAdvancedWeaponManager::MeleeHitProcedure()
 		if (!attackData.HitPath)
 		{
 			TRACEERROR(LogWeapon, "%s hit path of %s is null",
-			           *UEnum::GetValueAsString(CurrentDirection),
-			           *meleeWeaponData->GetFName().ToString());
+				*UEnum::GetValueAsString(CurrentDirection),
+				*meleeWeaponData->GetFName().ToString());
 			return;
 		}
 		UWeaponHitPathAsset* hitPath = attackData.HitPath;
 		if (!hitPath->Data.Elements.IsValidIndex(HitNum))
 		{
 			TRACEWARN(LogWeapon, "Invalid %d index of %s %s",
-			          HitNum,
-			          *UEnum::GetValueAsString(CurrentDirection),
-			          *meleeWeaponData->GetFName().ToString());
+				HitNum,
+				*UEnum::GetValueAsString(CurrentDirection),
+				*meleeWeaponData->GetFName().ToString());
 			return;
 		}
 		// Make ignore array
@@ -923,14 +905,14 @@ void UAdvancedWeaponManager::MeleeHitProcedure()
 		const FVector end = endRotated + ownerLoc;
 		TArray<FHitResult> hits;
 		UKismetSystemLibrary::BoxTraceMulti(GetWorld(), start, end,
-		                                    FVector(hitPath->Radius), controlRot,
-		                                    hitPath->TraceQuery,
-		                                    false, actorsToIgnore,
-		                                    bDebugMeleeHits
-			                                    ? EDrawDebugTrace::Type::ForDuration
-			                                    : EDrawDebugTrace::None,
-		                                    hits, false, FLinearColor::Red, FLinearColor::Blue,
-		                                    bDebugMeleeHits ? 10.0f : 0.0f);
+			FVector(hitPath->Radius), controlRot,
+			hitPath->TraceQuery,
+			false, actorsToIgnore,
+			bDebugMeleeHits
+			? EDrawDebugTrace::Type::ForDuration
+			: EDrawDebugTrace::None,
+			hits, false, FLinearColor::Red, FLinearColor::Blue,
+			bDebugMeleeHits ? 10.0f : 0.0f);
 		if (hits.Num() > 0)
 		{
 			ProcessHits(meleeWeapon, hits);
@@ -941,7 +923,7 @@ void UAdvancedWeaponManager::MeleeHitProcedure()
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to execute melee attack line trace",
-		           *weapon->GetClass()->GetFName().ToString());
+			*weapon->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -967,7 +949,7 @@ void UAdvancedWeaponManager::Server_Attack_Implementation()
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to attack",
-		           *weapon->GetClass()->GetFName().ToString());
+			*weapon->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -978,7 +960,7 @@ void UAdvancedWeaponManager::AttackMelee_Internal(UMeleeWeapon* InMeleeWeapon)
 	if (!IsValid(meleeWeaponData))
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to melee attack",
-		           *InMeleeWeapon->GetData()->GetClass()->GetFName().ToString());
+			*InMeleeWeapon->GetData()->GetClass()->GetFName().ToString());
 		return;
 	}
 
@@ -986,7 +968,7 @@ void UAdvancedWeaponManager::AttackMelee_Internal(UMeleeWeapon* InMeleeWeapon)
 	if (!IsValid(meleeWeaponData))
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to melee attack",
-		           *InMeleeWeapon->GetData()->Animations->GetClass()->GetFName().ToString());
+			*InMeleeWeapon->GetData()->Animations->GetClass()->GetFName().ToString());
 		return;
 	}
 	const FMeleeCombinedData& currentMeleeData = InMeleeWeapon->GetCurrentMeleeCombinedData();
@@ -996,8 +978,8 @@ void UAdvancedWeaponManager::AttackMelee_Internal(UMeleeWeapon* InMeleeWeapon)
 	if (!attackData.HitPath)
 	{
 		TRACEERROR(LogWeapon, "%s hit path of %s if invalid",
-		           *UEnum::GetValueAsString(CurrentDirection),
-		           *meleeWeaponData->GetFName().ToString());
+			*UEnum::GetValueAsString(CurrentDirection),
+			*meleeWeaponData->GetFName().ToString());
 		return;
 	}
 	UWeaponHitPathAsset* hitPath = attackData.HitPath;
@@ -1005,7 +987,6 @@ void UAdvancedWeaponManager::AttackMelee_Internal(UMeleeWeapon* InMeleeWeapon)
 	// Will be called after all elements are line-traced
 	auto hitFinishDelegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::HitFinished);
 	GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, hitFinishDelegate, attackData.HittingTime, false);
-
 
 	if (!IsAttackComboValid())
 	{
@@ -1022,13 +1003,13 @@ void UAdvancedWeaponManager::AttackMelee_Internal(UMeleeWeapon* InMeleeWeapon)
 	HitNum = 0;
 
 	const float frequency = attackData.HittingTime / FMath::Clamp(hitPath->Data.Elements.Num(), 1,
-	                                                              TNumericLimits<int32>::Max() - 1);
+		TNumericLimits<int32>::Max() - 1);
 	auto hittingDelegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::MeleeHitProcedure);
 	GetWorld()->GetTimerManager().SetTimer(HittingTimerHandle, hittingDelegate, frequency, true);
 
 	const FMeleeAttackAnimData& attackAnimData = InMeleeWeapon->IsShieldEquipped()
-		                                             ? meleeAnims->Shield.Attack
-		                                             : meleeAnims->Attack;
+		? meleeAnims->Shield.Attack
+		: meleeAnims->Attack;
 	const FAttackAnimMontageData& attackAnim = attackAnimData.Get(CurrentDirection);
 
 	Multi_PlayAnim(InMeleeWeapon, attackAnim.Hit, attackData.HittingTime, false);
@@ -1053,14 +1034,14 @@ void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapo
 		SetManagingStatus(EWeaponManagingStatus::Idle);
 		return;
 	}
-	
+
 	if (ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
 	{
 		URangeWeaponDataAsset* rangeData = InRangeWeapon->GetRangeData();
 		if (!IsValid(rangeData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to range attack",
-			           *InRangeWeapon->GetData()->GetClass()->GetFName().ToString());
+				*InRangeWeapon->GetData()->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -1069,7 +1050,7 @@ void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapo
 		if (!IsValid(rangeData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to range attack",
-			           *InRangeWeapon->GetData()->Animations->GetClass()->GetFName().ToString());
+				*InRangeWeapon->GetData()->Animations->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -1087,7 +1068,7 @@ void UAdvancedWeaponManager::AttackRange_Internal(ULongRangeWeapon* InRangeWeapo
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to start post attack",
-		           *weapon->GetClass()->GetFName().ToString());
+			*weapon->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -1133,7 +1114,7 @@ void UAdvancedWeaponManager::StartParry(EWeaponDirection InDirection)
 		if (!IsValid(meleeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start melee attack",
-			           *data->GetClass()->GetFName().ToString());
+				*data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -1142,7 +1123,7 @@ void UAdvancedWeaponManager::StartParry(EWeaponDirection InDirection)
 		if (!IsValid(meleeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to start melee attack",
-			           *anims->GetClass()->GetFName().ToString());
+				*anims->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -1156,8 +1137,8 @@ void UAdvancedWeaponManager::StartParry(EWeaponDirection InDirection)
 		OnStartedMeleeCharging.Broadcast(meleeWeapon, GetChargingCurve(), GetChargingFinishTime());
 		OnParry.Broadcast(meleeWeapon);
 		const FMeleeAttackAnimData& parryData = meleeWeapon->IsShieldEquipped()
-			                                        ? meleeAnims->Shield.Parry
-			                                        : meleeAnims->Parry;
+			? meleeAnims->Shield.Parry
+			: meleeAnims->Parry;
 		const FAttackAnimMontageData& dirParryData = parryData.Get(InDirection);
 		Multi_PlayAnim(weapon, dirParryData.Charge, parry.PreAttackLen);
 
@@ -1166,7 +1147,7 @@ void UAdvancedWeaponManager::StartParry(EWeaponDirection InDirection)
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to start attack",
-		           *weapon->GetClass()->GetFName().ToString());
+			*weapon->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -1198,7 +1179,7 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 		if (!IsValid(meleeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to block",
-			           *data->GetClass()->GetFName().ToString());
+				*data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -1206,7 +1187,7 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 		if (!IsValid(meleeAnims))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to block",
-			           *anims->GetClass()->GetFName().ToString());
+				*anims->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -1231,8 +1212,8 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 		}
 
 		const FMeleeBlockAnimData& blockAnimData = meleeWeapon->IsShieldEquipped()
-			                                           ? meleeAnims->Shield.Block
-			                                           : meleeAnims->Block;
+			? meleeAnims->Shield.Block
+			: meleeAnims->Block;
 		const FMeleeBlockAnimMontageData& blockAnim = blockAnimData.Get(CurrentDirection);
 
 		Multi_PlayAnim(meleeWeapon, blockAnim, blockAnim.LiftingTime);
@@ -1251,9 +1232,20 @@ void UAdvancedWeaponManager::Server_Block_Implementation(EWeaponDirection InDire
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to block",
-		           *weapon->GetClass()->GetFName().ToString());
+			*weapon->GetClass()->GetFName().ToString());
 		return;
 	}
+}
+
+void UAdvancedWeaponManager::Server_CancelCharge_Implementation()
+{
+	if (!CanCancelCharge())
+		return;
+
+	SetManagingStatus(EWeaponManagingStatus::Idle);
+	SetFightingStatus(EWeaponFightingStatus::Idle);
+
+	Multi_CancelCurrentAnim();
 }
 
 void UAdvancedWeaponManager::Server_UnBlock_Implementation()
@@ -1273,7 +1265,7 @@ void UAdvancedWeaponManager::Server_UnBlock_Implementation()
 		if (!IsValid(meleeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start melee attack",
-			           *data->GetClass()->GetFName().ToString());
+				*data->GetClass()->GetFName().ToString());
 			return;
 		}
 		if (meleeWeapon->IsShieldEquipped())
@@ -1289,7 +1281,7 @@ void UAdvancedWeaponManager::Server_UnBlock_Implementation()
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to unblock",
-		           *weapon->GetClass()->GetFName().ToString());
+			*weapon->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -1323,7 +1315,7 @@ void UAdvancedWeaponManager::Server_GetShield_Implementation()
 		if (!IsValid(meleeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to equip shield",
-			           *data->GetClass()->GetFName().ToString());
+				*data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -1331,7 +1323,7 @@ void UAdvancedWeaponManager::Server_GetShield_Implementation()
 		if (!IsValid(meleeAnims))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) equip shield",
-			           *anims->GetClass()->GetFName().ToString());
+				*anims->GetClass()->GetFName().ToString());
 			return;
 		}
 		meleeWeapon->SetShieldEquipped(true);
@@ -1343,7 +1335,7 @@ void UAdvancedWeaponManager::Server_GetShield_Implementation()
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to equip shield",
-		           *weapon->GetClass()->GetFName().ToString());
+			*weapon->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -1415,7 +1407,7 @@ void UAdvancedWeaponManager::Server_RemoveShield_Implementation()
 		if (!IsValid(meleeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to remove shield",
-			           *data->GetClass()->GetFName().ToString());
+				*data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -1423,20 +1415,20 @@ void UAdvancedWeaponManager::Server_RemoveShield_Implementation()
 		if (!IsValid(meleeAnims))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) remove shield",
-			           *anims->GetClass()->GetFName().ToString());
+				*anims->GetClass()->GetFName().ToString());
 			return;
 		}
 		meleeWeapon->SetShieldEquipped(false);
 		auto delegate = FTimerDelegate::CreateUObject(this, &UAdvancedWeaponManager::ShieldRemoveFinished);
 
 		GetWorld()->GetTimerManager().SetTimer(EquippingTimerHandle, delegate, meleeWeaponData->ShieldRemoveTime,
-		                                       false);
+			false);
 		Multi_PlayAnim(meleeWeapon, meleeAnims->Shield.Remove, meleeWeaponData->ShieldRemoveTime);
 	}
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to remove shield",
-		           *weapon->GetClass()->GetFName().ToString());
+			*weapon->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -1470,8 +1462,7 @@ void UAdvancedWeaponManager::DeEquipFinished()
 
 	if (NextEquip.IsValid())
 	{
-		GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([this]()
-		{
+		GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([this]() {
 			EquipNextWeapon_Internal();
 		}));
 	}
@@ -1504,8 +1495,8 @@ void UAdvancedWeaponManager::DeEquip_Internal(int32 InIndex)
 		if (UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(anims))
 		{
 			const FAnimMontageFullData& deEquipData = meleeWeapon->IsShieldEquipped()
-				                                          ? meleeAnims->Shield.DeEquip
-				                                          : anims->DeEquip;
+				? meleeAnims->Shield.DeEquip
+				: anims->DeEquip;
 			Multi_PlayAnim(weapon, deEquipData, data->DeEquipTime);
 			return;
 		}
@@ -1549,8 +1540,8 @@ void UAdvancedWeaponManager::Equip_Internal(int32 InIndex)
 		if (UMeleeWeaponAnimDataAsset* meleeAnims = Cast<UMeleeWeaponAnimDataAsset>(anims))
 		{
 			const FAnimMontageFullData& equipData = meleeWeapon->IsShieldEquipped()
-				                                        ? meleeAnims->Shield.Equip
-				                                        : anims->Equip;
+				? meleeAnims->Shield.Equip
+				: anims->Equip;
 			Multi_PlayAnim(weapon, equipData, data->DeEquipTime);
 
 			OnEquipSound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.Equip);
@@ -1624,7 +1615,7 @@ void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection 
 		if (!IsValid(meleeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start melee attack",
-			           *data->GetClass()->GetFName().ToString());
+				*data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -1633,7 +1624,7 @@ void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection 
 		if (!IsValid(meleeAnims))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to start melee attack",
-			           *anims->GetClass()->GetFName().ToString());
+				*anims->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -1644,8 +1635,8 @@ void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection 
 		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle, initialDelegate, attackData.PreAttackLen, false);
 
 		const FMeleeAttackAnimData& attackAnimData = meleeWeapon->IsShieldEquipped()
-			                                             ? meleeAnims->Shield.Attack
-			                                             : meleeAnims->Attack;
+			? meleeAnims->Shield.Attack
+			: meleeAnims->Attack;
 		const FAttackAnimMontageData& attackAnim = attackAnimData.Get(InDirection);
 		auto montageData = attackAnim;
 		Multi_PlayAnim(weapon, montageData.Charge, attackData.PreAttackLen);
@@ -1654,7 +1645,7 @@ void UAdvancedWeaponManager::Server_StartAttack_Implementation(EWeaponDirection 
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to start attack",
-		           *weapon->GetClass()->GetFName().ToString());
+			*weapon->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -1676,7 +1667,7 @@ void UAdvancedWeaponManager::Server_StartAttackSimple_Implementation()
 		// TODO: Melee undirected attack
 
 		TRACEERROR(LogWeapon, "%s is not NOT IMPLEMENTED for 'UMeleeWeapon'",
-		           *weapon->GetClass()->GetFName().ToString());
+			*weapon->GetClass()->GetFName().ToString());
 	}
 	else if (ULongRangeWeapon* rangeWeapon = Cast<ULongRangeWeapon>(weapon))
 	{
@@ -1684,7 +1675,7 @@ void UAdvancedWeaponManager::Server_StartAttackSimple_Implementation()
 		if (!IsValid(rangeData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to start range attack",
-			           *data->GetClass()->GetFName().ToString());
+				*data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -1692,7 +1683,7 @@ void UAdvancedWeaponManager::Server_StartAttackSimple_Implementation()
 		if (!IsValid(rangeAnims))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to start range attack",
-			           *anims->GetClass()->GetFName().ToString());
+				*anims->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -1706,7 +1697,7 @@ void UAdvancedWeaponManager::Server_StartAttackSimple_Implementation()
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon class (%s) to start simple attack",
-		           *weapon->GetClass()->GetFName().ToString());
+			*weapon->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -1744,9 +1735,9 @@ void UAdvancedWeaponManager::Multi_PlayAnim_Implementation(
 }
 
 void UAdvancedWeaponManager::Multi_PlayVisualAnim_Implementation(UAbstractWeapon* InWeapon,
-                                                                 const FAnimMontageFullData& InAnimSet, float InTimeLen,
-                                                                 int32 VisualIndex, bool bUseSection,
-                                                                 const FName& Section)
+	const FAnimMontageFullData& InAnimSet, float InTimeLen,
+	int32 VisualIndex, bool bUseSection,
+	const FName& Section)
 {
 	FAnimPlayData data;
 	if (bUseSection)
@@ -1848,26 +1839,24 @@ void UAdvancedWeaponManager::Multi_DropWeaponVisual_Implementation(const FString
 void UAdvancedWeaponManager::Client_BlockRuined_Implementation(const FMeleeBlockData& Block)
 {
 	UE_LOG(LogWeapon, Error, TEXT("%hs OnClientBlockRuined.Broadcast"),
-	       __FUNCTION__);
+		__FUNCTION__);
 	OnClientBlockRuined.Broadcast(EWeaponDirection::Forward, Block);
 }
 
 void UAdvancedWeaponManager::Client_Blocked_Implementation(EWeaponDirection InDirection,
-                                                           const FMeleeBlockData& InBlockData)
+	const FMeleeBlockData& InBlockData)
 {
 	OnClientBlocked.Broadcast(InDirection, InBlockData);
 }
 
 void UAdvancedWeaponManager::Client_ParryStun_Implementation(EWeaponDirection InDirection,
-                                                             const FMeleeAttackData& InAttackData)
+	const FMeleeAttackData& InAttackData)
 {
 	OnClientParryStunned.Broadcast(InDirection, InAttackData);
 }
 
 
-void UAdvancedWeaponManager::Client_HitFinished_Implementation()
-{
-}
+void UAdvancedWeaponManager::Client_HitFinished_Implementation() {}
 
 void UAdvancedWeaponManager::Multi_MeleeChargeFinished_Implementation()
 {
@@ -1893,9 +1882,7 @@ void UAdvancedWeaponManager::Multi_RangeCanceled_Implementation()
 	}
 }
 
-void UAdvancedWeaponManager::Client_BlockChargingFinished_Implementation()
-{
-}
+void UAdvancedWeaponManager::Client_BlockChargingFinished_Implementation() {}
 
 
 void UAdvancedWeaponManager::UpdateModifierCharging()
@@ -1972,14 +1959,14 @@ void UAdvancedWeaponManager::AttachBack(AWeaponVisual* InVisual)
 	else
 	{
 		TRACEERROR(LogWeapon, "%s of %s doesn't implement UWeaponManagerOwner interface!",
-		           *owner->GetFName().ToString(), *owner->GetClass()->GetFName().ToString());
+			*owner->GetFName().ToString(), *owner->GetClass()->GetFName().ToString());
 		// Do not call this
 		attachComponent = owner->FindComponentByClass<USkeletalMeshComponent>();
 	}
 
 	FName backSocket = InVisual->GetBackSocket();
 	InVisual->AttachToComponent(attachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-	                            backSocket);
+		backSocket);
 
 	if (IsLocalCustomPlayer())
 	{
@@ -2004,14 +1991,14 @@ void UAdvancedWeaponManager::AttachHand(AWeaponVisual* InVisual)
 	else
 	{
 		TRACEERROR(LogWeapon, "%s of %s doesn't implement UWeaponManagerOwner interface!",
-		           *owner->GetFName().ToString(), *owner->GetClass()->GetFName().ToString());
+			*owner->GetFName().ToString(), *owner->GetClass()->GetFName().ToString());
 		// Do not call this
 		attachComponent = owner->FindComponentByClass<USkeletalMeshComponent>();
 	}
 
 	const FName handSocket = InVisual->GetHandSocket();
 	InVisual->AttachToComponent(attachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-	                            handSocket);
+		handSocket);
 	FString wpn = InVisual->GetGUIDString();
 	//TRACE(LogWeapon, "Visual '%s' was attached to hand. Saved Guid: '%s'", *wpn, *SavedGuid);
 
@@ -2098,8 +2085,8 @@ void UAdvancedWeaponManager::HideWeaponTrail(int32 InVisualIndex)
 }
 
 void UAdvancedWeaponManager::NotifyPlayWeaponAnim(UAbstractWeapon* InWeapon, const FAnimMontageFullData& InMontageData,
-                                                  float MontageTime, int32 VisualIndex, bool bUseSection,
-                                                  const FName& Section)
+	float MontageTime, int32 VisualIndex, bool bUseSection,
+	const FName& Section)
 {
 	Multi_PlayVisualAnim(InWeapon, InMontageData, MontageTime, VisualIndex, bUseSection, Section);
 }
@@ -2161,7 +2148,7 @@ void UAdvancedWeaponManager::NotifyBlocked()
 		if (!IsValid(meleeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s)to apply block",
-			           *data->GetClass()->GetFName().ToString());
+				*data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -2169,7 +2156,7 @@ void UAdvancedWeaponManager::NotifyBlocked()
 		if (!IsValid(meleeAnims))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s)to apply block",
-			           *data->GetClass()->GetFName().ToString());
+				*data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -2181,7 +2168,7 @@ void UAdvancedWeaponManager::NotifyBlocked()
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to apply block",
-		           *data->GetClass()->GetFName().ToString());
+			*data->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -2202,7 +2189,7 @@ void UAdvancedWeaponManager::NotifyShieldRuined()
 		if (!IsValid(meleeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to ruin shield",
-			           *data->GetClass()->GetFName().ToString());
+				*data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -2210,7 +2197,7 @@ void UAdvancedWeaponManager::NotifyShieldRuined()
 		if (!IsValid(meleeAnims))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s) to ruin shield",
-			           *data->GetClass()->GetFName().ToString());
+				*data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -2218,13 +2205,13 @@ void UAdvancedWeaponManager::NotifyShieldRuined()
 
 		OnMeleeBlockSound.Broadcast(meleeWeapon, meleeAnims->SoundPack, meleeAnims->SoundPack.Block);
 		UE_LOG(LogWeapon, Error, TEXT("%hs Client_BlockRuined()"),
-		       __FUNCTION__);
+			__FUNCTION__);
 		Client_BlockRuined(currentData.Block);
 	}
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to ruin shield",
-		           *data->GetClass()->GetFName().ToString());
+			*data->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -2305,7 +2292,7 @@ void UAdvancedWeaponManager::ApplyParryStun()
 		if (!IsValid(meleeWeaponData))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon data class (%s)to apply parry stun",
-			           *data->GetClass()->GetFName().ToString());
+				*data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -2313,7 +2300,7 @@ void UAdvancedWeaponManager::ApplyParryStun()
 		if (!IsValid(meleeAnims))
 		{
 			TRACEERROR(LogWeapon, "Invalid weapon anim data class (%s)to apply parry stun",
-			           *data->GetClass()->GetFName().ToString());
+				*data->GetClass()->GetFName().ToString());
 			return;
 		}
 
@@ -2321,9 +2308,9 @@ void UAdvancedWeaponManager::ApplyParryStun()
 		float stunLen = currentData.Attack.AttackStunLen;
 
 		GetWorld()->GetTimerManager().SetTimer(FightTimerHandle,
-		                                       FTimerDelegate::CreateUObject(
-			                                       this, &UAdvancedWeaponManager::ParryStunFinished),
-		                                       stunLen, false);
+			FTimerDelegate::CreateUObject(
+				this, &UAdvancedWeaponManager::ParryStunFinished),
+			stunLen, false);
 
 		OnParryStunned.Broadcast(CurrentDirection, currentData.Attack);
 		Multi_CancelCurrentAnim();
@@ -2332,7 +2319,7 @@ void UAdvancedWeaponManager::ApplyParryStun()
 	else
 	{
 		TRACEERROR(LogWeapon, "Invalid weapon data class (%s) to apply block stun",
-		           *data->GetClass()->GetFName().ToString());
+			*data->GetClass()->GetFName().ToString());
 		return;
 	}
 }
@@ -2413,25 +2400,24 @@ EBlockResult UAdvancedWeaponManager::CanBlockIncomingDamage(UAdvancedWeaponManag
 	const auto attackDir = Causer->GetCurrentDirection();
 	const auto blockDir = GetCurrentDirection();
 
-	auto checkBlockDir = [](EWeaponDirection attack, EWeaponDirection block)
-	{
+	auto checkBlockDir = [](EWeaponDirection attack, EWeaponDirection block) {
 		switch (attack)
 		{
-		case EWeaponDirection::Forward:
-		case EWeaponDirection::Backward:
-			// Block direction must match for Forward and Backward attacks
-			return attack == block;
+			case EWeaponDirection::Forward:
+			case EWeaponDirection::Backward:
+				// Block direction must match for Forward and Backward attacks
+				return attack == block;
 
-		case EWeaponDirection::Right:
-			// Block direction must be Left for a Right attack
-			return block == EWeaponDirection::Left;
+			case EWeaponDirection::Right:
+				// Block direction must be Left for a Right attack
+				return block == EWeaponDirection::Left;
 
-		case EWeaponDirection::Left:
-			// Block direction must be Right for a Left attack
-			return block == EWeaponDirection::Right;
-		default:
-			// If WeaponDir is invalid, return false
-			return false;
+			case EWeaponDirection::Left:
+				// Block direction must be Right for a Left attack
+				return block == EWeaponDirection::Right;
+			default:
+				// If WeaponDir is invalid, return false
+				return false;
 		}
 	};
 	const bool bShield = meleeWpn->IsShieldEquipped();
@@ -2529,7 +2515,6 @@ float UAdvancedWeaponManager::BlockIncomingDamage(float InDmg, UAdvancedWeaponMa
 	// Target weapon must be valid
 	if (!IsValid(causerWpn))
 		return InDmg;
-
 
 	// Causer must be in state 'Attacking'
 	if (Causer->GetFightingStatus() != EWeaponFightingStatus::Attacking)
@@ -2681,7 +2666,6 @@ bool UAdvancedWeaponManager::CanDeEquip(int32 InIndex) const
 	if (!IsValid(currentWeapon))
 		return false;
 
-
 	// Invalid current weapon
 	const int32 currentIndex = GetCurrentWeaponIndex();
 	if (currentIndex == INDEX_NONE)
@@ -2722,7 +2706,6 @@ bool UAdvancedWeaponManager::CanAttack() const
 		return false;
 	EWeaponFightingStatus fightingStatus = GetFightingStatus();
 
-
 	bool bCharging = fightingStatus == EWeaponFightingStatus::AttackCharging || fightingStatus ==
 		EWeaponFightingStatus::RangeCharging;
 	if (!bCharging)
@@ -2744,7 +2727,6 @@ bool UAdvancedWeaponManager::CanBlock() const
 	if (!cur->IsBlockAllowed())
 		return false;
 
-
 	// Can not block with shield if it lost durability
 	if (UMeleeWeapon* meleeWeapon = Cast<UMeleeWeapon>(GetCurrentWeapon()))
 	{
@@ -2763,6 +2745,20 @@ bool UAdvancedWeaponManager::CanBlock() const
 		EWeaponFightingStatus::RangeCharging;
 
 	return bIdle || bAttackCharge;
+}
+
+bool UAdvancedWeaponManager::CanCancelCharge() const
+{
+	UAbstractWeapon* cur = GetCurrentWeapon();
+	if (!IsValid(cur))
+		return false;
+	if (!cur->IsValidData())
+		return false;
+
+	const EWeaponFightingStatus status = GetFightingStatus();
+	const bool bAttackCharge = status == EWeaponFightingStatus::AttackCharging;
+	const bool bRangeCharge = status == EWeaponFightingStatus::RangeCharging;
+	return bAttackCharge || bRangeCharge;
 }
 
 bool UAdvancedWeaponManager::CanUnBlock() const
@@ -2835,9 +2831,9 @@ bool UAdvancedWeaponManager::CanRemoveShield() const
 }
 
 void UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float Amount,
-                                                 const FHitResult& HitResult,
-                                                 TSubclassOf<UDamageType> DamageType,
-                                                 EDamageReturn& OutDamageReturn, float& OutDamage)
+	const FHitResult& HitResult,
+	TSubclassOf<UDamageType> DamageType,
+	EDamageReturn& OutDamageReturn, float& OutDamage)
 {
 	OutDamageReturn = EDamageReturn::Failed;
 	OutDamage = 0.0f;
@@ -2896,10 +2892,9 @@ void UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float Amount,
 		realDmg = this->BlockIncomingDamage(Amount, causerWpnManager);
 	}
 
-
 	IWeaponManagerOwner::Execute_ApplyDamage(GetOwner(), Causer, realDmg, HitResult,
-	                                         DamageType,
-	                                         OutDamageReturn, OutDamage);
+		DamageType,
+		OutDamageReturn, OutDamage);
 
 	if (bHasLostDurability)
 	{
@@ -2918,8 +2913,8 @@ void UAdvancedWeaponManager::ProcessWeaponDamage(AActor* Causer, float Amount,
 }
 
 void UAdvancedWeaponManager::ProcessProjectileDamage(AActor* Causer, float Amount, const FHitResult& HitResult,
-                                                     TSubclassOf<UDamageType> DamageType,
-                                                     EDamageReturn& OutDamageReturn, float& OutDamage)
+	TSubclassOf<UDamageType> DamageType,
+	EDamageReturn& OutDamageReturn, float& OutDamage)
 {
 	OutDamageReturn = EDamageReturn::Failed;
 	OutDamage = 0.0f;
@@ -2958,10 +2953,9 @@ void UAdvancedWeaponManager::ProcessProjectileDamage(AActor* Causer, float Amoun
 	if (GetOwner()->Implements<UWeaponManagerOwner>())
 	{
 		IWeaponManagerOwner::Execute_ApplyDamage(GetOwner(), Causer, Amount, HitResult,
-		                                         DamageType,
-		                                         OutDamageReturn, OutDamage);
+			DamageType,
+			OutDamageReturn, OutDamage);
 	}
-
 
 	if (bHasLostShieldDurability)
 	{
@@ -3067,6 +3061,13 @@ void UAdvancedWeaponManager::RequestBlockProxy(EWeaponDirection InDirection)
 	if (!CanBlock())
 		return;
 	Server_Block(InDirection);
+}
+
+void UAdvancedWeaponManager::RequestCancelChargeProxy()
+{
+	if (!CanCancelCharge())
+		return;
+	Server_CancelCharge();
 }
 
 void UAdvancedWeaponManager::RequestBlockReleasedProxy()

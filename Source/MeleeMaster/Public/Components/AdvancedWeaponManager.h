@@ -481,6 +481,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual void RequestBlockProxy(EWeaponDirection InDirection);
+	
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
+	virtual void RequestCancelChargeProxy();
 
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual void RequestBlockReleasedProxy();
@@ -555,6 +558,9 @@ protected:
 	 */
 	UFUNCTION(Server, Reliable)
 	void Server_RemoveShield();
+
+	UFUNCTION(Server, Reliable)
+	void Server_CancelCharge();
 
 #pragma endregion
 
@@ -799,6 +805,10 @@ public:
 	// Idle -> Block
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
 	virtual bool CanBlock() const;
+	
+	// Charge -> Idle
+	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
+	virtual bool CanCancelCharge() const;
 
 	// Block -> Idle
 	UFUNCTION(BlueprintCallable, Category="AdvancedWeaponManager|Fight")
