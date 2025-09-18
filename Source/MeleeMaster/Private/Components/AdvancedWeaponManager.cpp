@@ -1242,9 +1242,21 @@ void UAdvancedWeaponManager::Server_CancelCharge_Implementation()
 	if (!CanCancelCharge())
 		return;
 
+	bool bMelee = GetFightingStatus() == EWeaponFightingStatus::AttackCharging;
+	bool bRange = GetFightingStatus() == EWeaponFightingStatus::RangeCharging;
+
 	SetManagingStatus(EWeaponManagingStatus::Idle);
 	SetFightingStatus(EWeaponFightingStatus::Idle);
 
+	if (bMelee)
+	{
+		OnCanceledMeleeCharging.Broadcast(GetCurrentWeapon());
+	}
+	else if (bRange)
+	{
+		OnCanceledRangeCharging.Broadcast(GetCurrentWeapon());
+	}
+	
 	Multi_CancelCurrentAnim();
 }
 
